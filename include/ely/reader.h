@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "ely/lexer.h"
+#include "ely/export.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,12 +53,12 @@ struct ElyStxNode
     struct ElyStxLocation location;
 };
 
-void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
+ELY_EXPORT void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
                           enum ElyStx kind,
                           void* __restrict__ data,
                           uint32_t len);
 
-void ely_stx_node_destroy(struct ElyStxNode* stx);
+ELY_EXPORT void ely_stx_node_destroy(struct ElyStxNode* stx);
 
 struct ElyReader
 {

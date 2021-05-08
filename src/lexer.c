@@ -66,9 +66,18 @@ static inline bool is_delimiter(char c)
 
 static inline uint32_t parse_bad_stx();
 
+void ely_lex_create(struct ElyLexer* lex,
+                    const char* __restrict__ src,
+                    uint32_t len)
+{
+    lex->src = src;
+    lex->len = len;
+    lex->pos = 0;
+}
+
 uint32_t ely_lex_src(struct ElyLexer* lex,
-                      struct ElyToken* __restrict__ token_buf,
-                      uint32_t buf_len)
+                     struct ElyToken* __restrict__ token_buf,
+                     uint32_t buf_len)
 {
     uint32_t buf_i = 0;
     for (; buf_i != buf_len; ++buf_i)

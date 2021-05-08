@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "ely/export.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
