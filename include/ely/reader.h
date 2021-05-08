@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-enum ElycStx
+enum ElyStx
 {
     ELY_STX_PARENS_LIST,
     ELY_STX_BRACKET_LIST,
@@ -25,43 +25,43 @@ enum ElycStx
     ELY_STX_FALSE_LIT,
 };
 
-struct ElycPosition
+struct ElyPosition
 {
     uint32_t row;
     uint32_t col;
 };
 
-struct ElycStxLocation
+struct ElyStxLocation
 {
     const char*         filename;
     uint32_t            start_byte;
     uint32_t            end_byte;
-    struct ElycPosition start_pos;
-    struct ElycPosition end_pos;
+    struct ElyPosition start_pos;
+    struct ElyPosition end_pos;
 };
 
-struct ElycStxNode
+struct ElyStxNode
 {
 
     void*    data;
     uint32_t len;
     // both of these get packed into the 4 bytes behind len
-    enum ElycStx kind;
+    enum ElyStx kind;
     bool         is_stx;
 
-    struct ElycStxLocation location;
+    struct ElyStxLocation location;
 };
 
-void elyc_stx_node_create(struct ElycStxNode* __restrict__ stx,
-                          enum ElycStx kind,
+void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
+                          enum ElyStx kind,
                           void* __restrict__ data,
                           uint32_t len);
 
-void elyc_stx_node_destroy(struct ElycStxNode* stx);
+void ely_stx_node_destroy(struct ElyStxNode* stx);
 
-struct ElycReader
+struct ElyReader
 {
-    struct ElycLexer lexer;
+    struct ElyLexer lexer;
 };
 
 #ifdef __cplusplus

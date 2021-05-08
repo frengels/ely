@@ -8,15 +8,15 @@
 extern "C" {
 #endif
 
-struct ElycLexer
+struct ElyLexer
 {
     const char* __restrict__ src;
     uint32_t len;
     uint32_t pos;
 };
 
-uint32_t elyc_lex_src(struct ElycLexer* lex,
-                      struct ElycToken* __restrict__ token_buf,
+uint32_t ely_lex_src(struct ElyLexer* lex,
+                      struct ElyToken* __restrict__ token_buf,
                       uint32_t buf_len);
 
 #ifdef __cplusplus

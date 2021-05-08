@@ -2,8 +2,8 @@
 
 #include <stdlib.h>
 
-void elyc_stx_node_create(struct ElycStxNode* __restrict__ stx,
-                          enum ElycStx kind,
+void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
+                          enum ElyStx kind,
                           void* __restrict__ data,
                           uint32_t len)
 {
@@ -30,7 +30,7 @@ void elyc_stx_node_create(struct ElycStxNode* __restrict__ stx,
     }
 }
 
-void elyc_stx_node_destroy(struct ElycStxNode* stx)
+void ely_stx_node_destroy(struct ElyStxNode* stx)
 {
     switch (stx->kind)
     {

@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-enum ElycTokenKind
+enum ElyTokenKind
 {
     ELY_TOKEN_EOF = 0,
 
@@ -35,9 +35,9 @@ enum ElycTokenKind
 
 };
 
-struct ElycToken
+struct ElyToken
 {
-    enum ElycTokenKind kind;
+    enum ElyTokenKind kind;
     uint32_t           len;
 };
 
