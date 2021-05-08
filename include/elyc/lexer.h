@@ -9,13 +9,15 @@ extern "C" {
 #endif
 
 struct ElycLexer
-{};
+{
+    const char* __restrict__ src;
+    uint32_t len;
+    uint32_t pos;
+};
 
 uint32_t elyc_lex_src(struct ElycLexer* lex,
-                  const char* __restrict__ src,
-                  uint32_t src_len,
-                  struct ElycToken* __restrict__ token_buf,
-                  uint32_t buf_len);
+                      struct ElycToken* __restrict__ token_buf,
+                      uint32_t buf_len);
 
 #ifdef __cplusplus
 }
