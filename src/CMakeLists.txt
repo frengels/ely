@@ -18,7 +18,6 @@ set_target_properties(ely
     EXPORT_NAME lexer
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
-    INTERPROCEDURAL_OPTIMIZATION ON
     VISIBILITY_INLINES_HIDDEN ON) # only for c++
 
 add_executable(elyc main.c)
