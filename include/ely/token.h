@@ -37,11 +37,11 @@ enum ElyTokenKind
 
 };
 
-struct ElyToken
+typedef struct ElyToken
 {
     enum ElyTokenKind kind;
-    uint32_t           len;
-};
+    uint32_t          len;
+} ElyToken;
 
 #ifdef __cplusplus
 }

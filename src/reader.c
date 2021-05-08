@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
+void ely_stx_node_create(ElyStxNode* __restrict__ stx,
                          enum ElyStx kind,
                          void* __restrict__ data,
                          uint32_t len)
@@ -34,7 +34,7 @@ void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
     }
 }
 
-void ely_stx_node_destroy(struct ElyStxNode* stx)
+void ely_stx_node_destroy(ElyStxNode* stx)
 {
     switch (stx->kind)
     {
@@ -54,7 +54,7 @@ void ely_stx_node_destroy(struct ElyStxNode* stx)
     }
 }
 
-void ely_reader_create(struct ElyReader* reader, const char* filename)
+void ely_reader_create(ElyReader* reader, const char* filename)
 {
     reader->filename        = filename;
     reader->current_pos.row = 1;
@@ -62,12 +62,11 @@ void ely_reader_create(struct ElyReader* reader, const char* filename)
     reader->current_byte    = 0;
 }
 
-struct ElyStxNode*
-ely_reader_read(struct ElyReader* reader, struct ElyToken* tokens, uint32_t len)
+ElyStxNode* ely_reader_read(ElyReader* reader, ElyToken* tokens, uint32_t len)
 {
     for (uint32_t i = 0; i != len; ++i)
     {
-        struct ElyToken tok = tokens[i];
+        ElyToken tok = tokens[i];
         switch (tok.kind)
         {
         case ELY_TOKEN_WHITESPACE:
@@ -94,12 +93,12 @@ ely_reader_read(struct ElyReader* reader, struct ElyToken* tokens, uint32_t len)
         case ELY_TOKEN_STRING_LIT:
         case ELY_TOKEN_KEYWORD_LIT:
         case ELY_TOKEN_TRUE_LIT: {
-            struct ElyStxNode* node = malloc(sizeof(struct ElyStxNode));
+            ElyStxNode* node = malloc(sizeof(ElyStxNode));
             ely_stx_node_create(node, ELY_STX_TRUE_LIT, NULL, 0);
             return node;
         }
         case ELY_TOKEN_FALSE_LIT: {
-            struct ElyStxNode* node = malloc(sizeof(struct ElyStxNode));
+            ElyStxNode* node = malloc(sizeof(ElyStxNode));
             ely_stx_node_create(node, ELY_STX_FALSE_LIT, NULL, 0);
             return node;
         }

@@ -5,22 +5,22 @@
 
 #include "ely/defines.h"
 
-static inline const char* ely_peek_data(struct ElyLexer* lex)
+static inline const char* ely_peek_data(ElyLexer* lex)
 {
     return &lex->src[lex->pos];
 }
 
-static inline void ely_lex_advance(struct ElyLexer* lex)
+static inline void ely_lex_advance(ElyLexer* lex)
 {
     ++lex->pos;
 }
 
-static inline bool ely_lex_at_end(struct ElyLexer* lex)
+static inline bool ely_lex_at_end(ElyLexer* lex)
 {
     return lex->pos == lex->len;
 }
 
-static inline char ely_lex_peek_char(struct ElyLexer* lex)
+static inline char ely_lex_peek_char(ElyLexer* lex)
 {
     assert(!ely_lex_at_end(lex));
     return lex->src[lex->pos];
@@ -66,18 +66,15 @@ static inline bool is_delimiter(char c)
 
 static inline uint32_t parse_bad_stx();
 
-void ely_lex_create(struct ElyLexer* lex,
-                    const char* __restrict__ src,
-                    uint32_t len)
+void ely_lex_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len)
 {
     lex->src = src;
     lex->len = len;
     lex->pos = 0;
 }
 
-uint32_t ely_lex_src(struct ElyLexer* lex,
-                     struct ElyToken* __restrict__ token_buf,
-                     uint32_t buf_len)
+uint32_t
+ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
 {
     uint32_t buf_i = 0;
     for (; buf_i != buf_len; ++buf_i)

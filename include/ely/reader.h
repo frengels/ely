@@ -26,22 +26,22 @@ enum ElyStx
     ELY_STX_FALSE_LIT,
 };
 
-struct ElyPosition
+typedef struct ElyPosition
 {
     uint32_t row;
     uint32_t col;
-};
+} ElyPosition;
 
-struct ElyStxLocation
+typedef struct ElyStxLocation
 {
-    const char*        filename;
-    uint32_t           start_byte;
-    uint32_t           end_byte;
-    struct ElyPosition start_pos;
-    struct ElyPosition end_pos;
-};
+    const char* filename;
+    uint32_t    start_byte;
+    uint32_t    end_byte;
+    ElyPosition start_pos;
+    ElyPosition end_pos;
+} ElyStxLocation;
 
-struct ElyStxNode
+typedef struct ElyStxNode
 {
 
     void*    data;
@@ -50,30 +50,28 @@ struct ElyStxNode
     enum ElyStx kind;
     bool        is_stx;
 
-    struct ElyStxLocation location;
-};
+    ElyStxLocation location;
+} ElyStxNode;
 
-ELY_EXPORT void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
+ELY_EXPORT void ely_stx_node_create(ElyStxNode* __restrict__ stx,
                                     enum ElyStx kind,
                                     void* __restrict__ data,
                                     uint32_t data_len);
 
-ELY_EXPORT void ely_stx_node_destroy(struct ElyStxNode* stx);
+ELY_EXPORT void ely_stx_node_destroy(ElyStxNode* stx);
 
-struct ElyReader
+typedef struct ElyReader
 {
     const char* filename;
 
-    struct ElyPosition current_pos;
-    uint32_t           current_byte;
-};
+    ElyPosition current_pos;
+    uint32_t    current_byte;
+} ElyReader;
 
-ELY_EXPORT void ely_reader_create(struct ElyReader* reader,
-                                  const char*       filename);
+ELY_EXPORT void ely_reader_create(ElyReader* reader, const char* filename);
 
-ELY_EXPORT struct ElyStxNode* ely_reader_read(struct ElyReader* reader,
-                                              struct ElyToken*  tokens,
-                                              uint32_t          len);
+ELY_EXPORT ElyStxNode*
+           ely_reader_read(ElyReader* reader, ElyToken* tokens, uint32_t len);
 
 #ifdef __cplusplus
 }
