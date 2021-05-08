@@ -56,14 +56,24 @@ struct ElyStxNode
 ELY_EXPORT void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
                                     enum ElyStx kind,
                                     void* __restrict__ data,
-                                    uint32_t len);
+                                    uint32_t data_len);
 
 ELY_EXPORT void ely_stx_node_destroy(struct ElyStxNode* stx);
 
 struct ElyReader
 {
-    struct ElyLexer lexer;
+    const char* filename;
+
+    struct ElyPosition current_pos;
+    uint32_t           current_byte;
 };
+
+ELY_EXPORT void ely_reader_create(struct ElyReader* reader,
+                                  const char*       filename);
+
+ELY_EXPORT struct ElyStxNode* ely_reader_read(struct ElyReader* reader,
+                                              struct ElyToken*  tokens,
+                                              uint32_t          len);
 
 #ifdef __cplusplus
 }
