@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "ely/lexer.h"
 #include "ely/export.h"
+#include "ely/lexer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,9 +34,9 @@ struct ElyPosition
 
 struct ElyStxLocation
 {
-    const char*         filename;
-    uint32_t            start_byte;
-    uint32_t            end_byte;
+    const char*        filename;
+    uint32_t           start_byte;
+    uint32_t           end_byte;
     struct ElyPosition start_pos;
     struct ElyPosition end_pos;
 };
@@ -48,15 +48,15 @@ struct ElyStxNode
     uint32_t len;
     // both of these get packed into the 4 bytes behind len
     enum ElyStx kind;
-    bool         is_stx;
+    bool        is_stx;
 
     struct ElyStxLocation location;
 };
 
 ELY_EXPORT void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
-                          enum ElyStx kind,
-                          void* __restrict__ data,
-                          uint32_t len);
+                                    enum ElyStx kind,
+                                    void* __restrict__ data,
+                                    uint32_t len);
 
 ELY_EXPORT void ely_stx_node_destroy(struct ElyStxNode* stx);
 

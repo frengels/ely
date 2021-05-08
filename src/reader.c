@@ -1,11 +1,12 @@
 #include "ely/reader.h"
 
 #include <stdlib.h>
+#include <assert.h>
 
 void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
-                          enum ElyStx kind,
-                          void* __restrict__ data,
-                          uint32_t len)
+                         enum ElyStx kind,
+                         void* __restrict__ data,
+                         uint32_t len)
 {
     stx->kind = kind;
 
@@ -23,6 +24,8 @@ void ely_stx_node_create(struct ElyStxNode* __restrict__ stx,
         stx->len  = len;
     case ELY_STX_TRUE_LIT:
     case ELY_STX_FALSE_LIT:
+        assert(data == NULL);
+        assert(len == 0);
         stx->data = NULL;
         stx->len  = 0;
     default:
@@ -42,7 +45,6 @@ void ely_stx_node_destroy(struct ElyStxNode* stx)
     case ELY_STX_STRING_LIT:
     case ELY_STX_INT_LIT:
     case ELY_STX_FLOAT_LIT:
-        // TODO: allow custom allocators
         free(stx->data);
     case ELY_STX_TRUE_LIT:
     case ELY_STX_FALSE_LIT:
