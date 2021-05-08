@@ -1,5 +1,6 @@
 set(LEX_SRC
-    lexer.c)
+    lexer.c
+    reader.c)
 
 add_library(elyc_lexer STATIC ${LEX_SRC})
 add_library(elyc::lexer ALIAS elyc_lexer)
