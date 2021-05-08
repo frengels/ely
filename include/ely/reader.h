@@ -3,9 +3,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "elyc/lexer.h"
+#include "ely/lexer.h"
 
-enum ElycStx : uint8_t
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum ElycStx
 {
     ELY_STX_PARENS_LIST,
     ELY_STX_BRACKET_LIST,
@@ -59,3 +63,7 @@ struct ElycReader
 {
     struct ElycLexer lexer;
 };
+
+#ifdef __cplusplus
+}
+#endif

@@ -1,9 +1,9 @@
-#include "elyc/lexer.h"
+#include "ely/lexer.h"
 
 #include <assert.h>
 #include <stdbool.h>
 
-#include "elyc/defines.h"
+#include "ely/defines.h"
 
 static inline const char* elyc_peek_data(struct ElycLexer* lex)
 {
@@ -63,6 +63,8 @@ static inline bool is_delimiter(char c)
         return false;
     }
 }
+
+static inline uint32_t parse_bad_stx();
 
 uint32_t elyc_lex_src(struct ElycLexer* lex,
                       struct ElycToken* __restrict__ token_buf,
@@ -145,7 +147,7 @@ uint32_t elyc_lex_src(struct ElycLexer* lex,
             }
             break;
         case '\n':
-            token_buf[buf_i].kind = ELY_TOKEN_LPAREN;
+            token_buf[buf_i].kind = ELY_TOKEN_NEWLINE_LF;
             token_buf[buf_i].len  = 1;
             ++buf_i;
         case ';': {

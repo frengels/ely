@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "elyc/token.h"
+#include "ely/token.h"
 
 #ifdef __cplusplus
 extern "C" {
