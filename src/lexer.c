@@ -379,6 +379,7 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
                 assert(false && "TODO: handle failure cases and abbreviations");
                 break;
             }
+            break;
         default:
             if (is_number(ch))
             {
