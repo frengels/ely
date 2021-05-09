@@ -162,34 +162,6 @@ parse_number_continue(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
     }
 }
 
-static inline void
-parse_number_start(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
-{
-    char c = ely_lex_peek_char(lexer);
-
-    if (is_number(c))
-    {
-        ++token_len;
-        ely_lex_advance(lexer);
-        ELY_MUSTTAIL return parse_number_continue(lexer, dst, token_len);
-    }
-    else if (is_delimiter(c))
-    {
-        dst->kind = ELY_TOKEN_ID;
-        dst->len  = token_len;
-        return;
-    }
-    else
-    {
-        ++token_len;
-        ely_lex_advance(lexer);
-        uint32_t advanced = lex_advance_to_delimiter(lexer);
-        dst->kind         = ELY_TOKEN_ID;
-        dst->len          = token_len + advanced;
-        return;
-    }
-}
-
 static inline void lex_char(ElyLexer* lexer, ElyToken* dst)
 {
     uint32_t advanced = lex_advance_to_delimiter(lexer);
@@ -198,8 +170,30 @@ static inline void lex_char(ElyLexer* lexer, ElyToken* dst)
     dst->len  = advanced + 2;
 }
 
-static inline void parse_sign(ElyLexer* lex, ElyToken* dst, char sign)
-{}
+static inline void parse_sign(ElyLexer* lex, ElyToken* dst, uint32_t token_len)
+{
+    char ch = ely_lex_peek_char(lex);
+
+    if (is_number(ch))
+    {
+        ely_lex_advance(lex);
+        ++token_len;
+        ELY_MUSTTAIL return parse_number_continue(lex, dst, token_len);
+    }
+    else if (is_delimiter(ch))
+    {
+        dst->kind = ELY_TOKEN_ID;
+        dst->len  = token_len;
+    }
+    else
+    {
+        ++token_len;
+        ely_lex_advance(lex);
+        uint32_t advanced = lex_advance_to_delimiter(lex);
+        dst->kind         = ELY_TOKEN_ID;
+        dst->len          = token_len + advanced;
+    }
+}
 
 void ely_lex_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len)
 {
@@ -334,7 +328,7 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
             break;
         case '+':
         case '-':
-            parse_sign(lex, &token_buf[buf_i], ch);
+            parse_sign(lex, &token_buf[buf_i], 1);
             break;
         case '#':
             ch = ely_lex_peek_char(lex);
