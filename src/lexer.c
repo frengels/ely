@@ -46,42 +46,31 @@ static inline bool is_delimiter(char c)
     }
 }
 
-static inline const char* ely_peek_data(ElyLexer* lex)
-{
-    return &lex->src[lex->pos];
-}
-
-static inline void ely_lex_advance(ElyLexer* lex)
+static inline void lex_advance(ElyLexer* lex)
 {
     ++lex->pos;
 }
 
-static inline bool ely_lex_at_end(ElyLexer* lex)
+static inline bool lex_at_end(ElyLexer* lex)
 {
     return lex->pos == lex->len;
 }
 
-static inline char ely_lex_peek_char(ElyLexer* lex)
+static inline char lex_peek_char(ElyLexer* lex)
 {
-    assert(!ely_lex_at_end(lex));
+    assert(!lex_at_end(lex));
     return lex->src[lex->pos];
-}
-
-static inline const char* ely_lex_peek_data(ElyLexer* lex)
-{
-    assert(!ely_lex_at_end(lex));
-    return &lex->src[lex->pos];
 }
 
 static inline uint32_t lex_advance_to_delimiter(ElyLexer* lexer)
 {
     uint32_t len = 0;
-    char     ch  = ely_lex_peek_char(lexer);
+    char     ch  = lex_peek_char(lexer);
     while (!is_delimiter(ch))
     {
         ++len;
-        ely_lex_advance(lexer);
-        ch = ely_lex_peek_char(lexer);
+        lex_advance(lexer);
+        ch = lex_peek_char(lexer);
     }
 
     return len;
@@ -89,7 +78,7 @@ static inline uint32_t lex_advance_to_delimiter(ElyLexer* lexer)
 
 static inline uint32_t parse_bad_stx();
 
-static inline void lex_keyword(ElyLexer* lexer, ElyToken* dst)
+static inline void parse_keyword(ElyLexer* lexer, ElyToken* dst)
 {
     uint32_t kw_len = lex_advance_to_delimiter(lexer);
     dst->kind       = ELY_TOKEN_KEYWORD_LIT;
@@ -97,15 +86,15 @@ static inline void lex_keyword(ElyLexer* lexer, ElyToken* dst)
 }
 
 // this will parse the fragment of the float
-static inline void lex_float(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
+static inline void parse_float(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
 {
-    char c = ely_lex_peek_char(lexer);
+    char c = lex_peek_char(lexer);
 
     while (is_number(c))
     {
         ++token_len;
-        ely_lex_advance(lexer);
-        c = ely_lex_peek_char(lexer);
+        lex_advance(lexer);
+        c = lex_peek_char(lexer);
     }
 
     if (is_delimiter(c))
@@ -117,7 +106,7 @@ static inline void lex_float(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
     else
     {
         ++token_len;
-        ely_lex_advance(lexer);
+        lex_advance(lexer);
         uint32_t advanced = lex_advance_to_delimiter(lexer);
         dst->kind         = ELY_TOKEN_ID;
         dst->len          = token_len + advanced;
@@ -128,21 +117,21 @@ static inline void lex_float(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
 static inline void
 parse_number_continue(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
 {
-    char c = ely_lex_peek_char(lexer);
+    char c = lex_peek_char(lexer);
     while (is_number(c))
     {
         ++token_len;
-        ely_lex_advance(lexer);
-        c = ely_lex_peek_char(lexer);
+        lex_advance(lexer);
+        c = lex_peek_char(lexer);
     }
 
     // hit a non number character;
     if (c == '.')
     {
         ++token_len;
-        ely_lex_advance(lexer);
+        lex_advance(lexer);
         // lexing a float now
-        ELY_MUSTTAIL return lex_float(lexer, dst, token_len);
+        ELY_MUSTTAIL return parse_float(lexer, dst, token_len);
     }
     else if (is_delimiter(c))
     {
@@ -153,7 +142,7 @@ parse_number_continue(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
     else
     {
         ++token_len;
-        ely_lex_advance(lexer);
+        lex_advance(lexer);
         uint32_t advanced = lex_advance_to_delimiter(lexer);
 
         dst->kind = ELY_TOKEN_ID;
@@ -162,7 +151,7 @@ parse_number_continue(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
     }
 }
 
-static inline void lex_char(ElyLexer* lexer, ElyToken* dst)
+static inline void parse_char(ElyLexer* lexer, ElyToken* dst)
 {
     uint32_t advanced = lex_advance_to_delimiter(lexer);
 
@@ -172,11 +161,11 @@ static inline void lex_char(ElyLexer* lexer, ElyToken* dst)
 
 static inline void parse_sign(ElyLexer* lex, ElyToken* dst, uint32_t token_len)
 {
-    char ch = ely_lex_peek_char(lex);
+    char ch = lex_peek_char(lex);
 
     if (is_number(ch))
     {
-        ely_lex_advance(lex);
+        lex_advance(lex);
         ++token_len;
         ELY_MUSTTAIL return parse_number_continue(lex, dst, token_len);
     }
@@ -188,7 +177,7 @@ static inline void parse_sign(ElyLexer* lex, ElyToken* dst, uint32_t token_len)
     else
     {
         ++token_len;
-        ely_lex_advance(lex);
+        lex_advance(lex);
         uint32_t advanced = lex_advance_to_delimiter(lex);
         dst->kind         = ELY_TOKEN_ID;
         dst->len          = token_len + advanced;
@@ -209,7 +198,7 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
     for (; buf_i != buf_len; ++buf_i)
     {
         // check if we've reached the end
-        if (ely_lex_at_end(lex))
+        if (lex_at_end(lex))
         {
             token_buf[buf_i].kind = ELY_TOKEN_EOF;
             token_buf[buf_i].len  = 0;
@@ -217,21 +206,21 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
             return buf_i;
         }
 
-        char ch = ely_lex_peek_char(lex);
-        ely_lex_advance(lex);
+        char ch = lex_peek_char(lex);
+        lex_advance(lex);
         switch (ch)
         {
         case ' ': {
             uint32_t tok_len = 1;
-            ch               = ely_lex_peek_char(lex);
+            ch               = lex_peek_char(lex);
             while (ch == ' ')
             {
 
-                ely_lex_advance(lex);
+                lex_advance(lex);
                 ++tok_len;
-                if (!ely_lex_at_end(lex))
+                if (!lex_at_end(lex))
                 {
-                    ch = ely_lex_peek_char(lex);
+                    ch = lex_peek_char(lex);
                 }
                 else
                 {
@@ -245,14 +234,14 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
         break;
         case '\t': {
             uint32_t tok_len = 1;
-            ch               = ely_lex_peek_char(lex);
+            ch               = lex_peek_char(lex);
             while (ch == '\t')
             {
-                ely_lex_advance(lex);
+                lex_advance(lex);
                 ++tok_len;
-                if (!ely_lex_at_end(lex))
+                if (!lex_at_end(lex))
                 {
-                    ch = ely_lex_peek_char(lex);
+                    ch = lex_peek_char(lex);
                 }
                 else
                 {
@@ -265,10 +254,10 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
         }
         break;
         case '\r':
-            ch = ely_lex_peek_char(lex);
+            ch = lex_peek_char(lex);
             if (ch == '\n')
             {
-                ely_lex_advance(lex);
+                lex_advance(lex);
                 token_buf[buf_i].kind = ELY_TOKEN_NEWLINE_CRLF;
                 token_buf[buf_i].len  = 2;
             }
@@ -284,8 +273,8 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
             break;
         case ';': {
             uint32_t tok_len = 1;
-            ch               = ely_lex_peek_char(lex);
-            while (!ely_lex_at_end(lex))
+            ch               = lex_peek_char(lex);
+            while (!lex_at_end(lex))
             {
                 if (is_newline_start(ch))
                 {
@@ -296,8 +285,8 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
                 else
                 {
                     ++tok_len;
-                    ely_lex_advance(lex);
-                    ch = ely_lex_peek_char(lex);
+                    lex_advance(lex);
+                    ch = lex_peek_char(lex);
                 }
             }
         }
@@ -331,12 +320,12 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
             parse_sign(lex, &token_buf[buf_i], 1);
             break;
         case '#':
-            ch = ely_lex_peek_char(lex);
+            ch = lex_peek_char(lex);
             switch (ch)
             {
             case 't':
-                ely_lex_advance(lex);
-                ch = ely_lex_peek_char(lex);
+                lex_advance(lex);
+                ch = lex_peek_char(lex);
                 if (is_delimiter(ch))
                 {
                     token_buf[buf_i].kind = ELY_TOKEN_TRUE_LIT;
@@ -347,8 +336,8 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
                 {}
                 break;
             case 'f':
-                ely_lex_advance(lex);
-                ch = ely_lex_peek_char(lex);
+                lex_advance(lex);
+                ch = lex_peek_char(lex);
                 if (is_delimiter(ch))
                 {
                     token_buf[buf_i].kind = ELY_TOKEN_FALSE_LIT;
@@ -359,12 +348,12 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
                 {}
                 break;
             case ':':
-                ely_lex_advance(lex);
-                lex_keyword(lex, &token_buf[buf_i]);
+                lex_advance(lex);
+                parse_keyword(lex, &token_buf[buf_i]);
                 break;
             case '\\':
-                ely_lex_advance(lex);
-                lex_char(lex, &token_buf[buf_i]);
+                lex_advance(lex);
+                parse_char(lex, &token_buf[buf_i]);
                 break;
             case '\t':
             case '`':
