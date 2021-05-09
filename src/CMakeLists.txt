@@ -1,6 +1,7 @@
 set(ELY_SRC
     lexer.c
-    reader.c)
+    reader.c
+    list.c)
 
 include(GenerateExportHeader)
 
