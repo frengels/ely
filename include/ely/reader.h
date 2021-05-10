@@ -4,14 +4,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "ely/buffer.h"
 #include "ely/export.h"
-#include "ely/lexer.h"
 #include "ely/list.h"
+#include "ely/token.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct ElyLexer  ElyLexer;
+typedef struct ElyBuffer ElyBuffer;
 
 enum ElyStx
 {

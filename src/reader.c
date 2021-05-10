@@ -6,6 +6,7 @@
 
 #include "ely/buffer.h"
 #include "ely/defines.h"
+#include "ely/lexer.h"
 
 static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
                                        ElyLexer* __restrict__ lexer,
