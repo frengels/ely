@@ -23,6 +23,7 @@ set_target_properties(ely
 target_compile_options(ely PRIVATE
     $<BUILD_INTERFACE:$<$<C_COMPILER_ID:MSVC>:/W4 /WX>>
     $<BUILD_INTERFACE:$<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall -Wextra>>)
+target_compile_features(ely PRIVATE c_std_99)
 
 
 add_executable(elyc main.c)
