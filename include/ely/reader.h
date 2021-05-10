@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ely/buffer.h"
 #include "ely/export.h"
 #include "ely/lexer.h"
 #include "ely/list.h"
@@ -52,6 +53,10 @@ typedef struct ElyNode
     // loc which has void* alignment.
     char data[];
 } ElyNode;
+
+void ely_node_create(ElyNode*              node,
+                     enum ElyStx           type,
+                     const ElyStxLocation* loc);
 
 uint32_t ely_node_sizeof(const ElyNode* node);
 
@@ -154,8 +159,10 @@ typedef struct ElyReader
 ELY_EXPORT void ely_reader_create(ElyReader* reader, const char* filename);
 ELY_EXPORT void ely_reader_destroy(ElyReader* reader);
 
-ELY_EXPORT ElyStxNode*
-           ely_reader_read(ElyReader* reader, ElyToken* tokens, uint32_t len);
+// token_buffer expects sizes as multiple of sizeof(ElyToken) bytes
+ELY_EXPORT ElyNode* ely_reader_read(ElyReader* __restrict__ reader,
+                                    ElyLexer* __restrict__ lexer,
+                                    ElyBuffer* __restrict__ token_buffer);
 
 #ifdef __cplusplus
 }

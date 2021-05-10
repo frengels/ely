@@ -4,16 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ely/buffer.h"
 #include "ely/defines.h"
 
-static inline ElyStxNode*
-read_paren_list(ElyReader* reader, ElyToken* tokens, uint32_t len)
+static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
+                                       ElyLexer* __restrict__ lexer,
+                                       ElyBuffer* __restrict__ token_buffer)
 {
-    ElyStxNode* node_list[32];
-    (void) node_list;
-    for (uint32_t i = 0; i != len; ++i)
+    for (; token_buffer->begin < token_buffer->end; ++token_buffer->begin)
     {
-        ElyToken tok = tokens[i];
+        ElyToken tok = ((ElyToken*) token_buffer->data)[token_buffer->begin];
 
         switch (tok.kind)
         {
@@ -25,6 +25,7 @@ read_paren_list(ElyReader* reader, ElyToken* tokens, uint32_t len)
     }
 }
 
+/*
 static inline ElyStxNode*
 read_bracket_list(ElyReader* reader, ElyToken* tokens, uint32_t len)
 {
@@ -39,6 +40,15 @@ read_brace_list(ElyReader* reader, ElyToken* tokens, uint32_t len)
     (void) reader;
     (void) tokens;
     (void) len;
+}
+*/
+
+void ely_node_create(ElyNode* node, enum ElyStx type, const ElyStxLocation* loc)
+{
+    node->link.next = NULL;
+    node->link.prev = NULL;
+    node->type      = type;
+    memcpy(&node->loc, loc, sizeof(ElyStxLocation));
 }
 
 uint32_t ely_node_sizeof(const ElyNode* node)
@@ -182,11 +192,17 @@ void ely_reader_destroy(ElyReader* reader)
     free(reader->buffer);
 }
 
-ElyStxNode* ely_reader_read(ElyReader* reader, ElyToken* tokens, uint32_t len)
+ElyNode* ely_reader_read(ElyReader* __restrict__ reader,
+                         ElyLexer* __restrict__ lexer,
+                         ElyBuffer* __restrict__ token_buffer)
 {
-    for (uint32_t i = 0; i != len; ++i)
+    while (token_buffer->begin < token_buffer->end)
     {
-        ElyToken tok = tokens[i];
+        ElyToken tok = ((ElyToken*) token_buffer->data)[token_buffer->begin];
+
+        ElyPosition next_pos = {.row = reader->current_pos.row,
+                                .col = reader->current_pos.col += tok.len};
+
         switch (tok.kind)
         {
         case ELY_TOKEN_WHITESPACE:
@@ -196,29 +212,43 @@ ElyStxNode* ely_reader_read(ElyReader* reader, ElyToken* tokens, uint32_t len)
         case ELY_TOKEN_NEWLINE_LF:
         case ELY_TOKEN_NEWLINE_CRLF:
             ++reader->current_pos.row;
-            break;
+            reader->current_pos.col = 1;
+            goto skip_assign_next_pos;
         case ELY_TOKEN_COMMENT:
             break;
         case ELY_TOKEN_LPAREN:
-            ELY_MUSTTAIL return read_paren_list(reader, &tokens[i], len - i);
+            ++token_buffer->begin;
+            ELY_MUSTTAIL return read_paren_list(reader, lexer, token_buffer);
         case ELY_TOKEN_LBRACKET:
-            ELY_MUSTTAIL return read_bracket_list(reader, &tokens[i], len - i);
+            // ELY_MUSTTAIL return read_bracket_list(reader, lexer, tokens, pos,
+            // len);
         case ELY_TOKEN_LBRACE:
-            ELY_MUSTTAIL return read_brace_list(reader, &tokens[i], len - i);
+            // ELY_MUSTTAIL return read_brace_list(reader, lexer, tokens, pos,
+            // len);
         case ELY_TOKEN_RPAREN:
         case ELY_TOKEN_RBRACKET:
             assert(false && "Unexpected closing");
         case ELY_TOKEN_RBRACE:
 
         case ELY_TOKEN_ID: {
-            ElyStxNode* node = malloc(sizeof(ElyStxNode));
-            ely_stx_node_create(node, ELY_STX_IDENTIFIER, NULL, 0);
-            return node;
+            uint32_t fixed_size = sizeof(ElyNode) + sizeof(ElyNodeIdentifier);
+            uint32_t str_size   = tok.len;
+            ElyNode* node       = malloc(fixed_size + str_size);
+            ElyStxLocation loc  = {.filename   = reader->filename,
+                                  .start_byte = reader->current_byte,
+                                  .end_byte   = reader->current_byte + tok.len,
+                                  .start_pos  = reader->current_pos,
+                                  .end_pos    = next_pos};
+            ely_node_create(node, ELY_STX_IDENTIFIER, &loc);
+            ElyNodeIdentifier* id_node = node->data;
+            memcpy(id_node->str,
+                   &lexer->src[loc.start_byte],
+                   sizeof(char) * (loc.end_byte - loc.start_byte));
         }
         case ELY_TOKEN_INT_LIT: {
-            ElyStxNode* node = malloc(sizeof(ElyStxNode));
-            ely_stx_node_create(node, ELY_STX_INT_LIT, NULL, 0);
-            return node;
+            uint32_t fixed_size = sizeof(ElyNode) + sizeof(ElyNodeIntLit);
+            uint32_t str_size   = tok.len;
+            ElyNode* node       = malloc(fixed_size + str_size);
         }
         case ELY_TOKEN_FLOAT_LIT: {
             ElyStxNode* node = malloc(sizeof(ElyStxNode));
@@ -251,7 +281,8 @@ ElyStxNode* ely_reader_read(ElyReader* reader, ElyToken* tokens, uint32_t len)
             __builtin_unreachable();
         }
 
-        // TODO: increment columns and rows
-        reader->current_byte += tok.len;
+        reader->current_pos = next_pos;
+    skip_assign_next_pos:
+        ++token_buffer->begin;
     }
 }
