@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <ely/buffer.h>
+#include <ely/lexer.h>
 #include <ely/reader.h>
 
 int main(int argc, char** argv)
@@ -12,8 +14,9 @@ int main(int argc, char** argv)
     printf("source:\n%s\n", src);
     ElyLexer lexer;
     ely_lex_create(&lexer, src, len);
-    ElyToken toks[32];
-    uint32_t read = ely_lex_src(&lexer, toks, 32);
+    ElyToken  toks[32];
+    uint32_t  read = ely_lex_src(&lexer, toks, 32);
+    ElyBuffer buff = {.data = toks, .begin = 0, .end = read, .capacity = 32};
     printf("read %d tokens\n", read);
 
     uint32_t offset = 0;
@@ -33,4 +36,6 @@ int main(int argc, char** argv)
 
     ElyReader reader;
     ely_reader_create(&reader, filename);
+
+    ElyNode* plist = ely_reader_read(&reader, &lexer, &buff);
 }
