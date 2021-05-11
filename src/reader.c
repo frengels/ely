@@ -60,6 +60,24 @@ read_brace_list(ElyReader* reader, ElyToken* tokens, uint32_t len)
 }
 */
 
+static ELY_ALWAYS_INLINE void
+increment_position(ElyPosition* pos, uint32_t* byte_pos, ElyToken tok)
+{
+    *byte_pos += tok.len;
+    switch (tok.kind)
+    {
+    case ELY_TOKEN_NEWLINE_CR:
+    case ELY_TOKEN_NEWLINE_CRLF:
+    case ELY_TOKEN_NEWLINE_LF:
+        ++pos->row;
+        pos->col = 1;
+        break;
+    default:
+        pos->col += tok.len;
+        break;
+    }
+}
+
 void ely_node_create(ElyNode* node, enum ElyStx type, const ElyStxLocation* loc)
 {
     node->link.next = NULL;
