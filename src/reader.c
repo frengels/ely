@@ -12,6 +12,9 @@ static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
                                        ElyLexer* __restrict__ lexer,
                                        ElyBuffer* __restrict__ token_buffer)
 {
+    uint32_t           alloc_size = sizeof(ElyNode) + sizeof(ElyNodeParensList);
+    ElyNode*           node       = malloc(alloc_size);
+    ElyNodeParensList* plist      = node->data;
 
     while (token_buffer->begin < token_buffer->end)
     {
@@ -20,6 +23,7 @@ static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
         switch (tok.kind)
         {
         case ELY_TOKEN_LPAREN:
+            // TODO: end plist and finish up stx location
             break;
         case ELY_TOKEN_RPAREN:
             // end current parens_list finally
@@ -28,6 +32,10 @@ static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
         case ELY_TOKEN_RBRACE:
         case ELY_TOKEN_RBRACKET:
             assert(false && "expected ')' to match '('");
+        default: {
+            ElyNode* next_node = ely_reader_read(reader, lexer, token_buffer);
+            ely_list_insert(plist->list.prev, &next_node->link);
+        }
         }
 
         ++token_buffer->begin;
@@ -230,9 +238,8 @@ ElyNode* ely_reader_read(ElyReader* __restrict__ reader,
             // len);
         case ELY_TOKEN_RPAREN:
         case ELY_TOKEN_RBRACKET:
-            assert(false && "Unexpected closing");
         case ELY_TOKEN_RBRACE:
-
+            assert(false && "Unexpected closing");
         case ELY_TOKEN_ID: {
             uint32_t fixed_size = sizeof(ElyNode) + sizeof(ElyNodeIdentifier);
             uint32_t str_size   = tok.len;
