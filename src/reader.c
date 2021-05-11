@@ -12,7 +12,8 @@ static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
                                        ElyLexer* __restrict__ lexer,
                                        ElyBuffer* __restrict__ token_buffer)
 {
-    for (; token_buffer->begin < token_buffer->end; ++token_buffer->begin)
+
+    while (token_buffer->begin < token_buffer->end)
     {
         ElyToken tok = ((ElyToken*) token_buffer->data)[token_buffer->begin];
 
@@ -21,8 +22,15 @@ static inline ElyNode* read_paren_list(ElyReader* __restrict__ reader,
         case ELY_TOKEN_LPAREN:
             break;
         case ELY_TOKEN_RPAREN:
+            // end current parens_list finally
+
             break;
+        case ELY_TOKEN_RBRACE:
+        case ELY_TOKEN_RBRACKET:
+            assert(false && "expected ')' to match '('");
         }
+
+        ++token_buffer->begin;
     }
 }
 
@@ -182,15 +190,9 @@ void ely_stx_node_destroy(ElyStxNode* stx)
 void ely_reader_create(ElyReader* reader, const char* filename)
 {
     reader->filename        = filename;
-    reader->buffer          = NULL;
     reader->current_pos.row = 1;
     reader->current_pos.col = 1;
     reader->current_byte    = 0;
-}
-
-void ely_reader_destroy(ElyReader* reader)
-{
-    free(reader->buffer);
 }
 
 ElyNode* ely_reader_read(ElyReader* __restrict__ reader,

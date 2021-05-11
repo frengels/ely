@@ -151,15 +151,11 @@ ELY_EXPORT void ely_stx_node_destroy(ElyStxNode* stx);
 typedef struct ElyReader
 {
     const char* filename;
-
-    char* buffer;
-
     ElyPosition current_pos;
     uint32_t    current_byte;
 } ElyReader;
 
 ELY_EXPORT void ely_reader_create(ElyReader* reader, const char* filename);
-ELY_EXPORT void ely_reader_destroy(ElyReader* reader);
 
 // token_buffer expects sizes as multiple of sizeof(ElyToken) bytes
 ELY_EXPORT ElyNode* ely_reader_read(ElyReader* __restrict__ reader,
