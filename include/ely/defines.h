@@ -12,8 +12,10 @@
 
 #if defined(__has_attribute)
 #if __has_attribute(always_inline)
-#define ELY_ALWAYS_INLINE __attribute__((always_inline))
+#define ELY_ALWAYS_INLINE inline __attribute__((always_inline))
 #endif
+#elif defined(_MSC_VER)
+#define ELY_ALWAYS_INLINE inline __forceinline
 #endif
 
 #if !defined(ELY_ALWAYS_INLINE)
