@@ -86,7 +86,8 @@ static inline void parse_keyword(ElyLexer* lexer, ElyToken* dst)
 }
 
 // this will parse the fragment of the float
-static inline void parse_float(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
+static inline void
+parse_float(ElyLexer* lexer, ElyToken* dst, uint32_t token_len)
 {
     char c = lex_peek_char(lexer);
 
@@ -355,11 +356,11 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
                 lex_advance(lex);
                 parse_char(lex, &token_buf[buf_i]);
                 break;
-            case '\t':
+            case '\'':
             case '`':
             case ',':
             default:
-                assert(false && "TODO: handle failure cases and abbreviations");
+                assert(false && "TODO: handle abbreviations starting with #");
                 break;
             }
             break;
