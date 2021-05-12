@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#include "ely/buffer.h"
 #include "ely/defines.h"
 
 static inline bool is_newline_start(char c)
@@ -185,7 +186,7 @@ static inline void parse_sign(ElyLexer* lex, ElyToken* dst, uint32_t token_len)
     }
 }
 
-void ely_lex_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len)
+void ely_lexer_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len)
 {
     lex->src = src;
     lex->len = len;
@@ -193,7 +194,7 @@ void ely_lex_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len)
 }
 
 uint32_t
-ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
+ely_lexer_lex(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
 {
     uint32_t buf_i = 0;
     for (; buf_i != buf_len; ++buf_i)
@@ -380,4 +381,12 @@ ely_lex_src(ElyLexer* lex, ElyToken* __restrict__ token_buf, uint32_t buf_len)
         }
     }
     return buf_i;
+}
+
+void ely_lexer_lex_into_buffer(ElyLexer* lexer, ElyBuffer* token_buffer)
+{
+    uint32_t read =
+        ely_lexer_lex(lexer, token_buffer->data, token_buffer->capacity);
+    token_buffer->begin = 0;
+    token_buffer->end   = read;
 }

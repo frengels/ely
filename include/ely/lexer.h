@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+typedef struct ElyBuffer ElyBuffer;
+
 typedef struct ElyLexer
 {
     const char* __restrict__ src;
@@ -17,11 +19,14 @@ typedef struct ElyLexer
 } ElyLexer;
 
 ELY_EXPORT void
-ely_lex_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len);
+ely_lexer_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len);
 
-ELY_EXPORT uint32_t ely_lex_src(ElyLexer* lex,
-                                ElyToken* __restrict__ token_buf,
-                                uint32_t buf_len);
+ELY_EXPORT uint32_t ely_lexer_lex(ElyLexer* lex,
+                                  ElyToken* __restrict__ token_buf,
+                                  uint32_t buf_len);
+
+ELY_EXPORT void ely_lexer_lex_into_buffer(ElyLexer*  lexer,
+                                          ElyBuffer* token_buffer);
 
 #ifdef __cplusplus
 }
