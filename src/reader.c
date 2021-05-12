@@ -111,6 +111,9 @@ uint32_t ely_node_sizeof(const ElyNode* node)
     case ELY_STX_FLOAT_LIT:
         data_size =
             ely_node_float_lit_sizeof((const ElyNodeFloatLit*) node->data);
+    case ELY_STX_CHAR_LIT:
+        data_size =
+            ely_node_char_lit_sizeof((const ElyNodeCharLit*) node->data);
     case ELY_STX_TRUE_LIT:
         data_size =
             ely_node_true_lit_sizeof((const ElyNodeTrueLit*) node->data);
@@ -147,6 +150,11 @@ uint32_t ely_node_int_lit_sizeof(const ElyNodeIntLit* node)
 uint32_t ely_node_float_lit_sizeof(const ElyNodeFloatLit* node)
 {
     return sizeof(ElyNodeFloatLit) + node->len;
+}
+
+uint32_t ely_node_char_lit_sizeof(const ElyNodeCharLit* node)
+{
+    return sizeof(ElyNodeCharLit) + node->len;
 }
 
 uint32_t ely_node_true_lit_sizeof(const ElyNodeTrueLit* node)

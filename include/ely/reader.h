@@ -27,6 +27,7 @@ enum ElyStx
     ELY_STX_STRING_LIT,
     ELY_STX_INT_LIT,
     ELY_STX_FLOAT_LIT,
+    ELY_STX_CHAR_LIT,
     ELY_STX_TRUE_LIT,
     ELY_STX_FALSE_LIT,
 };
@@ -128,6 +129,14 @@ typedef struct ElyNodeFloatLit
 } ElyNodeFloatLit;
 
 uint32_t ely_node_float_lit_sizeof(const ElyNodeFloatLit* node);
+
+typedef struct ElyNodeCharLit
+{
+    uint32_t len;
+    char     str[];
+} ElyNodeCharLit;
+
+uint32_t ely_node_char_lit_sizeof(const ElyNodeCharLit* node);
 
 typedef struct ElyNodeTrueLit
 {
