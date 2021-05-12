@@ -63,17 +63,6 @@ void ely_node_create(ElyNode*              node,
 
 uint32_t ely_node_sizeof(const ElyNode* node);
 
-typedef struct ElyStxNode
-{
-    void*    data;
-    uint32_t len;
-    // both of these get packed into the 4 bytes behind len
-    enum ElyStx kind;
-    bool        is_stx;
-
-    ElyStxLocation location;
-} ElyStxNode;
-
 typedef struct ElyNodeParensList
 {
     ElyList list;
@@ -149,13 +138,6 @@ typedef struct ElyNodeFalseLit
 } ElyNodeFalseLit;
 
 uint32_t ely_node_false_lit_sizeof(const ElyNodeFalseLit*);
-
-ELY_EXPORT void ely_stx_node_create(ElyStxNode* __restrict__ stx,
-                                    enum ElyStx kind,
-                                    void* __restrict__ data,
-                                    uint32_t data_len);
-
-ELY_EXPORT void ely_stx_node_destroy(ElyStxNode* stx);
 
 typedef struct ElyReader
 {
