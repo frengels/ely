@@ -12,32 +12,8 @@ extern "C" {
 
 enum ElyTokenKind
 {
-    ELY_TOKEN_WHITESPACE = 0,
-    ELY_TOKEN_TAB,
-    ELY_TOKEN_NEWLINE_CR,
-    ELY_TOKEN_NEWLINE_LF,
-    ELY_TOKEN_NEWLINE_CRLF,
-    ELY_TOKEN_COMMENT,
-
-    ELY_TOKEN_EOF,
-
-    ELY_TOKEN_LPAREN,
-    ELY_TOKEN_RPAREN,
-    ELY_TOKEN_LBRACKET,
-    ELY_TOKEN_RBRACKET,
-    ELY_TOKEN_LBRACE,
-    ELY_TOKEN_RBRACE,
-
-    ELY_TOKEN_ID,
-
-    ELY_TOKEN_INT_LIT,
-    ELY_TOKEN_FLOAT_LIT,
-    ELY_TOKEN_CHAR_LIT,
-    ELY_TOKEN_STRING_LIT,
-    ELY_TOKEN_KEYWORD_LIT,
-    ELY_TOKEN_TRUE_LIT,
-    ELY_TOKEN_FALSE_LIT,
-
+#define X(item) item,
+#include "ely/tokens.def"
 };
 
 typedef struct ElyToken
@@ -62,10 +38,34 @@ static ELY_ALWAYS_INLINE bool ely_token_is_atmosphere(enum ElyTokenKind kind)
     }
 }
 
+static ELY_ALWAYS_INLINE bool ely_token_is_literal(enum ElyTokenKind kind)
+{
+    switch (kind)
+    {
+    case ELY_TOKEN_INT_LIT:
+    case ELY_TOKEN_FLOAT_LIT:
+    case ELY_TOKEN_CHAR_LIT:
+    case ELY_TOKEN_STRING_LIT:
+    case ELY_TOKEN_KEYWORD_LIT:
+    case ELY_TOKEN_TRUE_LIT:
+    case ELY_TOKEN_FALSE_LIT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static ELY_ALWAYS_INLINE bool ely_token_is_identifier(enum ElyTokenKind kind)
+{
+    return kind == ELY_TOKEN_ID;
+}
+
 static ELY_ALWAYS_INLINE bool ely_token_is_eof(enum ElyTokenKind kind)
 {
     return kind == ELY_TOKEN_EOF;
 }
+
+ELY_EXPORT const char* ely_token_as_string(enum ElyTokenKind kind);
 
 #ifdef __cplusplus
 }

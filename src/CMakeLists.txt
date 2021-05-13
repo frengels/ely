@@ -1,4 +1,5 @@
 set(ELY_SRC
+    token.c
     lexer.c
     reader.c
     list.c)
