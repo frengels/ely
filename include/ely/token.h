@@ -1,7 +1,9 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
+#include "ely/defines.h"
 #include "ely/export.h"
 
 #ifdef __cplusplus
@@ -43,6 +45,27 @@ typedef struct ElyToken
     enum ElyTokenKind kind;
     uint32_t          len;
 } ElyToken;
+
+static ELY_ALWAYS_INLINE bool ely_token_is_atmosphere(enum ElyTokenKind kind)
+{
+    switch (kind)
+    {
+    case ELY_TOKEN_WHITESPACE:
+    case ELY_TOKEN_TAB:
+    case ELY_TOKEN_NEWLINE_CR:
+    case ELY_TOKEN_NEWLINE_LF:
+    case ELY_TOKEN_NEWLINE_CRLF:
+    case ELY_TOKEN_COMMENT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static ELY_ALWAYS_INLINE bool ely_token_is_eof(enum ElyTokenKind kind)
+{
+    return kind == ELY_TOKEN_EOF;
+}
 
 #ifdef __cplusplus
 }
