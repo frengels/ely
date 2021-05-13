@@ -77,8 +77,6 @@ static inline uint32_t lex_advance_to_delimiter(ElyLexer* lexer)
     return len;
 }
 
-static inline uint32_t parse_bad_stx();
-
 static inline void parse_keyword(ElyLexer* lexer, ElyToken* dst)
 {
     uint32_t kw_len = lex_advance_to_delimiter(lexer);
