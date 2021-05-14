@@ -1,31 +1,31 @@
 #ifndef X
-#error X(enum) must be defined
+#error X(upper_name, lower_name, pretty_name) must be defined
 #endif
 
-X(ELY_TOKEN_WHITESPACE)
-X(ELY_TOKEN_TAB)
-X(ELY_TOKEN_NEWLINE_CR)
-X(ELY_TOKEN_NEWLINE_LF)
-X(ELY_TOKEN_NEWLINE_CRLF)
-X(ELY_TOKEN_COMMENT)
+X(WHITESPACE, whitespace, "whitespace")
+X(TAB, tab, "tab")
+X(NEWLINE_CR, newline_cr, "newline")
+X(NEWLINE_LF, newline_lf, "newline")
+X(NEWLINE_CRLF, newline_crlf, "newline")
+X(COMMENT, comment, "comment")
 
-X(ELY_TOKEN_EOF)
+X(EOF, eof, "eof")
 
-X(ELY_TOKEN_LPAREN)
-X(ELY_TOKEN_RPAREN)
-X(ELY_TOKEN_LBRACKET)
-X(ELY_TOKEN_RBRACKET)
-X(ELY_TOKEN_LBRACE)
-X(ELY_TOKEN_RBRACE)
+X(LPAREN, lparen, "(")
+X(RPAREN, rparen, ")")
+X(LBRACKET, lbracket, "[")
+X(RBRACKET, rbracket, "]")
+X(LBRACE, lbrace, "{")
+X(RBRACE, rbrace, "}")
 
-X(ELY_TOKEN_ID)
+X(ID, id, "identifier")
 
-X(ELY_TOKEN_INT_LIT)
-X(ELY_TOKEN_FLOAT_LIT)
-X(ELY_TOKEN_CHAR_LIT)
-X(ELY_TOKEN_STRING_LIT)
-X(ELY_TOKEN_KEYWORD_LIT)
-X(ELY_TOKEN_TRUE_LIT)
-X(ELY_TOKEN_FALSE_LIT)
+X(INT_LIT, int_lit, "int")
+X(FLOAT_LIT, float_lit, "float")
+X(CHAR_LIT, char_lit, "char")
+X(STRING_LIT, string_lit, "string")
+X(KEYWORD_LIT, keyword_lit, "keyword")
+X(TRUE_LIT, true_lit, "#t")
+X(FALSE_LIT, false_lit, "#f")
 
 #undef X

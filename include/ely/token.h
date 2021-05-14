@@ -12,7 +12,7 @@ extern "C" {
 
 enum ElyTokenKind
 {
-#define X(item) item,
+#define X(item, _1, _2) ELY_TOKEN_##item,
 #include "ely/tokens.def"
 };
 
@@ -66,6 +66,7 @@ static ELY_ALWAYS_INLINE bool ely_token_is_eof(enum ElyTokenKind kind)
 }
 
 ELY_EXPORT const char* ely_token_as_string(enum ElyTokenKind kind);
+ELY_EXPORT const char* ely_token_as_pretty_string(enum ElyTokenKind kind);
 
 #ifdef __cplusplus
 }
