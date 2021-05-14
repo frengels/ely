@@ -14,6 +14,7 @@ extern "C" {
 
 typedef struct ElyLexer  ElyLexer;
 typedef struct ElyBuffer ElyBuffer;
+typedef struct ElyNode   ElyNode;
 
 enum ElyStx
 {
@@ -43,13 +44,12 @@ typedef struct ElyStxLocation
     const char* filename;
     uint32_t    start_byte;
     uint32_t    end_byte;
-    ElyPosition start_pos;
-    ElyPosition end_pos;
 } ElyStxLocation;
 
 typedef struct ElyNode
 {
     ElyList        link;
+    ElyNode*       parent;
     enum ElyStx    type;
     ElyStxLocation loc;
     // this doesn't need an explicit alignment parameter as it should follow
@@ -58,6 +58,7 @@ typedef struct ElyNode
 } ElyNode;
 
 void ely_node_create(ElyNode*              node,
+                     ElyNode*              parent,
                      enum ElyStx           type,
                      const ElyStxLocation* loc);
 
@@ -142,16 +143,22 @@ uint32_t ely_node_false_lit_sizeof(const ElyNodeFalseLit*);
 typedef struct ElyReader
 {
     const char* filename;
-    ElyPosition current_pos;
     uint32_t    current_byte;
 } ElyReader;
 
 ELY_EXPORT void ely_reader_create(ElyReader* reader, const char* filename);
 
+typedef struct ElyReadResult
+{
+    ElyNode* node;
+    uint32_t tokens_consumed;
+} ElyReadResult;
+
 // token_buffer expects sizes as multiple of sizeof(ElyToken) bytes
-ELY_EXPORT ElyNode* ely_reader_read(ElyReader* __restrict__ reader,
-                                    ElyLexer* __restrict__ lexer,
-                                    ElyBuffer* __restrict__ token_buffer);
+ELY_EXPORT ElyReadResult ely_reader_read(ElyReader* reader,
+                                         const char* __restrict__ src,
+                                         const ElyToken* tokens,
+                                         uint32_t        len);
 
 #ifdef __cplusplus
 }
