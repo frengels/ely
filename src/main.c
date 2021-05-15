@@ -25,13 +25,13 @@ int main(int argc, char** argv)
         ElyToken tok = ((ElyToken*) buff.data)[i];
         if (tok.kind == ELY_TOKEN_NEWLINE_LF)
         {
-            printf("%d `%s` \"\\n\"\n", tok.len, ely_token_as_pretty_string(tok.kind));
+            printf("%d `%s` \"\\n\"\n", tok.len, ely_token_as_pretty_string(tok.kind).data);
         }
         else
         {
             printf("%d `%s` \"%.*s\"\n",
                    tok.len,
-                   ely_token_as_pretty_string(tok.kind),
+                   ely_token_as_pretty_string(tok.kind).data,
                    tok.len,
                    &src[offset]);
         }
