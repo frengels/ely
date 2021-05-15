@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "ely/defines.h"
 #include "ely/export.h"
@@ -45,7 +46,7 @@ ELY_EXPORT ElyStringBuffer
                 ely_string_buffer_clone(const ElyStringBuffer* to_clone);
 ELY_EXPORT void ely_string_buffer_destroy(ElyStringBuffer* buffer);
 
-ELY_ALWAYS_INLINE void
+static inline void
 ely_string_buffer_append_str_unchecked(ElyStringBuffer* buffer,
                                        const char* __restrict__ str,
                                        size_t len)
@@ -64,7 +65,7 @@ ELY_EXPORT void ely_string_buffer_reserve_unchecked(ElyStringBuffer* buffer,
 ELY_EXPORT void ely_string_buffer_reserve(ElyStringBuffer* buffer,
                                           size_t           capacity);
 
-static ELY_ALWAYS_INLINE void
+static inline void
 ely_string_buffer_append_char_unchecked(ElyStringBuffer* buffer, char ch)
 {
     assert(buffer->len < buffer->capacity);
