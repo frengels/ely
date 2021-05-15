@@ -135,23 +135,29 @@ static inline ElyReadResult read_parens_list(ElyReader* reader,
 
     ElyNode*           node  = malloc(alloc_size);
     ElyNodeParensList* plist = (ElyNodeParensList*) node->data;
-    ely_node_create(node, parent, ELY_STX_PARENS_LIST, &stx_loc);
+    ely_node_create(node, parent, ELY_STX_PARENS_LIST, stx_loc);
     ely_list_create(&plist->list);
 
     ELY_MUSTTAIL return continue_read_parens_list(
         reader, src, node, tokens, len, idx);
 }
 
-void ely_node_create(ElyNode*              node,
-                     ElyNode*              parent,
-                     enum ElyStx           type,
-                     const ElyStxLocation* loc)
+void ely_node_create(ElyNode*       node,
+                     ElyNode*       parent,
+                     enum ElyStx    type,
+                     ElyStxLocation loc)
 {
     node->link.next = NULL;
     node->link.prev = NULL;
     node->parent    = parent;
     node->type      = type;
-    memcpy(&node->loc, loc, sizeof(ElyStxLocation));
+    node->loc       = loc;
+}
+
+char* ely_node_to_string(const ElyNode* node)
+{
+    (void) node;
+    return NULL;
 }
 
 uint32_t ely_node_sizeof(const ElyNode* node)
@@ -244,9 +250,9 @@ void ely_reader_create(ElyReader* reader, const char* filename)
 }
 
 static inline ElyNode* read_identifier(const char* __restrict__ src,
-                                       ElyNode*              parent,
-                                       ElyToken              tok,
-                                       const ElyStxLocation* stx_loc)
+                                       ElyNode*       parent,
+                                       ElyToken       tok,
+                                       ElyStxLocation stx_loc)
 {
     uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeIdentifier);
     // we shouldn't blindly allocate the length of the token since we probably
@@ -257,7 +263,7 @@ static inline ElyNode* read_identifier(const char* __restrict__ src,
 
     for (uint32_t i = 0; i < tok.len; ++i)
     {
-        char c = src[stx_loc->start_byte + i];
+        char c = src[stx_loc.start_byte + i];
 
         if (c == '|')
         {
@@ -273,7 +279,7 @@ static inline ElyNode* read_identifier(const char* __restrict__ src,
         uint32_t char_alloc_size = tok.len;
         node                     = malloc(alloc_size + char_alloc_size);
         ElyNodeIdentifier* ident = (ElyNodeIdentifier*) node->data;
-        memcpy(ident->str, &src[stx_loc->start_byte], tok.len);
+        memcpy(ident->str, &src[stx_loc.start_byte], tok.len);
         ely_node_create(node, parent, ELY_STX_IDENTIFIER, stx_loc);
     }
     else
@@ -286,9 +292,9 @@ static inline ElyNode* read_identifier(const char* __restrict__ src,
 }
 
 static inline ElyNode* read_string_lit(const char* __restrict__ src,
-                                       ElyNode*              parent,
-                                       ElyToken              tok,
-                                       const ElyStxLocation* stx_loc)
+                                       ElyNode*       parent,
+                                       ElyToken       tok,
+                                       ElyStxLocation stx_loc)
 {
     uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeStringLit);
     uint32_t str_len    = tok.len - 2; // for leading and trailing quotes
@@ -296,15 +302,15 @@ static inline ElyNode* read_string_lit(const char* __restrict__ src,
     ElyNode*          node     = malloc(alloc_size + str_len);
     ElyNodeStringLit* str_node = (ElyNodeStringLit*) node->data;
 
-    memcpy(str_node->str, &src[stx_loc->start_byte + 1], str_len);
+    memcpy(str_node->str, &src[stx_loc.start_byte + 1], str_len);
     ely_node_create(node, parent, ELY_STX_STRING_LIT, stx_loc);
     return node;
 }
 
 static inline ElyNode* read_int_lit(const char* __restrict__ src,
-                                    ElyNode*              parent,
-                                    ElyToken              tok,
-                                    const ElyStxLocation* stx_loc)
+                                    ElyNode*       parent,
+                                    ElyToken       tok,
+                                    ElyStxLocation stx_loc)
 {
     uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeIntLit);
     uint32_t str_len    = tok.len;
@@ -313,14 +319,14 @@ static inline ElyNode* read_int_lit(const char* __restrict__ src,
     ElyNodeIntLit* int_node = (ElyNodeIntLit*) node->data;
 
     ely_node_create(node, parent, ELY_STX_INT_LIT, stx_loc);
-    memcpy(int_node->str, &src[stx_loc->start_byte], str_len);
+    memcpy(int_node->str, &src[stx_loc.start_byte], str_len);
     return node;
 }
 
 static inline ElyNode* read_float_lit(const char* __restrict__ src,
-                                      ElyNode*              parent,
-                                      ElyToken              tok,
-                                      const ElyStxLocation* stx_loc)
+                                      ElyNode*       parent,
+                                      ElyToken       tok,
+                                      ElyStxLocation stx_loc)
 {
     uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeFloatLit);
     uint32_t str_len    = tok.len;
@@ -329,14 +335,14 @@ static inline ElyNode* read_float_lit(const char* __restrict__ src,
     ElyNodeFloatLit* float_node = (ElyNodeFloatLit*) node->data;
 
     ely_node_create(node, parent, ELY_STX_FLOAT_LIT, stx_loc);
-    memcpy(float_node->str, &src[stx_loc->start_byte], str_len);
+    memcpy(float_node->str, &src[stx_loc.start_byte], str_len);
     return node;
 }
 
 static inline ElyNode* read_char_lit(const char* __restrict__ src,
-                                     ElyNode*              parent,
-                                     ElyToken              tok,
-                                     const ElyStxLocation* stx_loc)
+                                     ElyNode*       parent,
+                                     ElyToken       tok,
+                                     ElyStxLocation stx_loc)
 {
     uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeCharLit);
     uint32_t str_len    = tok.len - CHAR_LIT_OFFSET;
@@ -345,15 +351,14 @@ static inline ElyNode* read_char_lit(const char* __restrict__ src,
     ElyNodeCharLit* char_node = (ElyNodeCharLit*) node->data;
 
     ely_node_create(node, parent, ELY_STX_CHAR_LIT, stx_loc);
-    memcpy(
-        char_node->str, &src[stx_loc->start_byte + CHAR_LIT_OFFSET], str_len);
+    memcpy(char_node->str, &src[stx_loc.start_byte + CHAR_LIT_OFFSET], str_len);
     return node;
 }
 
 static inline ElyNode* read_keyword_lit(const char* __restrict__ src,
-                                        ElyNode*              parent,
-                                        ElyToken              tok,
-                                        const ElyStxLocation* stx_loc)
+                                        ElyNode*       parent,
+                                        ElyToken       tok,
+                                        ElyStxLocation stx_loc)
 {
     uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeKeywordLit);
     uint32_t str_len    = tok.len - KEYWORD_LIT_OFFSET;
@@ -363,12 +368,11 @@ static inline ElyNode* read_keyword_lit(const char* __restrict__ src,
 
     ely_node_create(node, parent, ELY_STX_KEYWORD_LIT, stx_loc);
     memcpy(
-        kw_node->str, &src[stx_loc->start_byte + KEYWORD_LIT_OFFSET], str_len);
+        kw_node->str, &src[stx_loc.start_byte + KEYWORD_LIT_OFFSET], str_len);
     return node;
 }
 
-static inline ElyNode* read_true_lit(ElyNode*              parent,
-                                     const ElyStxLocation* stx_loc)
+static inline ElyNode* read_true_lit(ElyNode* parent, ElyStxLocation stx_loc)
 {
     _Static_assert(sizeof(ElyNodeTrueLit) == 0,
                    "ElyNodeTrueLit is no longer empty");
@@ -378,8 +382,7 @@ static inline ElyNode* read_true_lit(ElyNode*              parent,
     return node;
 }
 
-static inline ElyNode* read_false_lit(ElyNode*              parent,
-                                      const ElyStxLocation* stx_loc)
+static inline ElyNode* read_false_lit(ElyNode* parent, ElyStxLocation stx_loc)
 {
     _Static_assert(sizeof(ElyNodeFalseLit) == 0,
                    "ElyNodeFalseLit is no longer empty");
@@ -437,42 +440,42 @@ static inline ElyReadResult reader_read_impl(ElyReader* reader,
         return res;
     }
     case ELY_TOKEN_ID: {
-        ElyNode*      node = read_identifier(src, parent, tok, &stx_loc);
+        ElyNode*      node = read_identifier(src, parent, tok, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_INT_LIT: {
-        ElyNode*      node = read_int_lit(src, parent, tok, &stx_loc);
+        ElyNode*      node = read_int_lit(src, parent, tok, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_FLOAT_LIT: {
-        ElyNode*      node = read_float_lit(src, parent, tok, &stx_loc);
+        ElyNode*      node = read_float_lit(src, parent, tok, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_STRING_LIT: {
-        ElyNode*      node = read_string_lit(src, parent, tok, &stx_loc);
+        ElyNode*      node = read_string_lit(src, parent, tok, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_CHAR_LIT: {
-        ElyNode*      node = read_char_lit(src, parent, tok, &stx_loc);
+        ElyNode*      node = read_char_lit(src, parent, tok, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_KEYWORD_LIT: {
-        ElyNode*      node = read_keyword_lit(src, parent, tok, &stx_loc);
+        ElyNode*      node = read_keyword_lit(src, parent, tok, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_TRUE_LIT: {
-        ElyNode*      node = read_true_lit(parent, &stx_loc);
+        ElyNode*      node = read_true_lit(parent, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
     case ELY_TOKEN_FALSE_LIT: {
-        ElyNode*      node = read_false_lit(parent, &stx_loc);
+        ElyNode*      node = read_false_lit(parent, stx_loc);
         ElyReadResult res  = {.node = node, .tokens_consumed = idx};
         return res;
     }
