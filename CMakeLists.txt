@@ -10,3 +10,8 @@ endif()
 option(ELY_TESTS "enabled Ely's unit tests" ${IS_MASTER_PROJECT})
 
 add_subdirectory(src)
+
+if(${ELY_TESTS})
+    enable_testing()
+    add_subdirectory(test)
+endif()
