@@ -47,20 +47,15 @@ static inline ElyReadResult reader_read_impl(ElyReader* reader,
                                              uint32_t        len,
                                              uint32_t        idx);
 
-static inline ElyReadResult read_parens_list(ElyReader* reader,
-                                             const char* __restrict__ src,
-                                             ElyNode*        parent,
-                                             const ElyToken* tokens,
-                                             uint32_t        len,
-                                             uint32_t        idx)
+static inline ElyReadResult
+continue_read_parens_list(ElyReader* reader,
+                          const char* __restrict__ src,
+                          ElyNode*        self,
+                          const ElyToken* tokens,
+                          uint32_t        len,
+                          uint32_t        idx)
 {
-    uint32_t start_byte = reader->current_byte -
-                          1; // '(' is 1 byte therefore subtract to get start
-    uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeParensList);
-
-    ElyNode*           node  = malloc(alloc_size);
-    ElyNodeParensList* plist = (ElyNodeParensList*) node->data;
-    ely_list_create(&plist->list);
+    ElyNodeParensList* plist = (ElyNodeParensList*) self->data;
 
     for (; idx < len; ++idx)
     {
@@ -81,15 +76,11 @@ static inline ElyReadResult read_parens_list(ElyReader* reader,
             __builtin_unreachable();
             assert(false && "There shouldn't be any atmosphere here");
         case ELY_TOKEN_RPAREN: {
+            ++idx;
             reader->current_byte += tok.len;
-            ElyStxLocation stx_loc = {
-                .filename   = reader->filename,
-                .start_byte = start_byte,
-                .end_byte   = reader->current_byte,
-            };
-            ely_node_create(node, parent, ELY_STX_PARENS_LIST, &stx_loc);
-            ElyReadResult res = {
-                .node            = node,
+            self->loc.end_byte = reader->current_byte;
+            ElyReadResult res  = {
+                .node            = self,
                 .tokens_consumed = idx,
             };
             return res;
@@ -100,17 +91,55 @@ static inline ElyReadResult read_parens_list(ElyReader* reader,
             assert(false && "expected ')', didn't get that");
             __builtin_unreachable();
             break;
+        case ELY_TOKEN_EOF:
+            assert(false && "missing ')'");
+            break;
         default: {
             // TODO: make this iterative instead of recursive by manually
             // keeping track of nesting depth. This would minimize any chance of
             // stack exhaustion.
             ElyReadResult next_node =
-                reader_read_impl(reader, src, node, tokens, len, idx);
+                reader_read_impl(reader, src, self, tokens, len, idx);
             ely_list_insert(plist->list.prev, &next_node.node->link);
+            idx = next_node.tokens_consumed - 1; // this sets the correct index
             break;
         }
         }
     }
+
+    reader->unfinished_node = self;
+
+    ElyReadResult res = {
+        .node            = ((void*) 0x1),
+        .tokens_consumed = idx,
+    };
+
+    return res;
+}
+
+static inline ElyReadResult read_parens_list(ElyReader* reader,
+                                             const char* __restrict__ src,
+                                             ElyNode*        parent,
+                                             const ElyToken* tokens,
+                                             uint32_t        len,
+                                             uint32_t        idx)
+{
+    uint32_t start_byte = reader->current_byte -
+                          1; // '(' is 1 byte therefore subtract to get start
+    uint32_t alloc_size = sizeof(ElyNode) + sizeof(ElyNodeParensList);
+
+    ElyStxLocation stx_loc = {
+        .filename = reader->filename, .start_byte = start_byte
+        // .end_byte = undef
+    };
+
+    ElyNode*           node  = malloc(alloc_size);
+    ElyNodeParensList* plist = (ElyNodeParensList*) node->data;
+    ely_node_create(node, parent, ELY_STX_PARENS_LIST, &stx_loc);
+    ely_list_create(&plist->list);
+
+    ELY_MUSTTAIL return continue_read_parens_list(
+        reader, src, node, tokens, len, idx);
 }
 
 void ely_node_create(ElyNode*              node,
@@ -456,6 +485,25 @@ static inline ElyReadResult reader_read_impl(ElyReader* reader,
     }
 }
 
+ElyReadResult reader_continue_unfinished(ElyReader* reader,
+                                         const char* __restrict__ src,
+                                         const ElyToken* tokens,
+                                         uint32_t        len)
+{
+    switch (reader->unfinished_node->type)
+    {
+    case ELY_STX_PARENS_LIST:
+        return continue_read_parens_list(
+            reader, src, reader->unfinished_node, tokens, len, 0);
+    case ELY_STX_BRACKET_LIST:
+
+    case ELY_STX_BRACE_LIST:
+
+    default:
+        __builtin_unreachable();
+    }
+}
+
 ElyReadResult ely_reader_read(ElyReader* reader,
                               const char* __restrict__ src,
                               const ElyToken* tokens,
@@ -465,6 +513,11 @@ ElyReadResult ely_reader_read(ElyReader* reader,
     {
         ElyReadResult res = {.node = NULL, .tokens_consumed = 0};
         return res;
+    }
+
+    if (reader->unfinished_node)
+    {
+        reader_continue_unfinished(reader, src, tokens, len);
     }
 
     SkipResult skipped   = skip_atmosphere(tokens, len);

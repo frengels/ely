@@ -144,6 +144,7 @@ typedef struct ElyReader
 {
     const char* filename;
     uint32_t    current_byte;
+    ElyNode*    unfinished_node;
 } ElyReader;
 
 ELY_EXPORT void ely_reader_create(ElyReader* reader, const char* filename);
