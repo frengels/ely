@@ -23,7 +23,7 @@ set_target_properties(ely
     VISIBILITY_INLINES_HIDDEN ON) # only for c++
 target_compile_options(ely PRIVATE
     $<BUILD_INTERFACE:$<$<C_COMPILER_ID:MSVC>:/W4 /WX>>
-    $<BUILD_INTERFACE:$<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall -Wextra>>)
+    $<BUILD_INTERFACE:$<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall -Wextra -Wimplicit-fallthrough>>)
 target_compile_features(ely PRIVATE c_std_99)
 
 

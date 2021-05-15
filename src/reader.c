@@ -167,33 +167,44 @@ uint32_t ely_node_sizeof(const ElyNode* node)
     {
     case ELY_STX_PARENS_LIST:
         data_size = sizeof(ElyNodeParensList);
+        break;
     case ELY_STX_BRACKET_LIST:
         data_size = sizeof(ElyNodeBracketList);
+        break;
     case ELY_STX_BRACE_LIST:
         data_size = sizeof(ElyNodeBraceList);
+        break;
     case ELY_STX_IDENTIFIER:
         data_size =
             ely_node_identifier_sizeof((const ElyNodeIdentifier*) node->data);
+        break;
     case ELY_STX_KEYWORD_LIT:
         data_size =
             ely_node_keyword_lit_sizeof((const ElyNodeKeywordLit*) node->data);
+        break;
     case ELY_STX_STRING_LIT:
         data_size =
             ely_node_string_lit_sizeof((const ElyNodeStringLit*) node->data);
+        break;
     case ELY_STX_INT_LIT:
         data_size = ely_node_int_lit_sizeof((const ElyNodeIntLit*) node->data);
+        break;
     case ELY_STX_FLOAT_LIT:
         data_size =
             ely_node_float_lit_sizeof((const ElyNodeFloatLit*) node->data);
+        break;
     case ELY_STX_CHAR_LIT:
         data_size =
             ely_node_char_lit_sizeof((const ElyNodeCharLit*) node->data);
+        break;
     case ELY_STX_TRUE_LIT:
         data_size =
             ely_node_true_lit_sizeof((const ElyNodeTrueLit*) node->data);
+        break;
     case ELY_STX_FALSE_LIT:
         data_size =
             ely_node_false_lit_sizeof((const ElyNodeFalseLit*) node->data);
+        break;
     default:
         __builtin_unreachable();
     }

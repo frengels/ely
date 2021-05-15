@@ -21,3 +21,13 @@
 #if !defined(ELY_ALWAYS_INLINE)
 #define ELY_ALWAYS_INLINE inline
 #endif
+
+#if defined(__has_attribute)
+#if __has_attribute(fallthrough)
+#define ELY_FALLTHROUGH __attribute__((fallthrough))
+#endif
+#endif
+
+#if !defined(ELY_FALLTHROUGH)
+#define ELY_FALLTHROUGH
+#endif
