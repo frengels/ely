@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 
+#include "ely/defines.h"
 #include "ely/export.h"
 
 #ifdef __cplusplus
@@ -43,12 +44,32 @@ ELY_EXPORT ElyStringBuffer
                 ely_string_buffer_clone(const ElyStringBuffer* to_clone);
 ELY_EXPORT void ely_string_buffer_destroy(ElyStringBuffer* buffer);
 
+ELY_ALWAYS_INLINE void
+ely_string_buffer_append_str_unchecked(ElyStringBuffer* buffer,
+                                       const char* __restrict__ str,
+                                       size_t len)
+{
+    memcpy(buffer->data + buffer->len, str, len);
+    buffer->len += len;
+}
 // append a zero-terminated string to buffer
-ELY_EXPORT void      ely_string_buffer_append_str(ElyStringBuffer* buffer,
-                                                  const char* __restrict__ str,
-                                                  size_t len);
-ELY_EXPORT void      ely_string_buffer_append_zstr(ElyStringBuffer* buffer,
-                                                   const char* __restrict__ zstr);
+ELY_EXPORT void ely_string_buffer_append_str(ElyStringBuffer* buffer,
+                                             const char* __restrict__ str,
+                                             size_t len);
+ELY_EXPORT void ely_string_buffer_append_zstr(ElyStringBuffer* buffer,
+                                              const char* __restrict__ zstr);
+ELY_EXPORT void ely_string_buffer_reserve_unchecked(ElyStringBuffer* buffer,
+                                                    size_t           capacity);
+ELY_EXPORT void ely_string_buffer_reserve(ElyStringBuffer* buffer,
+                                          size_t           capacity);
+
+static ELY_ALWAYS_INLINE void
+ely_string_buffer_append_char_unchecked(ElyStringBuffer* buffer, char ch)
+{
+    assert(buffer->len < buffer->capacity);
+    buffer->data[buffer->len++];
+}
+
 ELY_EXPORT ElyString ely_string_buffer_into_string(ElyStringBuffer* buffer);
 
 #ifdef __cplusplus

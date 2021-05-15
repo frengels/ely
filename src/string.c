@@ -90,13 +90,29 @@ void ely_string_buffer_append_str(ElyStringBuffer* buffer,
         string_buffer_grow(buffer, buffer->len + len);
     }
 
-    memcpy(buffer->data + buffer->len, str, len);
+    ely_string_buffer_append_str_unchecked(buffer, str, len);
 }
 
 void ely_string_buffer_append_zstr(ElyStringBuffer* buffer,
                                    const char* __restrict__ zstr)
 {
     return ely_string_buffer_append_str(buffer, zstr, strlen(zstr));
+}
+
+void ely_string_buffer_reserve_unchecked(ElyStringBuffer* buffer,
+                                         size_t           capacity)
+{
+    char* new_data = realloc(buffer->data, capacity);
+    assert(new_data);
+    buffer->data = new_data;
+}
+
+void ely_string_buffer_reserve(ElyStringBuffer* buffer, size_t capacity)
+{
+    if (capacity > buffer->capacity)
+    {
+        ely_string_buffer_reserve_unchecked(buffer, capacity);
+    }
 }
 
 ElyString ely_string_buffer_into_string(ElyStringBuffer* buffer)
