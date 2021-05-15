@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <ely/buffer.h>
 #include <ely/lexer.h>
 #include <ely/reader.h>
 
@@ -14,18 +13,19 @@ int main(int argc, char** argv)
     printf("source:\n%s\n", src);
     ElyLexer lexer;
     ely_lexer_create(&lexer, src, len);
-    ElyToken  toks[32];
-    ElyBuffer buff = {.data = toks, .capacity = 32};
-    ely_lexer_lex_into_buffer(&lexer, &buff);
-    printf("read %d tokens\n", ely_buffer_length(&buff));
+    ElyToken toks[32];
+    uint32_t read = ely_lexer_lex(&lexer, toks, 32);
+    printf("read %d tokens\n", read);
 
     uint32_t offset = 0;
-    for (uint32_t i = buff.begin; i != buff.end; ++i)
+    for (uint32_t i = 0; i != read; ++i)
     {
-        ElyToken tok = ((ElyToken*) buff.data)[i];
+        ElyToken tok = toks[i];
         if (tok.kind == ELY_TOKEN_NEWLINE_LF)
         {
-            printf("%d `%s` \"\\n\"\n", tok.len, ely_token_as_pretty_string(tok.kind).data);
+            printf("%d `%s` \"\\n\"\n",
+                   tok.len,
+                   ely_token_as_pretty_string(tok.kind).data);
         }
         else
         {
@@ -41,7 +41,6 @@ int main(int argc, char** argv)
     ElyReader reader;
     ely_reader_create(&reader, filename);
 
-    ElyReadResult res =
-        ely_reader_read(&reader, lexer.src, buff.data, buff.end);
-    ElyNode* plist = res.node;
+    ElyReadResult res   = ely_reader_read(&reader, lexer.src, toks, read);
+    ElyNode*      plist = res.node;
 }

@@ -25,9 +25,6 @@ ELY_EXPORT uint32_t ely_lexer_lex(ElyLexer* lex,
                                   ElyToken* __restrict__ token_buf,
                                   uint32_t buf_len);
 
-ELY_EXPORT void ely_lexer_lex_into_buffer(ElyLexer*  lexer,
-                                          ElyBuffer* token_buffer);
-
 #ifdef __cplusplus
 }
 #endif
