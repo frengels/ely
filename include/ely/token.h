@@ -5,6 +5,7 @@
 
 #include "ely/defines.h"
 #include "ely/export.h"
+#include "ely/string.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,8 +66,8 @@ static ELY_ALWAYS_INLINE bool ely_token_is_eof(enum ElyTokenKind kind)
     return kind == ELY_TOKEN_EOF;
 }
 
-ELY_EXPORT const char* ely_token_as_string(enum ElyTokenKind kind);
-ELY_EXPORT const char* ely_token_as_pretty_string(enum ElyTokenKind kind);
+ELY_EXPORT ElyStringView ely_token_as_string(enum ElyTokenKind kind);
+ELY_EXPORT ElyStringView ely_token_as_pretty_string(enum ElyTokenKind kind);
 
 #ifdef __cplusplus
 }
