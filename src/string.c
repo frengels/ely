@@ -98,3 +98,19 @@ void ely_string_buffer_append_zstr(ElyStringBuffer* buffer,
 {
     return ely_string_buffer_append_str(buffer, zstr, strlen(zstr));
 }
+
+ElyString ely_string_buffer_into_string(ElyStringBuffer* buffer)
+{
+    char* new_str = realloc(buffer->data, buffer->len);
+    assert(new_str);
+    ElyString res = {
+        .data = new_str,
+        .len  = buffer->len,
+    };
+
+    buffer->data     = NULL;
+    buffer->len      = 0;
+    buffer->capacity = 0;
+
+    return res;
+}

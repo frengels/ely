@@ -44,11 +44,12 @@ ELY_EXPORT ElyStringBuffer
 ELY_EXPORT void ely_string_buffer_destroy(ElyStringBuffer* buffer);
 
 // append a zero-terminated string to buffer
-ELY_EXPORT void ely_string_buffer_append_str(ElyStringBuffer* buffer,
-                                             const char* __restrict__ str,
-                                             size_t len);
-ELY_EXPORT void ely_string_buffer_append_zstr(ElyStringBuffer* buffer,
-                                              const char* __restrict__ zstr);
+ELY_EXPORT void      ely_string_buffer_append_str(ElyStringBuffer* buffer,
+                                                  const char* __restrict__ str,
+                                                  size_t len);
+ELY_EXPORT void      ely_string_buffer_append_zstr(ElyStringBuffer* buffer,
+                                                   const char* __restrict__ zstr);
+ELY_EXPORT ElyString ely_string_buffer_into_string(ElyStringBuffer* buffer);
 
 #ifdef __cplusplus
 }
