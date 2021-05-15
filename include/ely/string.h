@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 
 #include "ely/defines.h"
@@ -67,7 +68,7 @@ static ELY_ALWAYS_INLINE void
 ely_string_buffer_append_char_unchecked(ElyStringBuffer* buffer, char ch)
 {
     assert(buffer->len < buffer->capacity);
-    buffer->data[buffer->len++];
+    buffer->data[buffer->len++] = ch;
 }
 
 ELY_EXPORT ElyString ely_string_buffer_into_string(ElyStringBuffer* buffer);
