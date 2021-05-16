@@ -9,6 +9,11 @@ endif()
 
 option(ELY_TESTS "enabled Ely's unit tests" ${IS_MASTER_PROJECT})
 
+if(${IS_MASTER_PROJECT})
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+    include(Sanitizers)
+endif()
+
 add_subdirectory(src)
 
 if(${ELY_TESTS})
