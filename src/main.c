@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <ely/lexer.h>
 #include <ely/reader.h>
@@ -26,15 +26,15 @@ int main(int argc, char** argv)
     {
         ElyReadResult res =
             ely_reader_read(&reader, lexer.src, toks + i, read - i);
-        ElyNode* plist = res.node;
+        ElyNode* node = res.node;
         i += res.tokens_consumed;
-        if (plist)
+        if (node)
         {
-            ElyString str = ely_node_to_string(plist);
+            ElyString str = ely_node_to_string(node);
             printf("\nnode:\n%.*s\n", (int) str.len, str.data);
             ely_string_destroy(&str);
             printf("consumed %d tokens\n", res.tokens_consumed);
-            free(plist);
+            ely_node_destroy(node);
         }
     }
 }

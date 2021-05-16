@@ -177,6 +177,25 @@ void ely_node_create(ElyNode*       node,
     node->loc       = loc;
 }
 
+void ely_node_destroy(ElyNode* node)
+{
+    switch (node->type)
+    {
+    case ELY_STX_PARENS_LIST: {
+        ElyNodeParensList* plist = (ElyNodeParensList*) node->data;
+
+        ElyNode *e, *tmp;
+        ely_list_for_each_safe(e, tmp, &plist->list, link)
+        {
+            ely_node_destroy(e);
+        }
+    }
+        ELY_FALLTHROUGH;
+    default:
+        free(node);
+    }
+}
+
 uint32_t node_to_string_len(const ElyNode* node, uint32_t indent)
 {
     // start and end parens, whitespace, indentation and location info
@@ -449,8 +468,8 @@ uint32_t ely_node_false_lit_sizeof(const ElyNodeFalseLit* node)
 
 void ely_reader_create(ElyReader* reader, const char* filename)
 {
-    reader->filename     = filename;
-    reader->current_byte = 0;
+    reader->filename        = filename;
+    reader->current_byte    = 0;
     reader->unfinished_node = NULL;
 }
 
@@ -728,7 +747,7 @@ ElyReadResult ely_reader_read(ElyReader* reader,
         reader_continue_unfinished(reader, src, tokens, len);
     }
 
-    SkipResult skipped   = skip_atmosphere(tokens, len);
+    SkipResult skipped = skip_atmosphere(tokens, len);
     reader->current_byte += skipped.bytes_skipped;
 
     return reader_read_impl(

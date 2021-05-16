@@ -57,10 +57,11 @@ typedef struct ElyNode
     char data[];
 } ElyNode;
 
-void ely_node_create(ElyNode*       node,
-                     ElyNode*       parent,
-                     enum ElyStx    type,
-                     ElyStxLocation loc);
+void       ely_node_create(ElyNode*       node,
+                           ElyNode*       parent,
+                           enum ElyStx    type,
+                           ElyStxLocation loc);
+ELY_EXPORT void ely_node_destroy(ElyNode* node);
 
 ELY_EXPORT ElyString ely_node_to_string(const ElyNode* node);
 
