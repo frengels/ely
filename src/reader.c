@@ -753,3 +753,20 @@ ElyReadResult ely_reader_read(ElyReader* reader,
     return reader_read_impl(
         reader, src, NULL, tokens, len, skipped.tokens_skipped);
 }
+
+void ely_reader_read_all(ElyReader* reader,
+                         const char* __restrict__ src,
+                         const ElyToken* tokens,
+                         uint32_t        len,
+                         ElyList*        list)
+{
+    ElyReadResult res = ely_reader_read(reader, src, tokens, len);
+
+    if (res.node)
+    {
+        ely_list_insert(list->prev, &res.node->link);
+        tokens += res.tokens_consumed;
+        len -= res.tokens_consumed;
+        ELY_MUSTTAIL return ely_reader_read_all(reader, src, tokens, len, list);
+    }
+}

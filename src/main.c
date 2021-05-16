@@ -37,4 +37,21 @@ int main(int argc, char** argv)
             ely_node_destroy(node);
         }
     }
+
+    ElyList nodes;
+    ely_list_create(&nodes);
+
+    ely_reader_create(&reader, filename);
+    ely_reader_read_all(&reader, lexer.src, toks, read, &nodes);
+
+    ElyNode* e, *tmp;
+    ely_list_for_each_safe(e, tmp, &nodes, link)
+    {
+        ElyString str = ely_node_to_string(e);
+        printf("\n%.*s\n", (int) str.len, str.data);
+        ely_string_destroy(&str);
+        ely_node_destroy(e);
+    }
+
+
 }

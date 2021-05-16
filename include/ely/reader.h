@@ -164,6 +164,12 @@ ELY_EXPORT ElyReadResult ely_reader_read(ElyReader* reader,
                                          const ElyToken* tokens,
                                          uint32_t        len);
 
+ELY_EXPORT void ely_reader_read_all(ElyReader* reader,
+                                    const char* __restrict__ src,
+                                    const ElyToken* tokens,
+                                    uint32_t        len,
+                                    ElyList*        list);
+
 #ifdef __cplusplus
 }
 #endif
