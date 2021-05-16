@@ -156,7 +156,6 @@ static inline uint32_t ely_stx_location_write_length(const ElyStxLocation* loc)
 static inline uint32_t
 ely_stx_location_write_to_buffer(const ElyStxLocation* loc, char* buffer)
 {
-    assert(len >= print_len);
     buffer[0]       = '[';
     uint32_t offset = 1;
     offset += ely_u32_write_to_buffer(loc->start_byte, buffer + offset);
@@ -452,6 +451,7 @@ void ely_reader_create(ElyReader* reader, const char* filename)
 {
     reader->filename     = filename;
     reader->current_byte = 0;
+    reader->unfinished_node = NULL;
 }
 
 static inline ElyNode* read_identifier(const char* __restrict__ src,
@@ -729,7 +729,7 @@ ElyReadResult ely_reader_read(ElyReader* reader,
     }
 
     SkipResult skipped   = skip_atmosphere(tokens, len);
-    reader->current_byte = skipped.bytes_skipped;
+    reader->current_byte += skipped.bytes_skipped;
 
     return reader_read_impl(
         reader, src, NULL, tokens, len, skipped.tokens_skipped);

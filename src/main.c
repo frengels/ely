@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <ely/lexer.h>
 #include <ely/reader.h>
@@ -17,32 +18,23 @@ int main(int argc, char** argv)
     uint32_t read = ely_lexer_lex(&lexer, toks, 32);
     printf("read %d tokens\n", read);
 
-    uint32_t offset = 0;
-    for (uint32_t i = 0; i != read; ++i)
-    {
-        ElyToken tok = toks[i];
-        if (tok.kind == ELY_TOKEN_NEWLINE_LF)
-        {
-            printf("%d `%s` \"\\n\"\n",
-                   tok.len,
-                   ely_token_as_pretty_string(tok.kind).data);
-        }
-        else
-        {
-            printf("%d `%s` \"%.*s\"\n",
-                   tok.len,
-                   ely_token_as_pretty_string(tok.kind).data,
-                   tok.len,
-                   &src[offset]);
-        }
-        offset += tok.len;
-    }
-
     ElyReader reader;
     ely_reader_create(&reader, filename);
 
-    ElyReadResult res   = ely_reader_read(&reader, lexer.src, toks, read);
-    ElyNode*      plist = res.node;
-    ElyString     str   = ely_node_to_string(plist);
-    printf("node:\n\n%.*s", (int) str.len, str.data);
+    uint32_t i = 0;
+    while (i != read)
+    {
+        ElyReadResult res =
+            ely_reader_read(&reader, lexer.src, toks + i, read - i);
+        ElyNode* plist = res.node;
+        i += res.tokens_consumed;
+        if (plist)
+        {
+            ElyString str = ely_node_to_string(plist);
+            printf("\nnode:\n%.*s\n", (int) str.len, str.data);
+            ely_string_destroy(&str);
+            printf("consumed %d tokens\n", res.tokens_consumed);
+            free(plist);
+        }
+    }
 }
