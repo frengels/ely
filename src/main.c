@@ -43,4 +43,6 @@ int main(int argc, char** argv)
 
     ElyReadResult res   = ely_reader_read(&reader, lexer.src, toks, read);
     ElyNode*      plist = res.node;
+    ElyString     str   = ely_node_to_string(plist);
+    printf("node:\n\n%.*s", (int) str.len, str.data);
 }

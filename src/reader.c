@@ -4,12 +4,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ely/buffer.h"
 #include "ely/defines.h"
 #include "ely/lexer.h"
+#include "ely/util.h"
 
 #define CHAR_LIT_OFFSET 2
 #define KEYWORD_LIT_OFFSET 2
+
+#define ELY_PARENS_LIST_NAME "paren-list"
+#define ELY_BRACKET_LIST_NAME "bracket-list"
+#define ELY_BRACE_LIST_NAME "brace-list"
 
 typedef struct SkipResult
 {
@@ -142,6 +146,26 @@ static inline ElyReadResult read_parens_list(ElyReader* reader,
         reader, src, node, tokens, len, idx);
 }
 
+static inline uint32_t ely_stx_location_write_length(const ElyStxLocation* loc)
+{
+    // [0 12]
+    return 1 + ely_u32_count_numbers(loc->start_byte) + 1 +
+           ely_u32_count_numbers(loc->end_byte) + 1;
+}
+
+static inline uint32_t
+ely_stx_location_write_to_buffer(const ElyStxLocation* loc, char* buffer)
+{
+    assert(len >= print_len);
+    buffer[0]       = '[';
+    uint32_t offset = 1;
+    offset += ely_u32_write_to_buffer(loc->start_byte, buffer + offset);
+    buffer[offset++] = ' ';
+    offset += ely_u32_write_to_buffer(loc->end_byte, buffer + offset);
+    buffer[offset++] = ']';
+    return offset;
+}
+
 void ely_node_create(ElyNode*       node,
                      ElyNode*       parent,
                      enum ElyStx    type,
@@ -154,10 +178,180 @@ void ely_node_create(ElyNode*       node,
     node->loc       = loc;
 }
 
-char* ely_node_to_string(const ElyNode* node)
+uint32_t node_to_string_len(const ElyNode* node, uint32_t indent)
 {
-    (void) node;
-    return NULL;
+    // start and end parens, whitespace, indentation and location info
+    uint32_t len = 3 + indent + ely_stx_location_write_length(&node->loc);
+    switch (node->type)
+    {
+    case ELY_STX_IDENTIFIER:
+        return len + ely_token_as_string(ELY_TOKEN_ID).len;
+    case ELY_STX_STRING_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_STRING_LIT).len;
+    case ELY_STX_INT_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_INT_LIT).len;
+    case ELY_STX_FLOAT_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_FLOAT_LIT).len;
+    case ELY_STX_CHAR_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_CHAR_LIT).len;
+    case ELY_STX_KEYWORD_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_KEYWORD_LIT).len;
+    case ELY_STX_TRUE_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_TRUE_LIT).len;
+    case ELY_STX_FALSE_LIT:
+        return len + ely_token_as_string(ELY_TOKEN_FALSE_LIT).len;
+    case ELY_STX_PARENS_LIST: {
+        const ElyNodeParensList* plist = (const ElyNodeParensList*) node->data;
+
+        ElyNode* e;
+        ely_list_for_each(e, &plist->list, link)
+        {
+            len += 1; // for newline
+            len += node_to_string_len(e, indent + 2);
+        }
+
+        return len + strlen(ELY_PARENS_LIST_NAME);
+    }
+    case ELY_STX_BRACKET_LIST: {
+        const ElyNodeBracketList* blist =
+            (const ElyNodeBracketList*) node->data;
+
+        ElyNode* e;
+        ely_list_for_each(e, &blist->list, link)
+        {
+            len += 1; // for newline
+            len += node_to_string_len(e, indent + 2);
+        }
+
+        return len + strlen(ELY_BRACKET_LIST_NAME);
+    }
+    case ELY_STX_BRACE_LIST: {
+        const ElyNodeBraceList* blist = (const ElyNodeBraceList*) node->data;
+
+        ElyNode* e;
+        ely_list_for_each(e, &blist->list, link)
+        {
+            len += 1; // for newline
+            len += node_to_string_len(e, indent + 2);
+        }
+
+        return len + strlen(ELY_BRACE_LIST_NAME);
+    }
+    default:
+        __builtin_unreachable();
+    }
+}
+
+uint32_t node_print_generic(uint32_t       indent,
+                            ElyStringView  strv,
+                            ElyStxLocation loc,
+                            char*          buffer)
+{
+    const char* start = buffer;
+
+    for (uint32_t i = 0; i != indent; ++i)
+    {
+        buffer[i] = ' ';
+    }
+    buffer += indent;
+
+    *buffer++ = '(';
+    memcpy(buffer, strv.data, strv.len);
+    buffer += strv.len;
+
+    *buffer++ = ' ';
+
+    uint32_t loc_len = ely_stx_location_write_to_buffer(&loc, buffer);
+    buffer += loc_len;
+    *buffer++ = ')';
+    return buffer - start;
+}
+
+uint32_t node_to_string_impl(const ElyNode* node, char* buffer, uint32_t indent)
+{
+    switch (node->type)
+    {
+    case ELY_STX_IDENTIFIER:
+        return node_print_generic(
+            indent, ely_token_as_string(ELY_TOKEN_ID), node->loc, buffer);
+    case ELY_STX_KEYWORD_LIT:
+        return node_print_generic(indent,
+                                  ely_token_as_string(ELY_TOKEN_KEYWORD_LIT),
+                                  node->loc,
+                                  buffer);
+    case ELY_STX_STRING_LIT:
+        return node_print_generic(indent,
+                                  ely_token_as_string(ELY_TOKEN_STRING_LIT),
+                                  node->loc,
+                                  buffer);
+    case ELY_STX_INT_LIT:
+        return node_print_generic(
+            indent, ely_token_as_string(ELY_TOKEN_INT_LIT), node->loc, buffer);
+    case ELY_STX_FLOAT_LIT:
+        return node_print_generic(indent,
+                                  ely_token_as_string(ELY_TOKEN_FLOAT_LIT),
+                                  node->loc,
+                                  buffer);
+    case ELY_STX_CHAR_LIT:
+        return node_print_generic(
+            indent, ely_token_as_string(ELY_TOKEN_CHAR_LIT), node->loc, buffer);
+    case ELY_STX_TRUE_LIT:
+        return node_print_generic(
+            indent, ely_token_as_string(ELY_TOKEN_TRUE_LIT), node->loc, buffer);
+    case ELY_STX_FALSE_LIT:
+        return node_print_generic(indent,
+                                  ely_token_as_string(ELY_TOKEN_FALSE_LIT),
+                                  node->loc,
+                                  buffer);
+    case ELY_STX_PARENS_LIST: {
+        const ElyNodeParensList* plist = (const ElyNodeParensList*) node->data;
+        const char*              start = buffer;
+
+        for (uint32_t i = 0; i != indent; ++i)
+        {
+            buffer[i] = ' ';
+        }
+        buffer += indent;
+
+        *buffer++       = '(';
+        size_t name_len = strlen(ELY_PARENS_LIST_NAME);
+        memcpy(buffer, ELY_PARENS_LIST_NAME, name_len);
+        buffer += name_len;
+
+        *buffer++ = ' ';
+
+        uint32_t loc_len = ely_stx_location_write_to_buffer(&node->loc, buffer);
+        buffer += loc_len;
+
+        const ElyNode* e;
+        ely_list_for_each(e, &plist->list, link)
+        {
+            *buffer++         = '\n';
+            uint32_t node_len = node_to_string_impl(e, buffer, indent + 2);
+            buffer += node_len;
+        }
+
+        *buffer++ = ')';
+        return buffer - start;
+    }
+    default:
+        __builtin_unreachable();
+    }
+}
+
+ElyString ely_node_to_string(const ElyNode* node)
+{
+    uint32_t buffer_size = node_to_string_len(node, 0);
+    char*    data        = malloc(buffer_size);
+
+    uint32_t written = node_to_string_impl(node, data, 0);
+
+    ElyString res = {
+        .data = data,
+        .len  = written,
+    };
+
+    return res;
 }
 
 uint32_t ely_node_sizeof(const ElyNode* node)

@@ -20,8 +20,7 @@ static inline uint32_t ely_u32_count_numbers(uint32_t num)
     return count;
 }
 
-static inline uint32_t
-ely_u32_write_to_buffer(uint32_t num, char* buffer, size_t buf_len)
+static inline uint32_t ely_u32_write_to_buffer(uint32_t num, char* buffer)
 {
     // 10 is the maximum characters output when converting
     char local_buffer[10];
@@ -32,7 +31,7 @@ ely_u32_write_to_buffer(uint32_t num, char* buffer, size_t buf_len)
     do
     {
         uint32_t remainder = num % 10;
-        *p++               = char(remainder) + '0';
+        *p++               = ((char) remainder) + '0';
         num /= 10;
         ++count;
     } while (num > 0);

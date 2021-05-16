@@ -11,7 +11,7 @@ TEST_CASE("util")
         {
             char buffer[10];
 
-            uint32_t written = ely_u32_write_to_buffer(1234, buffer, 10);
+            uint32_t written = ely_u32_write_to_buffer(1234, buffer);
 
             REQUIRE_EQ(4, ely_u32_count_numbers(1234));
 
@@ -25,7 +25,7 @@ TEST_CASE("util")
         {
             char zero;
 
-            uint32_t written = ely_u32_write_to_buffer(0, &zero, 1);
+            uint32_t written = ely_u32_write_to_buffer(0, &zero);
 
             REQUIRE_EQ(1, ely_u32_count_numbers(0));
 

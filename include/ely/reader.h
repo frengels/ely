@@ -62,7 +62,7 @@ void ely_node_create(ElyNode*       node,
                      enum ElyStx    type,
                      ElyStxLocation loc);
 
-ELY_EXPORT char* ely_node_to_string(const ElyNode* node);
+ELY_EXPORT ElyString ely_node_to_string(const ElyNode* node);
 
 uint32_t ely_node_sizeof(const ElyNode* node);
 
