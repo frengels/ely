@@ -46,27 +46,6 @@ typedef struct ElyStxLocation
     uint32_t    end_byte;
 } ElyStxLocation;
 
-typedef struct ElyNode
-{
-    ElyList        link;
-    ElyNode*       parent;
-    enum ElyStx    type;
-    ElyStxLocation loc;
-    // this doesn't need an explicit alignment parameter as it should follow
-    // loc which has void* alignment.
-    char data[];
-} ElyNode;
-
-void            ely_node_create(ElyNode*       node,
-                                ElyNode*       parent,
-                                enum ElyStx    type,
-                                ElyStxLocation loc);
-ELY_EXPORT void ely_node_destroy(ElyNode* node);
-
-ELY_EXPORT ElyString ely_node_to_string(const ElyNode* node);
-
-uint32_t ely_node_sizeof(const ElyNode* node);
-
 typedef struct ElyNodeParensList
 {
     ElyList list;
@@ -143,6 +122,24 @@ typedef struct ElyNodeFalseLit
 
 uint32_t ely_node_false_lit_sizeof(const ElyNodeFalseLit*);
 
+typedef struct ElyNode
+{
+    ElyList        link;
+    ElyNode*       parent;
+    enum ElyStx    type;
+    ElyStxLocation loc;
+    char           data[];
+} ElyNode;
+
+void            ely_node_create(ElyNode*       node,
+                                ElyNode*       parent,
+                                enum ElyStx    type,
+                                ElyStxLocation loc);
+ELY_EXPORT void ely_node_destroy(ElyNode* node);
+
+ELY_EXPORT ElyString ely_node_to_string(const ElyNode* node);
+
+uint32_t ely_node_sizeof(const ElyNode* node);
 typedef struct ElyReader
 {
     const char* filename;
