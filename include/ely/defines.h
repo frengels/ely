@@ -51,3 +51,25 @@
 #warning unimplemented attribute: ELY_NODISCARD
 #define ELY_NODISCARD
 #endif
+
+#if defined(__has_attribute)
+#if __has_attribute(pure)
+#define ELY_PURE __attribute__((pure))
+#endif
+#endif
+
+#if !defined(ELY_PURE)
+#warning unimplemented attribute: ELY_PURE
+#define ELY_PURE
+#endif
+
+#if defined(__has_attribute)
+#if __has_attribute(const)
+#define ELY_CONST __attribute__((const))
+#endif
+#endif
+
+#if !defined(ELY_CONST)
+#warning unimplemented attribute: ELY_CONST
+#define ELY_CONST
+#endif
