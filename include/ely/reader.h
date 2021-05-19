@@ -128,7 +128,22 @@ typedef struct ElyNode
     ElyNode*       parent;
     enum ElyStx    type;
     ElyStxLocation loc;
-    char           data[];
+    union
+    {
+        ElyNodeParensList  parens_list;
+        ElyNodeBracketList bracket_list;
+        ElyNodeBraceList   brace_list;
+
+        ElyNodeIdentifier id;
+
+        ElyNodeKeywordLit kw_lit;
+        ElyNodeStringLit  str_lit;
+        ElyNodeIntLit     int_lit;
+        ElyNodeFloatLit   float_lit;
+        ElyNodeCharLit    char_lit;
+        ElyNodeTrueLit    true_lit;
+        ElyNodeFalseLit   false_lit;
+    };
 } ElyNode;
 
 void            ely_node_create(ElyNode*       node,
@@ -139,7 +154,6 @@ ELY_EXPORT void ely_node_destroy(ElyNode* node);
 
 ELY_EXPORT ElyString ely_node_to_string(const ElyNode* node);
 
-uint32_t ely_node_sizeof(const ElyNode* node);
 typedef struct ElyReader
 {
     const char* filename;
