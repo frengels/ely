@@ -1,29 +1,28 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
+#include "ely/defines.h"
 #include "ely/export.h"
-#include "ely/token.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct ElyBuffer ElyBuffer;
+typedef struct ElyToken ElyToken;
 
-typedef struct ElyLexer
+typedef struct ElyLexResult
 {
-    const char* __restrict__ src;
-    uint32_t len;
-    uint32_t pos;
-} ElyLexer;
+    uint32_t bytes_processed;
+    uint32_t tokens_read;
+} ElyLexResult;
 
-ELY_EXPORT void
-ely_lexer_create(ElyLexer* lex, const char* __restrict__ src, uint32_t len);
-
-ELY_EXPORT uint32_t ely_lexer_lex(ElyLexer* lex,
-                                  ElyToken* __restrict__ token_buf,
-                                  uint32_t buf_len);
+ELY_EXPORT ELY_NODISCARD ElyLexResult
+ely_lex(const char* __restrict__ src,
+        size_t src_len,
+        ElyToken* __restrict__ token_buf,
+        size_t buf_len);
 
 #ifdef __cplusplus
 }
