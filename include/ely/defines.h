@@ -36,3 +36,18 @@
 #warning unimplemented attribute: ELY_FALLTHROUGH
 #define ELY_FALLTHROUGH
 #endif
+
+#if defined(__has_attribute)
+#if __has_attribute(warn_unused_result)
+#define ELY_NODISCARD __attribute__((warn_unused_result))
+#endif
+#elif defined(_MSC_VER)
+#if _MSC_VER >= 1700
+#define ELY_NODISCARD _Check_return_
+#endif
+#endif
+
+#if !defined(ELY_NODISCARD)
+#warning unimplemented attribute: ELY_NODISCARD
+#define ELY_NODISCARD
+#endif
