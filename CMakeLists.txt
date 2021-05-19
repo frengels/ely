@@ -8,6 +8,7 @@ if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 endif()
 
 option(ELY_TESTS "enable Ely's unit tests" ${IS_MASTER_PROJECT})
+option(ELY_BENCHMARKS "enable Ely's benchmarks" ${IS_MASTER_PROJECT})
 
 if(${IS_MASTER_PROJECT})
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -16,7 +17,12 @@ endif()
 
 add_subdirectory(src)
 
+if(${ELY_BENCHMARKS})
+    add_subdirectory(benchmark)
+endif()
+
 if(${ELY_TESTS})
     enable_testing()
     add_subdirectory(test)
 endif()
+
