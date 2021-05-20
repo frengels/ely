@@ -1,11 +1,25 @@
 #pragma once
 
-#if defined(__has_attribute)
+#if !defined(__has_feature)
+#define __has_feature(x) 0
+#endif
+
+#if !defined(__has_extension)
+#define __has_extension(x) 0
+#endif
+
+#if !defined(__has_attribute)
+#define __has_attribute(x) 0
+#endif
+
+#if !defined(__has_builtin)
+#define __has_builtin(x) 0
+#endif
+
 #if __has_attribute(musttail)
 #define ELY_MUSTTAIL __attribute__((musttail))
 #else
 #define ELY_MUSTTAIL
-#endif
 #endif
 
 #if !defined(ELY_MUSTTAIL)
@@ -13,10 +27,8 @@
 #define ELY_MUSTTAIL
 #endif
 
-#if defined(__has_attribute)
 #if __has_attribute(always_inline)
 #define ELY_ALWAYS_INLINE inline __attribute__((always_inline))
-#endif
 #elif defined(_MSC_VER)
 #define ELY_ALWAYS_INLINE inline __forceinline
 #endif
@@ -26,10 +38,8 @@
 #define ELY_ALWAYS_INLINE inline
 #endif
 
-#if defined(__has_attribute)
 #if __has_attribute(fallthrough)
 #define ELY_FALLTHROUGH __attribute__((fallthrough))
-#endif
 #endif
 
 #if !defined(ELY_FALLTHROUGH)
@@ -37,14 +47,11 @@
 #define ELY_FALLTHROUGH
 #endif
 
-#if defined(__has_attribute)
 #if __has_attribute(warn_unused_result)
 #define ELY_NODISCARD __attribute__((warn_unused_result))
-#endif
 #elif defined(_MSC_VER)
 #if _MSC_VER >= 1700
 #define ELY_NODISCARD _Check_return_
-#endif
 #endif
 
 #if !defined(ELY_NODISCARD)
@@ -52,10 +59,8 @@
 #define ELY_NODISCARD
 #endif
 
-#if defined(__has_attribute)
 #if __has_attribute(pure)
 #define ELY_PURE __attribute__((pure))
-#endif
 #endif
 
 #if !defined(ELY_PURE)
@@ -63,10 +68,8 @@
 #define ELY_PURE
 #endif
 
-#if defined(__has_attribute)
 #if __has_attribute(const)
 #define ELY_CONST __attribute__((const))
-#endif
 #endif
 
 #if !defined(ELY_CONST)
@@ -74,10 +77,8 @@
 #define ELY_CONST
 #endif
 
-#if defined(__has_attribute)
 #if __has_attribute(noinline)
 #define ELY_NOINLINE __attribute__((noinline))
-#endif
 #elif defined(_MSC_VER)
 #define ELY_NOINLINE __declspec(noinline)
 #endif
