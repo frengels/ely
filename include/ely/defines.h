@@ -60,21 +60,21 @@
 #endif
 
 #if __has_attribute(pure)
-#define ELY_PURE __attribute__((pure))
+#define ELY_READONLY __attribute__((pure))
 #endif
 
-#if !defined(ELY_PURE)
-#warning unimplemented attribute: ELY_PURE
-#define ELY_PURE
+#if !defined(ELY_READONLY)
+#warning unimplemented attribute: ELY_READONLY
+#define ELY_READONLY
 #endif
 
 #if __has_attribute(const)
-#define ELY_CONST __attribute__((const))
+#define ELY_READNONE __attribute__((const))
 #endif
 
-#if !defined(ELY_CONST)
-#warning unimplemented attribute: ELY_CONST
-#define ELY_CONST
+#if !defined(ELY_READNONE)
+#warning unimplemented attribute: ELY_READNONE
+#define ELY_READNONE
 #endif
 
 #if __has_attribute(noinline)
