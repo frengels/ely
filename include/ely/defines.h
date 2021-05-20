@@ -73,3 +73,16 @@
 #warning unimplemented attribute: ELY_CONST
 #define ELY_CONST
 #endif
+
+#if defined(__has_attribute)
+#if __has_attribute(noinline)
+#define ELY_NOINLINE __attribute__((noinline))
+#endif
+#elif defined(_MSC_VER)
+#define ELY_NOINLINE __declspec(noinline)
+#endif
+
+#if !defined(ELY_NOINLINE)
+#warning unimplemented attribute: ELY_NOINLINE
+#define ELY_NOINLINE
+#endif
