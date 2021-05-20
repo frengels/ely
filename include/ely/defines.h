@@ -87,3 +87,12 @@
 #warning unimplemented attribute: ELY_NOINLINE
 #define ELY_NOINLINE
 #endif
+
+#if __has_attribute(noreturn)
+#define ELY_NORETURN __attribute__((noreturn))
+#endif
+
+#if !defined(ELY_NORETURN)
+#warning unimplemented attribute: ELY_NORETURN
+#define ELY_NORETURN
+#endif
