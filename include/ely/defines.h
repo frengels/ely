@@ -53,6 +53,7 @@
 #if _MSC_VER >= 1700
 #define ELY_NODISCARD _Check_return_
 #endif
+#endif
 
 #if !defined(ELY_NODISCARD)
 #warning unimplemented attribute: ELY_NODISCARD
