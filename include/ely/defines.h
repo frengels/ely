@@ -97,3 +97,11 @@
 #warning unimplemented attribute: ELY_NORETURN
 #define ELY_NORETURN
 #endif
+
+#if __has_builtin(__builtin_assume_aligned)
+#define ELY_ASSUME_ALIGNED(p, x) __builtin_assume_aligned(p, x)
+#endif
+
+#if !defined(ELY_ASSUME_ALIGNED)
+#warning unimplemented builtin: ELY_ASSUME_ALIGNED
+#endif
