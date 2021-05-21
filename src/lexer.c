@@ -47,8 +47,8 @@ ELY_NODISCARD static inline bool is_delimiter(char c)
     }
 }
 
-ELY_NODISCARD static inline const char*
-advance_to_delimiter(const char* it, const char* end)
+ELY_NODISCARD static inline const char* advance_to_delimiter(const char* it,
+                                                             const char* end)
 {
     if (it != end)
     {
@@ -190,9 +190,9 @@ parse_sign(const char* it, const char* end, ElyToken* dst, size_t token_len)
 }
 
 ELY_NODISCARD ElyLexResult ely_lex(const char* __restrict__ src,
-                                            size_t src_len,
-                                            ElyToken* __restrict__ token_buf,
-                                            size_t buf_len)
+                                   size_t src_len,
+                                   ElyToken* __restrict__ token_buf,
+                                   size_t buf_len)
 {
     size_t      buf_i = 0;
     const char* end   = src + src_len;
