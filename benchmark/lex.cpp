@@ -8,7 +8,7 @@
 #include <ely/reader.h>
 #include <ely/token.h>
 
-constexpr int lines = 10000;
+constexpr int lines = 1000000;
 
 std::string long_source()
 {
@@ -68,7 +68,7 @@ static void BM_read(benchmark::State& state)
 {
     auto src = long_source();
     // make sure we have enough space
-    static constexpr std::size_t token_buf_len = 1000000;
+    static constexpr std::size_t token_buf_len = 40000000;
     auto token_buf = std::make_unique<ElyToken[]>(token_buf_len);
 
     auto        src_len = src.size();
