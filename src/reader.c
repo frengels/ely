@@ -665,13 +665,21 @@ void ely_reader_read_all(ElyReader* reader,
                          uint32_t        len,
                          ElyList*        list)
 {
-    ElyReadResult res = ely_reader_read(reader, src, tokens, len);
-
-    if (res.node)
+    while (true)
     {
-        ely_list_insert(list->prev, &res.node->link);
-        tokens += res.tokens_consumed;
-        len -= res.tokens_consumed;
-        ELY_MUSTTAIL return ely_reader_read_all(reader, src, tokens, len, list);
+        ElyReadResult res = ely_reader_read(reader, src, tokens, len);
+
+        if (res.node)
+        {
+            ely_list_insert(list->prev, &res.node->link);
+            tokens += res.tokens_consumed;
+            len -= res.tokens_consumed;
+            //ELY_MUSTTAIL return ely_reader_read_all(
+            //    reader, src, tokens, len, list);
+        }
+        else
+        {
+            return;
+        }
     }
 }
