@@ -180,7 +180,8 @@ typedef struct ElyDef
     ElyExpr  expr;
 } ElyDef;
 
-ELY_EXPORT ElyExpr ely_ast_parse_expr(ElyNode* n);
+ELY_EXPORT ElyExpr ely_ast_parse_expr(ElyNode* n) ELY_READONLY;
+ELY_EXPORT ElyDef  ely_ast_parse_toplevel(ElyNode* n) ELY_READONLY;
 
 #ifdef __cplusplus
 }

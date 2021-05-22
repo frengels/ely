@@ -166,3 +166,10 @@ ElyExpr ely_ast_parse_expr(ElyNode* n)
 
     return res;
 }
+
+ElyDef ely_ast_parse_toplevel(ElyNode* n)
+{
+    ElyDef res;
+
+    return res;
+}
