@@ -1,4 +1,6 @@
 set(ELY_SRC
+    assert.cpp
+    ast.cpp
     token.c
     lexer.c
     reader.c

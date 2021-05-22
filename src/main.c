@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <ely/ast.h>
 #include <ely/lexer.h>
 #include <ely/reader.h>
 
@@ -21,7 +22,7 @@ int main(int argc, char** argv)
     {
         ElyToken      tok  = toks[i];
         ElyStringView strv = ely_token_as_pretty_string(tok.kind);
-        printf("`%.*s`: %d\n", (int)strv.len, strv.data, tok.len);
+        printf("`%.*s`: %d\n", (int) strv.len, strv.data, tok.len);
     }
 
     ElyReader reader;
@@ -49,6 +50,13 @@ int main(int argc, char** argv)
     ely_reader_create(&reader, filename);
     ely_reader_read_all(&reader, src, toks, read, &nodes);
 
+    // convert to ast
+
+    ElyNode* head = ely_container_of(nodes.next, head, link);
+
+    ElyExpr n = ely_ast_parse_expr(head);
+
+    // perform cleanup
     ElyNode *e, *tmp;
     ely_list_for_each_safe(e, tmp, &nodes, link)
     {
