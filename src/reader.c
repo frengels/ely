@@ -407,6 +407,7 @@ static inline ElyNode* read_identifier(const char* __restrict__ src,
         size_t alloc_size   = id_str_start + tok.len;
         node                = malloc(alloc_size);
         ElyNodeIdentifier* ident = &node->id;
+        ident->len               = tok.len;
         memcpy(ident->str, &src[stx_loc.start_byte], tok.len);
         ely_node_create(node, parent, ELY_STX_IDENTIFIER, stx_loc);
     }
@@ -674,7 +675,7 @@ void ely_reader_read_all(ElyReader* reader,
             ely_list_insert(list->prev, &res.node->link);
             tokens += res.tokens_consumed;
             len -= res.tokens_consumed;
-            //ELY_MUSTTAIL return ely_reader_read_all(
+            // ELY_MUSTTAIL return ely_reader_read_all(
             //    reader, src, tokens, len, list);
         }
         else
