@@ -68,15 +68,11 @@ typedef struct ElyNodeIdentifier
     char str[];
 } ElyNodeIdentifier;
 
-uint32_t ely_node_identifier_sizeof(const ElyNodeIdentifier* node);
-
 typedef struct ElyNodeKeywordLit
 {
     uint32_t len;
     char     str[];
 } ElyNodeKeywordLit;
-
-uint32_t ely_node_keyword_lit_sizeof(const ElyNodeKeywordLit* node);
 
 typedef struct ElyNodeStringLit
 {
@@ -84,15 +80,11 @@ typedef struct ElyNodeStringLit
     char   str[];
 } ElyNodeStringLit;
 
-uint32_t ely_node_string_lit_sizeof(const ElyNodeStringLit* node);
-
 typedef struct ElyNodeIntLit
 {
     uint32_t len;
     char     str[];
 } ElyNodeIntLit;
-
-uint32_t ely_node_int_lit_sizeof(const ElyNodeIntLit* node);
 
 typedef struct ElyNodeFloatLit
 {
@@ -100,27 +92,19 @@ typedef struct ElyNodeFloatLit
     char     str[];
 } ElyNodeFloatLit;
 
-uint32_t ely_node_float_lit_sizeof(const ElyNodeFloatLit* node);
-
 typedef struct ElyNodeCharLit
 {
     uint32_t len;
     char     str[];
 } ElyNodeCharLit;
 
-uint32_t ely_node_char_lit_sizeof(const ElyNodeCharLit* node);
-
 typedef struct ElyNodeTrueLit
 {
 } ElyNodeTrueLit;
 
-uint32_t ely_node_true_lit_sizeof(const ElyNodeTrueLit*);
-
 typedef struct ElyNodeFalseLit
 {
 } ElyNodeFalseLit;
-
-uint32_t ely_node_false_lit_sizeof(const ElyNodeFalseLit*);
 
 typedef struct ElyNode
 {
