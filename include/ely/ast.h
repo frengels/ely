@@ -63,7 +63,7 @@ enum ElyFloatType
 
 typedef struct ElyIdExpr
 {
-    ElyNode* id;
+    const ElyNode* id;
 } ElyIdExpr;
 
 typedef struct ElyCallExpr
@@ -142,7 +142,7 @@ typedef struct ElyStringLit
 
 typedef struct ElyBoolLit
 {
-    ElyNode* node;
+    const ElyNode* node;
     bool     val;
 } ElyBoolLit;
 
@@ -176,12 +176,12 @@ typedef struct ElyExpr
 
 typedef struct ElyDef
 {
-    ElyNode* id;
+    const ElyNode* id;
     ElyExpr  expr;
 } ElyDef;
 
-ELY_EXPORT ElyExpr ely_ast_parse_expr(ElyNode* n) ELY_READONLY;
-ELY_EXPORT ElyDef  ely_ast_parse_toplevel(ElyNode* n) ELY_READONLY;
+ELY_EXPORT ElyExpr ely_ast_parse_expr(const ElyNode* n);
+ELY_EXPORT ElyDef  ely_ast_parse_toplevel(const ElyNode* n);
 
 #ifdef __cplusplus
 }
