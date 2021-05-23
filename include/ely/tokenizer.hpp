@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "ely/scanner.hpp"
 
@@ -461,21 +462,20 @@ public:
     }
 };
 
-/// unlike a Lexeme, a Token owns the data it holds. Additionally it holds
-/// preceding atmosphere and any trailing atmosphere until the next newline.
-class ELY_EXPORT Token
+/// unlike a Lexeme, a RawToken owns the data it holds
+class RawToken
 {
 private:
     TokenKind          kind;
     detail::TokenUnion values;
 
 public:
-    constexpr Token()
+    constexpr RawToken()
         : kind(TokenKind::Eof), values(std::in_place_type<token::Eof>)
     {}
 
     template<typename T, typename... Args>
-    explicit constexpr Token(std::in_place_type_t<T>, Args&&... args)
+    explicit constexpr RawToken(std::in_place_type_t<T>, Args&&... args)
         : kind(T::enum_value),
           values(std::in_place_type<T>, static_cast<Args&&>(args)...)
     {}
@@ -523,7 +523,7 @@ public:
     template<typename F>
     constexpr auto visit(F&& fn) & -> decltype(auto)
     {
-        return static_cast<const Token&>(*this).visit(
+        return static_cast<const RawToken&>(*this).visit(
             [&](const auto& x) -> decltype(auto) {
                 using ty =
                     std::remove_cv_t<std::remove_reference_t<decltype(x)>>;
@@ -542,13 +542,13 @@ public:
     template<typename F>
     constexpr auto visit(F&& fn) const&& -> decltype(auto)
     {
-        return static_cast<const Token&>(*this).visit(
+        return static_cast<const RawToken&>(*this).visit(
             [&](const auto& x) -> decltype(auto) {
                 return static_cast<F&&>(fn)(std::move(x));
             });
     }
 
-    ~Token()
+    ~RawToken()
     {
         visit([](auto& x) -> void {
             using ty = std::remove_reference_t<decltype(x)>;
