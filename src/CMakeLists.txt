@@ -2,7 +2,7 @@ set(ELY_SRC
     assert.cpp
     ast.cpp
     token.c
-    lexer.c
+    lexer.cpp
     reader.c
     list.c
     string.c)
