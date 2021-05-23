@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "ely/defines.h"
+#include "ely/scanner.hpp"
 #include "ely/token.h"
 
 ELY_NODISCARD static inline bool is_newline_start(char c)
@@ -205,8 +206,9 @@ ELY_NODISCARD ElyLexResult ely_lex(const char* __restrict__ src,
             token_buf[buf_i].kind = ELY_TOKEN_EOF;
             token_buf[buf_i].len  = 0;
             ++buf_i;
-            ElyLexResult res = {.bytes_processed = (it - src),
-                                .tokens_read     = buf_i};
+            ElyLexResult res = {.bytes_processed =
+                                    static_cast<uint32_t>(it - src),
+                                .tokens_read = static_cast<uint32_t>(buf_i)};
             return res;
         }
 
@@ -382,6 +384,7 @@ ELY_NODISCARD ElyLexResult ely_lex(const char* __restrict__ src,
             }
         }
     }
-    ElyLexResult res = {.bytes_processed = (it - src), .tokens_read = buf_i};
+    ElyLexResult res = {.bytes_processed = static_cast<uint32_t>(it - src),
+                        .tokens_read     = static_cast<uint32_t>(buf_i)};
     return res;
 }
