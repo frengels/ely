@@ -198,7 +198,7 @@ struct ScanResult
 };
 
 template<typename I, typename S>
-constexpr ScanResult scan_identifier_continue(I it, S end)
+constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
     return {next, LexemeKind::Identifier};
@@ -225,7 +225,7 @@ constexpr ScanResult<I> scan_float(I it, S end)
 
     if (is_delimiter(c))
     {
-        return {next_it, LexemeKind::FloatLit};
+        return {it, LexemeKind::FloatLit};
     }
     else
     {
@@ -250,7 +250,7 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
     {
         ++it;
         // lexing a float now
-        ELY_MUSTTAIL return scan_float(it, end, start);
+        ELY_MUSTTAIL return scan_float(it, end);
     }
     else if (is_delimiter(c))
     {
@@ -296,7 +296,7 @@ constexpr ScanResult<I> scan_whitespace(I it, S end)
 {
     while (it != end)
     {
-        ch = *it;
+        char ch = *it;
         if (ch == ' ')
         {
             ++it;
@@ -315,7 +315,7 @@ constexpr ScanResult<I> scan_tab(I it, S end)
 {
     while (it != end)
     {
-        ch = *it;
+        char ch = *it;
         if (ch == '\t')
         {
             ++it;
@@ -330,18 +330,19 @@ constexpr ScanResult<I> scan_tab(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult scan_cr(I it, S end)
+constexpr ScanResult<I> scan_cr(I it, S end)
 {
-    ch = *it;
-    if (ch == '\n')
+    if (it != end)
     {
-        ++it;
-        return {it, LexemeKind::NewlineCrlf};
+        char ch = *it;
+        if (ch == '\n')
+        {
+            ++it;
+            return {it, LexemeKind::NewlineCrlf};
+        }
     }
-    else
-    {
-        return {it, LexemeKind::NewlineCr};
-    }
+
+    return {it, LexemeKind::NewlineCr};
 }
 
 template<typename I, typename S>
@@ -380,7 +381,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                         "handle # with invalid characters following");
                 }
             }
-            return {it, LexemeKind::BoolLit} ch = *it;
+            return {it, LexemeKind::BoolLit};
         case ':':
             ++it;
             ELY_MUSTTAIL return scan_keyword(it, end);
@@ -471,9 +472,20 @@ private:
 public:
     ScannerIterator() = default;
 
-    explicit constexpr ScannerIterator(I it) : it_(std::move(it))
+    constexpr ScannerIterator(I it, S end)
+        : it_(std::move(it)), end_(std::move(end))
     {
         cache_next();
+    }
+
+    constexpr I base() const&
+    {
+        return it_;
+    }
+
+    constexpr I base() &&
+    {
+        return std::move(it_);
     }
 
     friend constexpr bool operator==(const ScannerIterator& lhs,
@@ -492,11 +504,21 @@ public:
     {
         it_ = cached_lexeme_.end;
         cache_next();
+        return *this;
+    }
+
+    constexpr ScannerIterator operator++(int) noexcept
+    {
+        ScannerIterator self{*this};
+        ++*this;
+        return self;
     }
 
     constexpr reference operator*() const noexcept
     {
-        return {it_, cached_lexeme_.end - it_, cached_lexeme_.kind};
+        return {it_,
+                static_cast<uint32_t>(cached_lexeme_.end - it_),
+                cached_lexeme_.kind};
     }
 
     constexpr bool _at_end() const
@@ -519,6 +541,12 @@ public:
 
     friend constexpr bool operator==(const ScannerIterator<I, S>& it,
                                      const ScannerSentinel<I, S>&) noexcept
+    {
+        return it._at_end();
+    }
+
+    friend constexpr bool operator==(const ScannerSentinel<I, S>&,
+                                     const ScannerIterator<I, S>& it) noexcept
     {
         return it._at_end();
     }
@@ -546,7 +574,7 @@ public:
         return iterator{it_, end_};
     }
 
-    constexpr iterator end() const
+    constexpr sentinel end() const
     {
         return sentinel{};
     }
