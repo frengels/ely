@@ -64,6 +64,43 @@ static void BM_lex(benchmark::State& state)
 }
 BENCHMARK(BM_lex);
 
+static void BM_lexpp(benchmark::State& state)
+{
+    auto src      = long_source();
+    auto src_view = static_cast<std::string_view>(src);
+
+    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, 1024>{};
+
+    for (auto _ : state)
+    {
+        while (true)
+        {
+            auto lex_res = ely_lex_scanner(src_view.data(),
+                                           src_view.size(),
+                                           tok_buf.data(),
+                                           tok_buf.size());
+            auto read    = lex_res.tokens_read;
+
+            for (int i = 0; i != read; ++i)
+            {
+                benchmark::DoNotOptimize(tok_buf[i]);
+            }
+
+            src_view = src_view.substr(read);
+            if (src_view.size() == 0)
+            {
+                break;
+            }
+        }
+
+        benchmark::ClobberMemory();
+    }
+
+    state.SetBytesProcessed(src.size() * state.iterations());
+    state.SetItemsProcessed(lines * state.iterations());
+}
+BENCHMARK(BM_lexpp);
+
 static void BM_read(benchmark::State& state)
 {
     auto src = long_source();

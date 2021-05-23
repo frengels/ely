@@ -388,3 +388,31 @@ ELY_NODISCARD ElyLexResult ely_lex(const char* __restrict__ src,
                         .tokens_read     = static_cast<uint32_t>(buf_i)};
     return res;
 }
+
+ElyLexResult
+ely_lex_scanner(const char*                              src,
+                size_t                                   src_len,
+                ely::Lexeme<std::string_view::iterator>* lexeme_buf,
+                size_t                                   buf_len)
+{
+    auto src_strv = std::string_view{src, src_len};
+    auto scanner  = ely::Scanner{src_strv.begin(), src_strv.end()};
+
+    auto   scanner_it = scanner.begin();
+    size_t buf_i      = 0;
+    for (; buf_i != buf_len; ++buf_i)
+    {
+        if (scanner_it == scanner.end())
+        {
+            break;
+        }
+
+        lexeme_buf[buf_i] = *scanner_it++;
+    }
+
+    ElyLexResult res{
+        static_cast<uint32_t>(scanner_it.base() - src_strv.begin()),
+        static_cast<uint32_t>(buf_i)};
+
+    return res;
+}

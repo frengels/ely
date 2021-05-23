@@ -29,30 +29,11 @@ ELY_EXPORT ELY_NODISCARD ElyLexResult ely_lex(const char* __restrict__ src,
                                               size_t buf_len);
 
 #ifdef __cplusplus
-ELY_NODISCARD ELY_NOINLINE ElyLexResult
-ely_lex_scanner(std::string_view                         src,
+ELY_EXPORT ELY_NODISCARD ElyLexResult
+ely_lex_scanner(const char*                              src,
+                size_t                                   src_len,
                 ely::Lexeme<std::string_view::iterator>* lexeme_buf,
-                size_t                                   buf_len)
-{
-    auto scanner = ely::Scanner{src.begin(), src.end()};
-
-    auto   scanner_it = scanner.begin();
-    size_t buf_i      = 0;
-    for (; buf_i != buf_len; ++buf_i)
-    {
-        if (scanner_it == scanner.end())
-        {
-            break;
-        }
-
-        lexeme_buf[buf_i] = *scanner_it++;
-    }
-
-    ElyLexResult res{static_cast<uint32_t>(scanner_it.base() - src.begin()),
-                     static_cast<uint32_t>(buf_i)};
-
-    return res;
-}
+                size_t                                   buf_len);
 #endif
 
 #ifdef __cplusplus
