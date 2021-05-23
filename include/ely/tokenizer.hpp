@@ -89,7 +89,7 @@ public:
     static constexpr AtmosphereKind enum_value = AtmosphereKind::NewlineCr;
 
 public:
-    constexpr std::size_t size() const
+    static constexpr std::size_t size()
     {
         return 1;
     }
@@ -101,7 +101,7 @@ public:
     static constexpr AtmosphereKind enum_value = AtmosphereKind::NewlineLf;
 
 public:
-    constexpr std::size_t size() const
+    static constexpr std::size_t size()
     {
         return 1;
     }
@@ -113,7 +113,7 @@ public:
     static constexpr AtmosphereKind enum_value = AtmosphereKind::NewlineCrlf;
 
 public:
-    constexpr std::size_t size() const
+    static constexpr std::size_t size()
     {
         return 2;
     }
