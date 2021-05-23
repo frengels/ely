@@ -175,6 +175,7 @@ ElyExpr ely_ast_parse_expr(const ElyNode* n)
 ElyDef parse_toplevel_def(const ElyNodeParensList& plist,
                           const ElyNodeIdentifier& id)
 {
+    (void) plist;
     std::string_view id_strv{id.str, id.len};
     ELY_ASSERT(id_strv == def_id, "call doesn't start with `def`");
 
@@ -204,7 +205,7 @@ ElyDef parse_toplevel_plist(const ElyNodeParensList& plist)
     default: {
         ElyString str = ely_node_to_string(head);
         std::fprintf(stderr,
-                     "unexpected toplevel form\n%s\n",
+                     "unexpected toplevel form\n%.*s\n",
                      static_cast<int>(str.len),
                      str.data);
         ELY_UNIMPLEMENTED("elegantly handle invalid toplevel forms");
