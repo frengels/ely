@@ -456,7 +456,7 @@ union TokenUnion
 };
 } // namespace detail
 
-class ELY_EXPORT Atmosphere
+class Atmosphere
 {
     AtmosphereKind          kind;
     detail::AtmosphereUnion values;
@@ -635,7 +635,7 @@ public:
     }
 };
 
-class ELY_EXPORT Token
+class Token
 {
     std::vector<Atmosphere> surrounding_atmosphere;
     std::size_t             trailing_at;
