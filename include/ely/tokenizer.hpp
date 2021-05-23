@@ -148,42 +148,77 @@ class Eof
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::Eof;
+
+    static constexpr std::size_t size()
+    {
+        return 0;
+    }
 };
 
 class LParen
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::LParen;
+
+    static constexpr std::size_t size()
+    {
+        return 1;
+    }
 };
 
 class RParen
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::RParen;
+
+    static constexpr std::size_t size()
+    {
+        return 1;
+    }
 };
 
 class LBracket
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::LBracket;
+
+    static constexpr std::size_t size()
+    {
+        return 1;
+    }
 };
 
 class RBracket
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::RBracket;
+
+    static constexpr std::size_t size()
+    {
+        return 1;
+    }
 };
 
 class LBrace
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::LBrace;
+
+    static constexpr std::size_t size()
+    {
+        return 1;
+    }
 };
 
 class RBrace
 {
 public:
     static constexpr TokenKind enum_value = TokenKind::RBrace;
+
+    static constexpr std::size_t size()
+    {
+        return 1;
+    }
 };
 
 class Identifier
@@ -201,6 +236,11 @@ public:
     constexpr Identifier(std::in_place_t, Args&&... args)
         : name(static_cast<Args&&>(args)...)
     {}
+
+    constexpr std::size_t size() const
+    {
+        return name.size();
+    }
 };
 
 class IntLit
@@ -218,6 +258,11 @@ public:
     constexpr IntLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
     {}
+
+    constexpr std::size_t size() const
+    {
+        return str.size();
+    }
 };
 
 class FloatLit
@@ -235,6 +280,11 @@ public:
     constexpr FloatLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
     {}
+
+    constexpr std::size_t size() const
+    {
+        return str.size();
+    }
 };
 
 class CharLit
@@ -252,6 +302,11 @@ public:
     constexpr CharLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
     {}
+
+    constexpr std::size_t size() const
+    {
+        return 2 + str.size();
+    }
 };
 
 class StringLit
@@ -269,6 +324,11 @@ public:
     constexpr StringLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
     {}
+
+    constexpr std::size_t size() const
+    {
+        return 2 + str.size();
+    }
 };
 
 class KeywordLit
@@ -286,6 +346,11 @@ public:
     constexpr KeywordLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
     {}
+
+    constexpr std::size_t size() const
+    {
+        return 2 + str.size();
+    }
 };
 
 class BoolLit
@@ -305,6 +370,11 @@ public:
     constexpr bool value() const
     {
         return b;
+    }
+
+    static constexpr std::size_t size()
+    {
+        return 2;
     }
 };
 } // namespace token
@@ -557,6 +627,43 @@ public:
                 x.~ty();
             }
         });
+    }
+
+    constexpr std::size_t size() const
+    {
+        return visit([](const auto& x) -> std::size_t { return x.size(); });
+    }
+};
+
+class ELY_EXPORT Token
+{
+    std::vector<Atmosphere> surrounding_atmosphere;
+    std::size_t             trailing_at;
+    RawToken                raw;
+
+public:
+    template<typename F>
+    constexpr auto visit(F&& fn) & -> decltype(auto)
+    {
+        return static_cast<RawToken&>(raw).visit(static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) const& -> decltype(auto)
+    {
+        return static_cast<const RawToken&>(raw).visit(static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) && -> decltype(auto)
+    {
+        return static_cast<RawToken&&>(raw).visit(static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) const&& -> decltype(auto)
+    {
+        return static_cast<const RawToken&&>(raw).visit(static_cast<F&&>(fn));
     }
 };
 } // namespace ely
