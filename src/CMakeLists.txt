@@ -28,7 +28,7 @@ target_compile_options(ely PRIVATE
     $<BUILD_INTERFACE:$<$<C_COMPILER_ID:MSVC>:/W4 /WX>>
     $<BUILD_INTERFACE:$<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall -Wextra -Wimplicit-fallthrough>>)
 target_compile_features(ely PRIVATE c_std_99)
-target_compile_features(ely PUBLIC cxx_std_17)
+target_compile_features(ely PUBLIC cxx_std_20)
 
 
 add_executable(elyc main.c)
