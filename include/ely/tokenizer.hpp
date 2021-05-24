@@ -31,6 +31,7 @@ enum class TokenKind : uint8_t
     BoolLit    = CAST(LexemeKind::BoolLit),
 
     Poison = CAST(LexemeKind::Poison),
+    Eof    = CAST(LexemeKind::Eof),
 #undef CAST
 };
 
@@ -131,6 +132,11 @@ private:
 public:
     Comment() = default;
 
+    template<typename I>
+    constexpr Comment(I first, std::size_t len)
+        : str(std::next(first), std::next(first, len))
+    {}
+
     template<typename... Args>
     constexpr Comment(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
@@ -222,6 +228,11 @@ private:
 public:
     Identifier() = default;
 
+    template<typename I>
+    constexpr Identifier(I first, std::size_t len)
+        : name(first, std::next(first, len))
+    {}
+
     template<typename... Args>
     constexpr Identifier(std::in_place_t, Args&&... args)
         : name(static_cast<Args&&>(args)...)
@@ -243,6 +254,11 @@ private:
 
 public:
     IntLit() = default;
+
+    template<typename I>
+    constexpr IntLit(I first, std::size_t len)
+        : str(first, std::next(first, len))
+    {}
 
     template<typename... Args>
     constexpr IntLit(std::in_place_t, Args&&... args)
@@ -266,6 +282,11 @@ private:
 public:
     FloatLit() = default;
 
+    template<typename I>
+    constexpr FloatLit(I first, std::size_t len)
+        : str(first, std::next(first, len))
+    {}
+
     template<typename... Args>
     constexpr FloatLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
@@ -287,6 +308,12 @@ private:
 
 public:
     CharLit() = default;
+
+    /// automatically cuts off the first 2 values from the iterator
+    template<typename I>
+    constexpr CharLit(I first, std::size_t len)
+        : str(std::next(first, 2), std::next(first, len))
+    {}
 
     template<typename... Args>
     constexpr CharLit(std::in_place_t, Args&&... args)
@@ -310,6 +337,11 @@ private:
 public:
     StringLit() = default;
 
+    template<typename I>
+    constexpr StringLit(I first, std::size_t len)
+        : str(std::next(first), std::next(first, len - 1))
+    {}
+
     template<typename... Args>
     constexpr StringLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
@@ -332,6 +364,11 @@ private:
 public:
     KeywordLit() = default;
 
+    template<typename I>
+    constexpr KeywordLit(I first, std::size_t len)
+        : str(std::next(first, 2), std::next(first, len))
+    {}
+
     template<typename... Args>
     constexpr KeywordLit(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
@@ -353,6 +390,11 @@ private:
 
 public:
     BoolLit() = default;
+
+    template<typename I>
+    constexpr BoolLit(I first, [[maybe_unused]] std::size_t len)
+        : b(*std::next(first) == 't')
+    {}
 
     constexpr BoolLit(bool b) : b(b)
     {}
@@ -379,6 +421,11 @@ private:
 public:
     Poison() = default;
 
+    template<typename I>
+    constexpr Poison(I first, std::size_t len)
+        : str(first, std::next(first, len))
+    {}
+
     template<typename... Args>
     explicit constexpr Poison(std::in_place_t, Args&&... args)
         : str(static_cast<Args&&>(args)...)
@@ -387,6 +434,20 @@ public:
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return str.size();
+    }
+};
+
+class Eof
+{
+public:
+    static constexpr TokenKind enum_value = TokenKind::Eof;
+
+public:
+    Eof() = default;
+
+    static constexpr std::size_t size()
+    {
+        return 0;
     }
 };
 } // namespace token
@@ -773,6 +834,135 @@ public:
             });
         return atmosphere_size +
                visit([](const auto& x) -> std::size_t { return x.size(); });
+    }
+};
+
+template<typename I, typename S>
+class TokenStream
+{
+public:
+    using value_type = Token;
+    using reference  = Token;
+
+private:
+    ely::ScannerStream<I, S> scanner_;
+
+public:
+    TokenStream() = default;
+
+    constexpr TokenStream(I it, S end) : scanner_(std::move(it), std::move(end))
+    {}
+
+    constexpr reference next()
+    {
+        std::vector<Atmosphere> atmosphere_collector{};
+        std::size_t             trailing_start = 0;
+
+        auto lexeme = scanner_.next();
+
+        while (lexeme && ely::lexeme_is_atmosphere(lexeme.kind))
+        {
+            ++trailing_start;
+
+            switch (lexeme.kind)
+            {
+            case LexemeKind::Whitespace:
+                atmosphere_collector.emplace_back(
+                    std::in_place_type<atmosphere::Whitespace>, lexeme.size());
+                break;
+            case LexemeKind::Tab:
+                atmosphere_collector.emplace_back(
+                    std::in_place_type<atmosphere::Tab>, lexeme.size());
+                break;
+            case LexemeKind::NewlineCr:
+                atmosphere_collector.emplace_back(
+                    std::in_place_type<atmosphere::NewlineCr>);
+                break;
+            case LexemeKind::NewlineLf:
+                atmosphere_collector.emplace_back(
+                    std::in_place_type<atmosphere::NewlineLf>);
+                break;
+            case LexemeKind::NewlineCrlf:
+                atmosphere_collector.emplace_back(
+                    std::in_place_type<atmosphere::NewlineCrlf>);
+                break;
+            case LexemeKind::Comment:
+                atmosphere_collector.emplace_back(
+                    std::in_place_type<atmosphere::Comment>,
+                    lexeme.start,
+                    lexeme.size());
+                break;
+            default:
+#ifndef NDEBUG
+                std::fprintf(stderr,
+                             "unexpected atmosphere %d\n",
+                             static_cast<int>(lexeme.kind));
+                std::terminate();
+#endif
+                __builtin_unreachable();
+            }
+        }
+
+        RawToken raw_tok = [&] {
+            switch (lexeme.kind)
+            {
+            case LexemeKind::LParen:
+                return RawToken(std::in_place_type<token::LParen>);
+            case LexemeKind::RParen:
+                return RawToken(std::in_place_type<token::RParen>);
+            case LexemeKind::LBracket:
+                return RawToken(std::in_place_type<token::LBracket>);
+            case LexemeKind::RBracket:
+                return RawToken(std::in_place_type<token::RBracket>);
+            case LexemeKind::LBrace:
+                return RawToken(std::in_place_type<token::LBrace>);
+            case LexemeKind::RBrace:
+                return RawToken(std::in_place_type<token::RBrace>);
+
+            case LexemeKind::Identifier:
+                return RawToken(std::in_place_type<token::Identifier>,
+                                lexeme.start,
+                                lexeme.size());
+            case LexemeKind::IntLit:
+                return RawToken(std::in_place_type<token::IntLit>,
+                                lexeme.start,
+                                lexeme.size());
+            case LexemeKind::FloatLit:
+                return RawToken(std::in_place_type<token::FloatLit>,
+                                lexeme.start,
+                                lexeme.size());
+            case LexemeKind::CharLit:
+                return RawToken(std::in_place_type<token::CharLit>,
+                                lexeme.start,
+                                lexeme.size());
+            case LexemeKind::StringLit:
+                return RawToken(std::in_place_type<token::StringLit>,
+                                lexeme.start,
+                                lexeme.size());
+            case LexemeKind::BoolLit:
+                return RawToken(std::in_place_type<token::BoolLit>,
+                                lexeme.start,
+                                lexeme.size());
+
+            case LexemeKind::Poison:
+                return RawToken(std::in_place_type<token::Poison>,
+                                lexeme.start,
+                                lexeme.size());
+            case LexemeKind::Eof:
+
+            default:
+#ifndef NDEBUG
+                std::fprintf(stderr,
+                             "unexpected lexeme received %d\n",
+                             static_cast<int>(lexeme.kind));
+                std::terminate();
+#endif
+                __builtin_unreachable();
+            }
+        }();
+
+        ELY_UNIMPLEMENTED("collect trailing atmosphere and probably offload "
+                          "collection to separate functions");
     }
 };
 } // namespace ely

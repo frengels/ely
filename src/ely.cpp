@@ -4,6 +4,7 @@
 #include <span>
 
 #include <ely/scanner.hpp>
+#include <ely/tokenizer.hpp>
 
 void scan_stream(
     std::string_view                                   src,
@@ -33,6 +34,13 @@ void scan_stream(
     }
 }
 
+void tokenize_stream(std::string_view src)
+{
+    auto tokenizer = ely::TokenStream{src.begin(), src.end()};
+
+    auto tok = tokenizer.next();
+}
+
 int main(int argc, char** argv)
 {
     const char*                filename = "test";
@@ -43,4 +51,5 @@ int main(int argc, char** argv)
     std::array<ely::Lexeme<std::string_view::iterator>, 32> lexeme_buffer{};
 
     scan_stream(src, lexeme_buffer);
+    tokenize_stream(src);
 }
