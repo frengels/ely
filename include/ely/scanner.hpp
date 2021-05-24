@@ -91,6 +91,22 @@ constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
     }
 }
 
+constexpr bool lexeme_is_atmosphere(LexemeKind kind)
+{
+    switch (kind)
+    {
+    case LexemeKind::Whitespace:
+    case LexemeKind::Tab:
+    case LexemeKind::NewlineCr:
+    case LexemeKind::NewlineLf:
+    case LexemeKind::NewlineCrlf:
+    case LexemeKind::Comment:
+        return true;
+    default:
+        return false;
+    }
+}
+
 constexpr bool lexeme_is_literal(LexemeKind kind)
 {
     switch (kind)
@@ -123,6 +139,11 @@ struct Lexeme
     I          start;
     uint32_t   len;
     LexemeKind kind;
+
+    constexpr std::size_t size() const
+    {
+        return static_cast<std::size_t>(len);
+    }
 };
 
 namespace detail
@@ -570,6 +591,8 @@ class Scanner
 public:
     using iterator = ScannerIterator<I, S>;
     using sentinel = ScannerSentinel<I, S>;
+
+    using value_type = typename iterator::value_type;
 
 private:
     [[no_unique_address]] I it_;
