@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+#include <version>
+#endif
+
 #if !defined(__has_feature)
 #define __has_feature(x) 0
 #endif
@@ -104,4 +108,18 @@
 
 #if !defined(ELY_ASSUME_ALIGNED)
 #warning unimplemented builtin: ELY_ASSUME_ALIGNED
+#endif
+
+#ifdef __cplusplus
+#ifdef __cpp_lib_constexpr_string
+#define ELY_CONSTEXPR_STRING constexpr
+#else
+#define ELY_CONSTEXPR_STRING inline
+#endif
+
+#ifdef __cpp_lib_constexpr_vector
+#define ELY_CONSTEXPR_VECTOR constexpr
+#else
+#define ELY_CONSTEXPR_VECTOR inline
+#endif
 #endif
