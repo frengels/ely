@@ -13,8 +13,6 @@ namespace ely
 enum class TokenKind : uint8_t
 {
 #define CAST(x) static_cast<std::underlying_type_t<LexemeKind>>(x)
-    Eof = CAST(LexemeKind::Eof),
-
     // doesn't include whitespace
     LParen   = CAST(LexemeKind::LParen),
     RParen   = CAST(LexemeKind::RParen),
@@ -147,17 +145,6 @@ public:
 
 namespace token
 {
-class Eof
-{
-public:
-    static constexpr TokenKind enum_value = TokenKind::Eof;
-
-    static constexpr std::size_t size()
-    {
-        return 0;
-    }
-};
-
 class LParen
 {
 public:
@@ -443,7 +430,6 @@ union TokenUnion
         : member(static_cast<Args&&>(args)...)                                 \
     {}
 
-    DEFINE_CONSTRUCTOR(token::Eof, eof)
     DEFINE_CONSTRUCTOR(token::LParen, lparen)
     DEFINE_CONSTRUCTOR(token::RParen, rparen)
     DEFINE_CONSTRUCTOR(token::LBracket, lbracket)
@@ -463,7 +449,6 @@ union TokenUnion
     ~TokenUnion()
     {}
 
-    token::Eof      eof;
     token::LParen   lparen;
     token::RParen   rparen;
     token::LBracket lbracket;
@@ -592,11 +577,14 @@ private:
     TokenKind          kind;
     detail::TokenUnion values;
 
-public:
+private:
+    // puts the raw token's state into a dummy value to appease constexpr
+    // requirements
     constexpr RawToken()
-        : kind(TokenKind::Eof), values(std::in_place_type<token::Eof>)
+        : kind(TokenKind::LParen), values(std::in_place_type<token::LParen>)
     {}
 
+public:
     template<typename T, typename... Args>
     explicit constexpr RawToken(std::in_place_type_t<T>, Args&&... args)
         : kind(T::enum_value),
@@ -609,8 +597,6 @@ public:
 #define CALL(member) static_cast<F&&>(fn)(member)
         switch (kind)
         {
-        case TokenKind::Eof:
-            return CALL(values.eof);
         case TokenKind::LParen:
             return CALL(values.lparen);
         case TokenKind::RParen:

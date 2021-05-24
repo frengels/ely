@@ -12,8 +12,6 @@ namespace ely
 {
 enum class LexemeKind : uint8_t
 {
-    Eof,
-
     Whitespace,
     Tab,
     NewlineCr,
@@ -44,8 +42,6 @@ constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
 {
     switch (lex)
     {
-    case LexemeKind::Eof:
-        return ELY_TOKEN_EOF;
     case LexemeKind::Whitespace:
         return ELY_TOKEN_WHITESPACE;
     case LexemeKind::Tab:
@@ -126,11 +122,6 @@ constexpr bool lexeme_is_literal(LexemeKind kind)
 constexpr bool lexeme_is_identifier(LexemeKind kind)
 {
     return kind == LexemeKind::Identifier;
-}
-
-constexpr bool lexeme_is_eof(LexemeKind kind)
-{
-    return kind == LexemeKind::Eof;
 }
 
 template<typename I>
@@ -436,10 +427,8 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
 template<typename I, typename S>
 constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
 {
-    if (it == end)
-    {
-        return {it, LexemeKind::Eof};
-    }
+    ELY_ASSERT(it != end,
+               "Undefined behaviour invoked, you may never lex an empty range");
 
     char ch = *it++;
 
@@ -556,7 +545,7 @@ public:
 
     constexpr bool _at_end() const
     {
-        return cached_lexeme_.kind == LexemeKind::Eof;
+        return it_ == end_;
     }
 
 private:
