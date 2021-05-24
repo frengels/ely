@@ -695,13 +695,7 @@ public:
 
     ~RawToken()
     {
-        visit([](auto& x) -> void {
-            using ty = std::remove_reference_t<decltype(x)>;
-            if constexpr (!std::is_trivially_destructible_v<ty>)
-            {
-                x.~ty();
-            }
-        });
+        visit([](auto& x) -> void { std::destroy_at(std::addressof(x)); });
     }
 
     constexpr std::size_t size() const
