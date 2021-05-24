@@ -6,6 +6,8 @@
 #include "ely/defines.h"
 #include "ely/scanner.hpp"
 #include "ely/token.h"
+#include "ely/tokenizer.hpp"
+#include "ely/node.hpp"
 
 ELY_NODISCARD static inline bool is_newline_start(char c)
 {
