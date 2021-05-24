@@ -32,6 +32,7 @@ enum class TokenKind : uint8_t
     KeywordLit = CAST(LexemeKind::KeywordLit),
     BoolLit    = CAST(LexemeKind::BoolLit),
 
+    Poison = CAST(LexemeKind::Poison),
 #undef CAST
 };
 
@@ -379,6 +380,28 @@ public:
         return 2;
     }
 };
+
+class Poison
+{
+public:
+    static constexpr TokenKind enum_value = TokenKind::Poison;
+
+private:
+    std::string str;
+
+public:
+    Poison() = default;
+
+    template<typename... Args>
+    explicit constexpr Poison(std::in_place_t, Args&&... args)
+        : str(static_cast<Args&&>(args)...)
+    {}
+
+    ELY_CONSTEXPR_STRING std::size_t size() const
+    {
+        return str.size();
+    }
+};
 } // namespace token
 
 namespace detail
@@ -434,6 +457,7 @@ union TokenUnion
     DEFINE_CONSTRUCTOR(token::StringLit, string_lit)
     DEFINE_CONSTRUCTOR(token::KeywordLit, keyword_lit)
     DEFINE_CONSTRUCTOR(token::BoolLit, bool_lit)
+    DEFINE_CONSTRUCTOR(token::Poison, poison)
 #undef DEFINE_CONSTRUCTOR
 
     ~TokenUnion()
@@ -455,6 +479,8 @@ union TokenUnion
     token::StringLit  string_lit;
     token::KeywordLit keyword_lit;
     token::BoolLit    bool_lit;
+
+    token::Poison poison;
 };
 } // namespace detail
 
@@ -611,6 +637,8 @@ public:
             return CALL(values.keyword_lit);
         case TokenKind::BoolLit:
             return CALL(values.bool_lit);
+        case TokenKind::Poison:
+            return CALL(values.poison);
         default:
             __builtin_unreachable();
         }
