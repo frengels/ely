@@ -1,6 +1,7 @@
 #pragma once
 
 #include <numeric>
+#include <span>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -666,6 +667,19 @@ public:
     constexpr const RawToken&& raw_token() const&&
     {
         return std::move(raw);
+    }
+
+    constexpr std::span<const Atmosphere> leading_atmosphere() const&
+    {
+        return std::span<const Atmosphere>{surrounding_atmosphere.begin(),
+                                           trailing_at};
+    }
+
+    constexpr std::span<const Atmosphere> trailing_atmosphere() const&
+    {
+        return std::span<const Atmosphere>{surrounding_atmosphere.begin() +
+                                               trailing_at,
+                                           surrounding_atmosphere.end()};
     }
 
     template<typename F>
