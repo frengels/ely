@@ -32,4 +32,7 @@ target_compile_features(ely PUBLIC cxx_std_20)
 
 
 add_executable(elyc main.c)
-target_link_libraries(elyc PUBLIC ely)
+target_link_libraries(elyc PUBLIC ely::ely)
+
+add_executable(elycpp ely.cpp)
+target_link_libraries(elycpp PUBLIC ely::ely)
