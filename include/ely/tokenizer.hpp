@@ -1,5 +1,6 @@
 #pragma once
 
+#include <numeric>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -530,6 +531,11 @@ public:
             }
         });
     }
+
+    constexpr std::size_t size() const
+    {
+        return visit([](const auto& x) -> std::size_t { return x.size(); });
+    }
 };
 
 /// unlike a Lexeme, a RawToken owns the data it holds
@@ -642,6 +648,26 @@ class Token
     RawToken                raw;
 
 public:
+    constexpr RawToken& raw_token() &
+    {
+        return raw;
+    }
+
+    constexpr const RawToken& raw_token() const&
+    {
+        return raw;
+    }
+
+    constexpr RawToken&& raw_token() &&
+    {
+        return std::move(raw);
+    }
+
+    constexpr const RawToken&& raw_token() const&&
+    {
+        return std::move(raw);
+    }
+
     template<typename F>
     constexpr auto visit(F&& fn) & -> decltype(auto)
     {
@@ -664,6 +690,19 @@ public:
     constexpr auto visit(F&& fn) const&& -> decltype(auto)
     {
         return static_cast<const RawToken&&>(raw).visit(static_cast<F&&>(fn));
+    }
+
+    constexpr std::size_t size() const
+    {
+        std::size_t atmosphere_size = std::accumulate(
+            surrounding_atmosphere.begin(),
+            surrounding_atmosphere.end(),
+            std::size_t{0},
+            [](std::size_t sz, const auto& atmo) -> std::size_t {
+                return sz + atmo.size();
+            });
+        return atmosphere_size +
+               visit([](const auto& x) -> std::size_t { return x.size(); });
     }
 };
 } // namespace ely
