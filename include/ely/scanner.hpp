@@ -433,7 +433,6 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
 
     return {it, LexemeKind::Poison};
 }
-} // namespace detail
 
 template<typename I, typename S>
 constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
@@ -485,111 +484,15 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
         }
     }
 }
-
-template<typename I, typename S>
-class ScannerIterator
-{
-public:
-    using value_type        = Lexeme<I>;
-    using reference         = value_type;
-    using pointer           = void;
-    using size_type         = std::size_t;
-    using difference_type   = std::ptrdiff_t;
-    using iterator_category = std::forward_iterator_tag;
-
-private:
-    [[no_unique_address]] I it_;
-    [[no_unique_address]] S end_;
-    // TODO: erase this for contiguous_iterator
-    // need to keep one for continuous use of dereference operator
-    detail::ScanResult<I> cached_lexeme_;
-
-public:
-    ScannerIterator() = default;
-
-    constexpr ScannerIterator(I it, S end)
-        : it_(std::move(it)), end_(std::move(end))
-    {
-        cache_next();
-    }
-
-    constexpr I base() const&
-    {
-        return it_;
-    }
-
-    constexpr I base() &&
-    {
-        return std::move(it_);
-    }
-
-    friend constexpr bool operator==(const ScannerIterator& lhs,
-                                     const ScannerIterator& rhs) noexcept
-    {
-        return lhs.it_ == rhs.it_;
-    }
-
-    friend constexpr bool operator!=(const ScannerIterator& lhs,
-                                     const ScannerIterator& rhs) noexcept
-    {
-        return lhs.it_ != rhs.it_;
-    }
-
-    constexpr ScannerIterator& operator++() noexcept
-    {
-        it_ = cached_lexeme_.end;
-        cache_next();
-        return *this;
-    }
-
-    constexpr ScannerIterator operator++(int) noexcept
-    {
-        ScannerIterator self{*this};
-        ++*this;
-        return self;
-    }
-
-    constexpr reference operator*() const noexcept
-    {
-        return {it_,
-                static_cast<uint32_t>(cached_lexeme_.end - it_),
-                cached_lexeme_.kind};
-    }
-
-    constexpr bool _at_end() const
-    {
-        return it_ == end_;
-    }
-
-private:
-    constexpr void cache_next() noexcept
-    {
-        cached_lexeme_ = scan_lexeme(it_, end_);
-    }
-};
-
-template<typename I, typename S>
-class ScannerSentinel
-{
-public:
-    ScannerSentinel() = default;
-
-    friend constexpr bool operator==(const ScannerIterator<I, S>& it,
-                                     const ScannerSentinel<I, S>&) noexcept
-    {
-        return it._at_end();
-    }
-
-    friend constexpr bool operator==(const ScannerSentinel<I, S>&,
-                                     const ScannerIterator<I, S>& it) noexcept
-    {
-        return it._at_end();
-    }
-};
+} // namespace detail
 
 template<typename I, typename S>
 class ScannerStream
 {
+public:
+    using value_type = Lexeme<I>;
+    using reference  = value_type;
+
 private:
     [[no_unique_address]] I it_;
     [[no_unique_address]] S end_;
@@ -601,43 +504,23 @@ public:
         : it_(std::move(it)), end_(std::move(end))
     {}
 
-    constexpr Lexeme<I> next() noexcept
+    constexpr I base_iterator() const
     {
-        detail::ScanResult<I> scan_res = scan_lexeme(it_, end_);
-        Lexeme<I>             res{
+        return it_;
+    }
+
+    constexpr S base_sentinel() const
+    {
+        return end_;
+    }
+
+    constexpr reference next() noexcept
+    {
+        detail::ScanResult<I> scan_res = detail::scan_lexeme(it_, end_);
+        value_type            res{
             it_, static_cast<uint32_t>(scan_res.end - it_), scan_res.kind};
         it_ = scan_res.end;
         return res;
-    }
-};
-
-template<typename I, typename S = I>
-class Scanner
-{
-public:
-    using iterator = ScannerIterator<I, S>;
-    using sentinel = ScannerSentinel<I, S>;
-
-    using value_type = typename iterator::value_type;
-
-private:
-    [[no_unique_address]] I it_;
-    [[no_unique_address]] S end_;
-
-public:
-    Scanner() = default;
-
-    constexpr Scanner(I it, S end) : it_(std::move(it)), end_(std::move(end))
-    {}
-
-    constexpr iterator begin() const
-    {
-        return iterator{it_, end_};
-    }
-
-    constexpr sentinel end() const
-    {
-        return sentinel{};
     }
 };
 } // namespace ely
