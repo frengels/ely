@@ -36,6 +36,8 @@ enum class LexemeKind : uint8_t
     StringLit,
     KeywordLit,
     BoolLit,
+
+    Poison,
 };
 
 constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
@@ -82,6 +84,8 @@ constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
         return ELY_TOKEN_KEYWORD_LIT;
     case LexemeKind::BoolLit:
         return ELY_TOKEN_TRUE_LIT;
+    case LexemeKind::Poison:
+        ELY_UNIMPLEMENTED("there's no equivalent in the C code");
     default:
         __builtin_unreachable();
     }
@@ -196,6 +200,13 @@ struct ScanResult
     I          end;
     LexemeKind kind;
 };
+
+template<typename I, typename S>
+constexpr ScanResult<I> scan_poisoned(I it, S end)
+{
+    I next = advance_to_delimiter(it, end);
+    return {next, LexemeKind::Poison};
+}
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_identifier_continue(I it, S end)
@@ -377,8 +388,8 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                 ch = *it;
                 if (!is_delimiter(ch))
                 {
-                    ELY_UNIMPLEMENTED(
-                        "handle # with invalid characters following");
+                    ++it;
+                    ELY_MUSTTAIL return scan_poisoned(it, end);
                 }
             }
             return {it, LexemeKind::BoolLit};
@@ -392,11 +403,12 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         case '`':
         case ',':
         default:
-            ELY_UNIMPLEMENTED("handle # abbreviations");
+            ++it;
+            ELY_MUSTTAIL return scan_poisoned(it, end);
         }
     }
 
-    ELY_UNIMPLEMENTED("handle lone `#`");
+    return {it, LexemeKind::Poison};
 }
 } // namespace detail
 
