@@ -463,6 +463,12 @@ class Atmosphere
     AtmosphereKind          kind;
     detail::AtmosphereUnion values;
 
+private:
+    constexpr Atmosphere()
+        : kind(AtmosphereKind::NewlineLf),
+          values(std::in_place_type<atmosphere::NewlineLf>)
+    {}
+
 public:
     template<typename T, typename... Args>
     explicit constexpr Atmosphere(std::in_place_type_t<T>, Args&&... args)
@@ -522,15 +528,29 @@ public:
             });
     }
 
+    constexpr Atmosphere(const Atmosphere& other) : Atmosphere()
+    {
+        kind = other.kind;
+        other.visit([&](auto& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            std::construct_at(
+                std::addressof(values), std::in_place_type<ty>, x);
+        });
+    }
+
+    constexpr Atmosphere(Atmosphere&& other) : Atmosphere()
+    {
+        kind = other.kind;
+        std::move(other).visit([&](auto&& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            std::construct_at(
+                std::addressof(values), std::in_place_type<ty>, std::move(x));
+        });
+    }
+
     ~Atmosphere()
     {
-        visit([](auto& x) {
-            using ty = std::remove_cv_t<std::remove_reference_t<decltype(x)>>;
-            if constexpr (!std::is_trivially_destructible_v<ty>)
-            {
-                x.~ty();
-            }
-        });
+        visit([](auto& x) { std::destroy_at(std::addressof(x)); });
     }
 
     constexpr std::size_t size() const
@@ -635,7 +655,7 @@ public:
         });
     }
 
-    constexpr RawToken(RawToken&& other) : RawToken()
+    constexpr RawToken(RawToken&& other) noexcept : RawToken()
     {
         kind = other.kind;
         std::move(other).visit([&](auto&& x) {
