@@ -137,7 +137,7 @@ public:
         : str(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return 1 + str.size();
     }
@@ -239,7 +239,7 @@ public:
         : name(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return name.size();
     }
@@ -261,7 +261,7 @@ public:
         : str(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return str.size();
     }
@@ -283,7 +283,7 @@ public:
         : str(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return str.size();
     }
@@ -305,7 +305,7 @@ public:
         : str(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return 2 + str.size();
     }
@@ -327,7 +327,7 @@ public:
         : str(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return 2 + str.size();
     }
@@ -349,7 +349,7 @@ public:
         : str(static_cast<Args&&>(args)...)
     {}
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
         return 2 + str.size();
     }
@@ -625,6 +625,26 @@ public:
             });
     }
 
+    constexpr RawToken(const RawToken& other) : RawToken()
+    {
+        kind = other.kind;
+        other.visit([&](auto& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            std::construct_at(
+                std::addressof(values), std::in_place_type<ty>, x);
+        });
+    }
+
+    constexpr RawToken(RawToken&& other) : RawToken()
+    {
+        kind = other.kind;
+        std::move(other).visit([&](auto&& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            std::construct_at(
+                std::addressof(values), std::in_place_type<ty>, std::move(x));
+        });
+    }
+
     ~RawToken()
     {
         visit([](auto& x) -> void {
@@ -649,6 +669,13 @@ class Token
     RawToken                raw;
 
 public:
+    ELY_CONSTEXPR_VECTOR Token(std::vector<Atmosphere> surrounding_atmosphere,
+                               std::size_t             trailing_at,
+                               RawToken                tok)
+        : surrounding_atmosphere(std::move(surrounding_atmosphere)),
+          trailing_at(trailing_at), raw(std::move(tok))
+    {}
+
     constexpr RawToken& raw_token() &
     {
         return raw;
@@ -669,13 +696,14 @@ public:
         return std::move(raw);
     }
 
-    constexpr std::span<const Atmosphere> leading_atmosphere() const&
+    ELY_CONSTEXPR_VECTOR std::span<const Atmosphere> leading_atmosphere() const&
     {
         return std::span<const Atmosphere>{surrounding_atmosphere.begin(),
                                            trailing_at};
     }
 
-    constexpr std::span<const Atmosphere> trailing_atmosphere() const&
+    ELY_CONSTEXPR_VECTOR std::span<const Atmosphere>
+                         trailing_atmosphere() const&
     {
         return std::span<const Atmosphere>{surrounding_atmosphere.begin() +
                                                trailing_at,
@@ -706,7 +734,7 @@ public:
         return static_cast<const RawToken&&>(raw).visit(static_cast<F&&>(fn));
     }
 
-    constexpr std::size_t size() const
+    ELY_CONSTEXPR_VECTOR std::size_t size() const
     {
         std::size_t atmosphere_size = std::accumulate(
             surrounding_atmosphere.begin(),
