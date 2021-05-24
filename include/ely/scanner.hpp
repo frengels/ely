@@ -36,6 +36,7 @@ enum class LexemeKind : uint8_t
     BoolLit,
 
     Poison,
+    Eof,
 };
 
 constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
@@ -119,6 +120,11 @@ constexpr bool lexeme_is_literal(LexemeKind kind)
     }
 }
 
+constexpr bool lexeme_is_eof(LexemeKind kind)
+{
+    return kind == LexemeKind::Eof;
+}
+
 constexpr bool lexeme_is_identifier(LexemeKind kind)
 {
     return kind == LexemeKind::Identifier;
@@ -131,7 +137,12 @@ struct Lexeme
     uint32_t   len;
     LexemeKind kind;
 
-    constexpr std::size_t size() const
+    explicit constexpr operator bool() const noexcept
+    {
+        return kind != LexemeKind::Eof;
+    }
+
+    constexpr std::size_t size() const noexcept
     {
         return static_cast<std::size_t>(len);
     }
@@ -427,8 +438,10 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
 template<typename I, typename S>
 constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
 {
-    ELY_ASSERT(it != end,
-               "Undefined behaviour invoked, you may never lex an empty range");
+    if (it == end)
+    {
+        return {it, LexemeKind::Eof};
+    }
 
     char ch = *it++;
 
@@ -571,6 +584,30 @@ public:
                                      const ScannerIterator<I, S>& it) noexcept
     {
         return it._at_end();
+    }
+};
+
+template<typename I, typename S>
+class ScannerStream
+{
+private:
+    [[no_unique_address]] I it_;
+    [[no_unique_address]] S end_;
+
+public:
+    ScannerStream() = default;
+
+    constexpr ScannerStream(I it, S end)
+        : it_(std::move(it)), end_(std::move(end))
+    {}
+
+    constexpr Lexeme<I> next() noexcept
+    {
+        detail::ScanResult<I> scan_res = scan_lexeme(it_, end_);
+        Lexeme<I>             res{
+            it_, static_cast<uint32_t>(scan_res.end - it_), scan_res.kind};
+        it_ = scan_res.end;
+        return res;
     }
 };
 
