@@ -29,4 +29,28 @@ variant::VariantImpl<variant::index_seq<sizeof...(Ts)>, Ts...>*>(0))); */
 
 template<typename... Ts>
 using Variant = std::variant<Ts...>;
+
+template<typename F, typename... Ts>
+constexpr auto visit(Variant<Ts...>& var, F&& fn) -> decltype(auto)
+{
+    return std::visit(static_cast<F&&>(fn), var);
+}
+
+template<typename F, typename... Ts>
+constexpr auto visit(const Variant<Ts...>& var, F&& fn) -> decltype(auto)
+{
+    return std::visit(static_cast<F&&>(fn), var);
+}
+
+template<typename F, typename... Ts>
+constexpr auto visit(Variant<Ts...>&& var, F&& fn) -> decltype(auto)
+{
+    return std::visit(static_cast<F&&>(fn), std::move(var));
+}
+
+template<typename F, typename... Ts>
+constexpr auto visit(const Variant<Ts...>&& var, F&& fn) -> decltype(auto)
+{
+    return std::visit(static_cast<F&&>(fn), std::move(var));
+}
 } // namespace ely
