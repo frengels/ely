@@ -708,6 +708,7 @@ public:
 
 private:
     ely::ScannerStream<I, S> scanner_;
+    Lexeme<I>                cache_{{}, 0, static_cast<LexemeKind>(0)};
 
 public:
     TokenStream() = default;
@@ -720,6 +721,13 @@ public:
         std::vector<Atmosphere> atmosphere_collector{};
         std::size_t             trailing_start = 0;
 
+        if (cache_.len != 0)
+        {
+            ++trailing_start;
+            atmosphere_collector.emplace_back(cache_);
+            cache_.len = 0;
+        }
+
         auto lexeme = scanner_.next();
 
         while (lexeme && ely::lexeme_is_atmosphere(lexeme.kind))
@@ -731,8 +739,23 @@ public:
 
         RawToken raw_tok = RawToken(lexeme);
 
-        ELY_UNIMPLEMENTED("collect trailing atmosphere and probably offload "
-                          "collection to separate functions");
+        lexeme = scanner_.next();
+
+        while (lexeme_is_atmosphere(lexeme.kind))
+        {
+            if (lexeme_is_newline(lexeme.kind))
+            {
+                // we need to make sure this value doesn't get ignored in future
+                // runs
+                cache_ = lexeme;
+                break;
+            }
+            atmosphere_collector.emplace_back(lexeme);
+        }
+
+        return Token(std::move(atmosphere_collector),
+                     trailing_start,
+                     std::move(raw_tok));
     }
 };
 } // namespace ely

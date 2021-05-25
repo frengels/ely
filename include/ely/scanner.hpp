@@ -88,19 +88,29 @@ constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
     }
 }
 
+constexpr bool lexeme_is_newline(LexemeKind kind)
+{
+    switch (kind)
+    {
+    case LexemeKind::NewlineCr:
+    case LexemeKind::NewlineLf:
+    case LexemeKind::NewlineCrlf:
+        return true;
+    default:
+        return false;
+    }
+}
+
 constexpr bool lexeme_is_atmosphere(LexemeKind kind)
 {
     switch (kind)
     {
     case LexemeKind::Whitespace:
     case LexemeKind::Tab:
-    case LexemeKind::NewlineCr:
-    case LexemeKind::NewlineLf:
-    case LexemeKind::NewlineCrlf:
     case LexemeKind::Comment:
         return true;
     default:
-        return false;
+        ELY_MUSTTAIL return lexeme_is_newline(kind);
     }
 }
 
