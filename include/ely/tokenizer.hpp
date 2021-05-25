@@ -11,30 +11,20 @@
 
 namespace ely
 {
-enum class AtmosphereKind : uint8_t
-{
-#define CAST(x) static_cast<std::underlying_type_t<LexemeKind>>(x)
-    Whitespace  = CAST(LexemeKind::Whitespace),
-    Tab         = CAST(LexemeKind::Tab),
-    NewlineCr   = CAST(LexemeKind::NewlineCr),
-    NewlineLf   = CAST(LexemeKind::NewlineLf),
-    NewlineCrlf = CAST(LexemeKind::NewlineCrlf),
-    Comment     = CAST(LexemeKind::Comment),
-#undef CAST
-};
-
 namespace atmosphere
 {
 class Whitespace
 {
-public:
-    static constexpr AtmosphereKind enum_value = AtmosphereKind::Whitespace;
-
 private:
     std::size_t len;
 
 public:
-    constexpr Whitespace(std::size_t len) : len(len)
+    explicit constexpr Whitespace(std::size_t len) : len(len)
+    {}
+
+    template<typename I>
+    constexpr Whitespace([[maybe_unused]] I first, std::size_t len)
+        : Whitespace(len)
     {}
 
     constexpr std::size_t size() const
@@ -45,14 +35,15 @@ public:
 
 class Tab
 {
-public:
-    static constexpr AtmosphereKind enum_value = AtmosphereKind::Tab;
-
 private:
     std::size_t len;
 
 public:
     constexpr Tab(std::size_t len) : len(len)
+    {}
+
+    template<typename I>
+    constexpr Tab([[maybe_unused]] I first, std::size_t len) : Tab(len)
     {}
 
     constexpr std::size_t size() const
@@ -64,9 +55,14 @@ public:
 class NewlineCr
 {
 public:
-    static constexpr AtmosphereKind enum_value = AtmosphereKind::NewlineCr;
+    NewlineCr() = default;
 
-public:
+    template<typename I>
+    constexpr NewlineCr([[maybe_unused]] I           first,
+                        [[maybe_unused]] std::size_t len)
+        : NewlineCr()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -76,9 +72,14 @@ public:
 class NewlineLf
 {
 public:
-    static constexpr AtmosphereKind enum_value = AtmosphereKind::NewlineLf;
+    NewlineLf() = default;
 
-public:
+    template<typename I>
+    constexpr NewlineLf([[maybe_unused]] I           first,
+                        [[maybe_unused]] std::size_t len)
+        : NewlineLf()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -88,9 +89,14 @@ public:
 class NewlineCrlf
 {
 public:
-    static constexpr AtmosphereKind enum_value = AtmosphereKind::NewlineCrlf;
+    NewlineCrlf() = default;
 
-public:
+    template<typename I>
+    constexpr NewlineCrlf([[maybe_unused]] I           first,
+                          [[maybe_unused]] std::size_t len)
+        : NewlineCrlf()
+    {}
+
     static constexpr std::size_t size()
     {
         return 2;
@@ -99,9 +105,6 @@ public:
 
 class Comment
 {
-public:
-    static constexpr AtmosphereKind enum_value = AtmosphereKind::Comment;
-
 private:
     std::string str;
 
@@ -426,97 +429,60 @@ union AtmosphereUnion
 
 class Atmosphere
 {
-    AtmosphereKind          kind;
-    detail::AtmosphereUnion values;
-
 private:
-    constexpr Atmosphere()
-        : kind(AtmosphereKind::NewlineLf),
-          values(std::in_place_type<atmosphere::NewlineLf>)
-    {}
+    using VariantType = ely::Variant<atmosphere::Whitespace,
+                                     atmosphere::Tab,
+                                     atmosphere::NewlineCr,
+                                     atmosphere::NewlineLf,
+                                     atmosphere::NewlineCrlf,
+                                     atmosphere::Comment>;
+
+    VariantType variant_;
 
 public:
     template<typename T, typename... Args>
     explicit constexpr Atmosphere(std::in_place_type_t<T>, Args&&... args)
-        : kind(T::enum_value),
-          values(std::in_place_type<T>, static_cast<Args&&>(args)...)
+        : variant_(std::in_place_type<T>, static_cast<Args&&>(args)...)
+    {}
+
+    template<typename I>
+    explicit constexpr Atmosphere(Lexeme<I> lexeme)
+        : variant_([&]() -> VariantType {
+              ELY_ASSERT(ely::lexeme_is_atmosphere(lexeme.kind),
+                         "Atmosphere must be made from atmosphere");
+
+              switch (lexeme.kind)
+              {
+              case LexemeKind::Whitespace:
+                  return atmosphere::Whitespace(lexeme.start, lexeme.size());
+              default:
+                  __builtin_unreachable();
+              }
+          }())
     {}
 
     template<typename F>
     constexpr auto visit(F&& fn) const& -> decltype(auto)
     {
-#define CALL(member) static_cast<F&&>(fn)(member)
-        switch (kind)
-        {
-        case AtmosphereKind::Whitespace:
-            return CALL(values.whitespace);
-        case AtmosphereKind::Tab:
-            return CALL(values.tab);
-        case AtmosphereKind::NewlineCr:
-            return CALL(values.newline_cr);
-        case AtmosphereKind::NewlineLf:
-            return CALL(values.newline_lf);
-        case AtmosphereKind::NewlineCrlf:
-            return CALL(values.newline_crlf);
-        case AtmosphereKind::Comment:
-            return CALL(values.comment);
-        default:
-            __builtin_unreachable();
-        }
-#undef CALL
+        return ely::visit(variant_, static_cast<F&&>(fn));
     }
 
     template<typename F>
     constexpr auto visit(F&& fn) & -> decltype(auto)
     {
-        return static_cast<const Atmosphere&>(*this).visit(
-            [&](const auto& x) -> decltype(auto) {
-                using ty =
-                    std::remove_cv_t<std::remove_reference_t<decltype(x)>>;
-                return static_cast<F&&>(fn)(const_cast<ty&>(x));
-            });
+        return ely::visit(variant_, static_cast<F&&>(fn));
     }
 
     template<typename F>
     constexpr auto visit(F&& fn) && -> decltype(auto)
     {
-        return visit([&](auto& x) -> decltype(auto) {
-            return static_cast<F&&>(fn)(std::move(x));
-        });
+        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
     }
 
     template<typename F>
     constexpr auto visit(F&& fn) const&& -> decltype(auto)
     {
-        return static_cast<const Atmosphere&>(*this).visit(
-            [&](const auto& x) -> decltype(auto) {
-                return static_cast<F&&>(fn)(std::move(x));
-            });
-    }
-
-    constexpr Atmosphere(const Atmosphere& other) : Atmosphere()
-    {
-        kind = other.kind;
-        other.visit([&](auto& x) {
-            using ty = std::remove_cvref_t<decltype(x)>;
-            std::construct_at(
-                std::addressof(values), std::in_place_type<ty>, x);
-        });
-    }
-
-    constexpr Atmosphere(Atmosphere&& other) : Atmosphere()
-    {
-        kind = other.kind;
-        std::move(other).visit([&](auto&& x) {
-            using ty = std::remove_cvref_t<decltype(x)>;
-            std::construct_at(
-                std::addressof(values), std::in_place_type<ty>, std::move(x));
-        });
-    }
-
-    ~Atmosphere()
-    {
-        visit([](auto& x) { std::destroy_at(std::addressof(x)); });
+        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
     }
 
     constexpr std::size_t size() const
@@ -641,11 +607,6 @@ public:
         return ely::visit(std::move(variant_), static_cast<F&&>(fn));
     }
 
-    ~RawToken()
-    {
-        visit([](auto& x) -> void { std::destroy_at(std::addressof(x)); });
-    }
-
     constexpr std::size_t size() const
     {
         return visit([](const auto& x) -> std::size_t { return x.size(); });
@@ -765,43 +726,7 @@ public:
         {
             ++trailing_start;
 
-            switch (lexeme.kind)
-            {
-            case LexemeKind::Whitespace:
-                atmosphere_collector.emplace_back(
-                    std::in_place_type<atmosphere::Whitespace>, lexeme.size());
-                break;
-            case LexemeKind::Tab:
-                atmosphere_collector.emplace_back(
-                    std::in_place_type<atmosphere::Tab>, lexeme.size());
-                break;
-            case LexemeKind::NewlineCr:
-                atmosphere_collector.emplace_back(
-                    std::in_place_type<atmosphere::NewlineCr>);
-                break;
-            case LexemeKind::NewlineLf:
-                atmosphere_collector.emplace_back(
-                    std::in_place_type<atmosphere::NewlineLf>);
-                break;
-            case LexemeKind::NewlineCrlf:
-                atmosphere_collector.emplace_back(
-                    std::in_place_type<atmosphere::NewlineCrlf>);
-                break;
-            case LexemeKind::Comment:
-                atmosphere_collector.emplace_back(
-                    std::in_place_type<atmosphere::Comment>,
-                    lexeme.start,
-                    lexeme.size());
-                break;
-            default:
-#ifndef NDEBUG
-                std::fprintf(stderr,
-                             "unexpected atmosphere %d\n",
-                             static_cast<int>(lexeme.kind));
-                std::terminate();
-#endif
-                __builtin_unreachable();
-            }
+            atmosphere_collector.emplace_back(lexeme);
         }
 
         RawToken raw_tok = RawToken(lexeme);
