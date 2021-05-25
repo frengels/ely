@@ -455,6 +455,16 @@ public:
               {
               case LexemeKind::Whitespace:
                   return atmosphere::Whitespace(lexeme.start, lexeme.size());
+              case LexemeKind::Tab:
+                  return atmosphere::Tab(lexeme.start, lexeme.size());
+              case LexemeKind::NewlineCr:
+                  return atmosphere::NewlineCr(lexeme.start, lexeme.size());
+              case LexemeKind::NewlineLf:
+                  return atmosphere::NewlineLf(lexeme.start, lexeme.size());
+              case LexemeKind::NewlineCrlf:
+                  return atmosphere::NewlineCrlf(lexeme.start, lexeme.size());
+              case LexemeKind::Comment:
+                  return atmosphere::Comment(lexeme.start, lexeme.size());
               default:
                   __builtin_unreachable();
               }
@@ -563,6 +573,10 @@ public:
                   return VariantType(std::in_place_type<token::StringLit>,
                                      lexeme.start,
                                      lexeme.size());
+              case LexemeKind::KeywordLit:
+                  return VariantType(std::in_place_type<token::KeywordLit>,
+                                     lexeme.start,
+                                     lexeme.size());
               case LexemeKind::BoolLit:
                   return VariantType(std::in_place_type<token::BoolLit>,
                                      lexeme.start,
@@ -605,6 +619,19 @@ public:
     constexpr auto visit(F&& fn) const&& -> decltype(auto)
     {
         return ely::visit(std::move(variant_), static_cast<F&&>(fn));
+    }
+
+    constexpr bool is_eof() const noexcept
+    {
+        return visit([](const auto& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            return std::is_same_v<ty, token::Eof>;
+        });
+    }
+
+    explicit constexpr operator bool() const noexcept
+    {
+        return !is_eof();
     }
 
     constexpr std::size_t size() const
@@ -685,6 +712,16 @@ public:
         return static_cast<const RawToken&&>(raw).visit(static_cast<F&&>(fn));
     }
 
+    constexpr bool is_eof() const noexcept
+    {
+        return raw_token().is_eof();
+    }
+
+    explicit constexpr operator bool() const noexcept
+    {
+        return !is_eof();
+    }
+
     ELY_CONSTEXPR_VECTOR std::size_t size() const
     {
         std::size_t atmosphere_size = std::accumulate(
@@ -708,7 +745,9 @@ public:
 
 private:
     ely::ScannerStream<I, S> scanner_;
-    Lexeme<I>                cache_{{}, 0, static_cast<LexemeKind>(0)};
+    Lexeme<I>                cache_{{},
+                     std::numeric_limits<uint32_t>::max(),
+                     static_cast<LexemeKind>(0)};
 
 public:
     TokenStream() = default;
@@ -716,19 +755,30 @@ public:
     constexpr TokenStream(I it, S end) : scanner_(std::move(it), std::move(end))
     {}
 
-    constexpr reference next()
+    reference next()
     {
         std::vector<Atmosphere> atmosphere_collector{};
         std::size_t             trailing_start = 0;
 
-        if (cache_.len != 0)
+        Lexeme<I> lexeme;
+
+        if (cache_.len != std::numeric_limits<uint32_t>::max())
         {
-            ++trailing_start;
-            atmosphere_collector.emplace_back(cache_);
-            cache_.len = 0;
+            if (lexeme_is_atmosphere(cache_.kind))
+            {
+                ++trailing_start;
+                atmosphere_collector.emplace_back(cache_);
+                cache_.len = std::numeric_limits<uint32_t>::max();
+            }
+            else
+            {
+                lexeme     = cache_;
+                cache_.len = std::numeric_limits<uint32_t>::max();
+                goto skip_leading_atmo;
+            }
         }
 
-        auto lexeme = scanner_.next();
+        lexeme = scanner_.next();
 
         while (lexeme && ely::lexeme_is_atmosphere(lexeme.kind))
         {
@@ -736,22 +786,27 @@ public:
 
             atmosphere_collector.emplace_back(lexeme);
         }
+    skip_leading_atmo:
 
         RawToken raw_tok = RawToken(lexeme);
 
+        if (raw_tok.is_eof())
+        {
+            return Token(std::move(atmosphere_collector),
+                         trailing_start,
+                         std::move(raw_tok));
+        }
+
         lexeme = scanner_.next();
 
-        while (lexeme_is_atmosphere(lexeme.kind))
+        while (lexeme_is_atmosphere(lexeme.kind) &&
+               lexeme_is_newline(lexeme.kind))
         {
-            if (lexeme_is_newline(lexeme.kind))
-            {
-                // we need to make sure this value doesn't get ignored in future
-                // runs
-                cache_ = lexeme;
-                break;
-            }
             atmosphere_collector.emplace_back(lexeme);
+            lexeme = scanner_.next();
         }
+
+        cache_ = lexeme;
 
         return Token(std::move(atmosphere_collector),
                      trailing_start,

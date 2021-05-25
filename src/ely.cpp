@@ -39,6 +39,39 @@ void tokenize_stream(std::string_view src)
     auto tokenizer = ely::TokenStream{src.begin(), src.end()};
 
     auto tok = tokenizer.next();
+
+    while (tok)
+    {
+        tok.visit([](const auto& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            if constexpr (std::is_same_v<ty, ely::token::Identifier>)
+            {
+                std::cout << "identifier\n";
+            }
+            else if constexpr (std::is_same_v<ty, ely::token::LParen>)
+            {
+                std::cout << "(\n";
+            }
+            else if constexpr (std::is_same_v<ty, ely::token::RParen>)
+            {
+                std::cout << ")\n";
+            }
+            else if constexpr (std::is_same_v<ty, ely::token::KeywordLit>)
+            {
+                std::cout << "keyword literal\n";
+            }
+            else if constexpr (std::is_same_v<ty, ely::token::IntLit>)
+            {
+                std::cout << "int literal\n";
+            }
+            else if constexpr (std::is_same_v<ty, ely::token::FloatLit>)
+            {
+                std::cout << "float literal\n";
+            }
+        });
+
+        tok = tokenizer.next();
+    }
 }
 
 int main(int argc, char** argv)
