@@ -32,6 +32,10 @@ public:
     constexpr TokenStream(I it, S end) : scanner_(std::move(it), std::move(end))
     {}
 
+    constexpr TokenStream(ely::ScannerStream<I, S> scanner)
+        : scanner_(std::move(scanner))
+    {}
+
     reference next()
     {
         std::vector<Atmosphere> atmosphere_collector{};
