@@ -38,8 +38,8 @@ public:
 
     reference next()
     {
-        std::vector<Atmosphere> leading_atmosphere{};
-        std::vector<Atmosphere> trailing_atmosphere{};
+        AtmosphereList leading_atmosphere{};
+        AtmosphereList trailing_atmosphere{};
 
         Lexeme<I> lexeme;
 

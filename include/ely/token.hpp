@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <numeric>
+#include <ranges>
 #include <span>
 #include <string>
 #include <vector>
@@ -19,14 +20,14 @@ template<typename RawTok>
 class Pressurized
 {
 private:
-    std::vector<Atmosphere>      leading_atmosphere_;
-    std::vector<Atmosphere>      trailing_atmosphere_;
+    AtmosphereList               leading_atmosphere_;
+    AtmosphereList               trailing_atmosphere_;
     [[no_unique_address]] RawTok tok_;
 
 public:
     template<typename... Args>
-    constexpr Pressurized(std::vector<Atmosphere> leading,
-                          std::vector<Atmosphere> trailing,
+    constexpr Pressurized(AtmosphereList leading,
+                          AtmosphereList trailing,
                           Args&&... args)
         : leading_atmosphere_(std::move(leading)),
           trailing_atmosphere_(std::move(trailing)),
@@ -53,39 +54,26 @@ public:
         return static_cast<const RawTok&&>(tok_);
     }
 
-    constexpr std::span<const Atmosphere> leading_atmosphere() const
-    {
-        return {leading_atmosphere_.begin(), leading_atmosphere_.end()};
-    }
-
-    constexpr std::span<const Atmosphere> trailing_atmosphere() const
-    {
-        return {trailing_atmosphere_.begin(), trailing_atmosphere_.end()};
-    }
-
     constexpr std::size_t vacuum_size() const
     {
         return tok_.size();
     }
 
+    constexpr const AtmosphereList& leading_atmosphere() const
+    {
+        return leading_atmosphere_;
+    }
+
+    constexpr const AtmosphereList& trailing_atmosphere() const
+    {
+        return trailing_atmosphere_;
+    }
+
     constexpr std::size_t pressurized_size() const
     {
-        constexpr auto atmosphere_adder =
-            [](std::size_t sz, const auto& atmosphere) -> std::size_t {
-            return sz + atmosphere.size();
-        };
 
-        std::size_t sz = std::accumulate(leading_atmosphere_.begin(),
-                                         leading_atmosphere_.end(),
-                                         std::size_t{},
-                                         atmosphere_adder);
-
-        sz += std::accumulate(trailing_atmosphere_.begin(),
-                              trailing_atmosphere_.end(),
-                              std::size_t{},
-                              atmosphere_adder);
-
-        return sz + vacuum_size();
+        return leading_atmosphere_.atmosphere_size() +
+               trailing_atmosphere_.atmosphere_size() + vacuum_size();
     }
 };
 } // namespace detail
@@ -448,9 +436,8 @@ private:
 
 public:
     template<typename I>
-    ELY_CONSTEXPR_VECTOR Token(std::vector<Atmosphere> leading,
-                               std::vector<Atmosphere> trailing,
-                               Lexeme<I>               lexeme)
+    ELY_CONSTEXPR_VECTOR
+    Token(AtmosphereList leading, AtmosphereList trailing, Lexeme<I> lexeme)
         : variant_([&]() -> VariantType {
               auto construct_token = [&](auto in_place_type) -> VariantType {
                   return VariantType(std::move(in_place_type),
@@ -528,14 +515,18 @@ public:
         return !is_eof();
     }
 
-    constexpr std::span<const Atmosphere> leading_atmosphere() const
+    constexpr const AtmosphereList& leading_atmosphere() const
     {
-        return visit([](const auto& tok) { return tok.leading_atmosphere(); });
+        return visit([](const auto& tok) -> const AtmosphereList& {
+            return tok.leading_atmosphere();
+        });
     }
 
-    constexpr std::span<const Atmosphere> trailing_atmosphere() const
+    constexpr const AtmosphereList& trailing_atmosphere() const
     {
-        return visit([](const auto& tok) { return tok.trailing_atmosphere(); });
+        return visit([](const auto& tok) -> const AtmosphereList& {
+            return tok.trailing_atmosphere();
+        });
     }
 
     constexpr std::size_t pressurized_size() const
