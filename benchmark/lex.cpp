@@ -7,8 +7,10 @@
 #include <ely/lexer.h>
 #include <ely/reader.h>
 #include <ely/token.h>
+#include <ely/tokenizer.hpp>
 
 constexpr int lines = 1000000;
+constexpr std::size_t buffer_size = 1024;
 
 std::string long_source()
 {
@@ -33,7 +35,7 @@ static void BM_lex(benchmark::State& state)
 {
     auto src = long_source();
 
-    auto tok_buf = std::array<ElyToken, 1024>{};
+    auto tok_buf = std::array<ElyToken, buffer_size>{};
 
     for (auto _ : state)
     {
@@ -69,7 +71,7 @@ static void BM_lexpp(benchmark::State& state)
     auto src      = long_source();
     auto src_view = static_cast<std::string_view>(src);
 
-    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, 1024>{};
+    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
 
     for (auto _ : state)
     {
@@ -106,7 +108,7 @@ static void BM_lex_stream(benchmark::State& state)
     auto src      = long_source();
     auto src_view = static_cast<std::string_view>(src);
 
-    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, 1024>{};
+    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
 
     for (auto _ : state)
     {
@@ -143,6 +145,57 @@ static void BM_lex_stream(benchmark::State& state)
     state.SetItemsProcessed(lines * state.iterations());
 }
 BENCHMARK(BM_lex_stream);
+
+static void BM_token_stream(benchmark::State& state)
+{
+    auto src      = long_source();
+    auto src_view = static_cast<std::string_view>(src);
+
+    auto tok_alloc = std::allocator<ely::Token>{};
+    auto tok_buf =
+        std::allocator_traits<decltype(tok_alloc)>::allocate(tok_alloc, buffer_size);
+
+    for (auto _ : state)
+    {
+        auto stream = ely::TokenStream(src_view.begin(), src_view.end());
+
+        while (true)
+        {
+            auto buf_it = tok_buf;
+
+            auto tok = stream.next();
+
+            while (tok && buf_it != tok_buf + buffer_size)
+            {
+                std::allocator_traits<decltype(tok_alloc)>::construct(
+                    tok_alloc, buf_it, std::move(tok));
+                tok = stream.next();
+                ++buf_it;
+            }
+
+            auto buf_size = buf_it - tok_buf;
+
+            for (std::size_t i = 0; i != buf_size; ++i)
+            {
+                benchmark::DoNotOptimize(tok_buf[i]);
+                std::allocator_traits<decltype(tok_alloc)>::destroy(
+                    tok_alloc, tok_buf + i);
+            }
+
+            if (!tok)
+            {
+                break;
+            }
+        }
+    }
+
+    std::allocator_traits<decltype(tok_alloc)>::deallocate(
+        tok_alloc, tok_buf, buffer_size);
+
+    state.SetBytesProcessed(src.size() * state.iterations());
+    state.SetItemsProcessed(lines * state.iterations());
+}
+BENCHMARK(BM_token_stream);
 
 static void BM_read(benchmark::State& state)
 {
