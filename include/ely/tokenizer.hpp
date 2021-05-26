@@ -785,6 +785,7 @@ public:
             ++trailing_start;
 
             atmosphere_collector.emplace_back(lexeme);
+            lexeme = scanner_.next();
         }
     skip_leading_atmo:
 
