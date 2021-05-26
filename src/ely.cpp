@@ -4,7 +4,7 @@
 #include <span>
 
 #include <ely/scanner.hpp>
-#include <ely/tokenizer.hpp>
+#include <ely/tokenstream.hpp>
 
 void scan_stream(
     std::string_view                                   src,

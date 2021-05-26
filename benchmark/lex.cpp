@@ -7,9 +7,9 @@
 #include <ely/lexer.h>
 #include <ely/reader.h>
 #include <ely/token.h>
-#include <ely/tokenizer.hpp>
+#include <ely/tokenstream.hpp>
 
-constexpr int lines = 1000000;
+constexpr int         lines       = 1000000;
 constexpr std::size_t buffer_size = 1024;
 
 std::string long_source()
@@ -71,7 +71,8 @@ static void BM_lexpp(benchmark::State& state)
     auto src      = long_source();
     auto src_view = static_cast<std::string_view>(src);
 
-    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
+    auto tok_buf =
+        std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
 
     for (auto _ : state)
     {
@@ -108,7 +109,8 @@ static void BM_lex_stream(benchmark::State& state)
     auto src      = long_source();
     auto src_view = static_cast<std::string_view>(src);
 
-    auto tok_buf = std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
+    auto tok_buf =
+        std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
 
     for (auto _ : state)
     {
@@ -152,8 +154,8 @@ static void BM_token_stream(benchmark::State& state)
     auto src_view = static_cast<std::string_view>(src);
 
     auto tok_alloc = std::allocator<ely::Token>{};
-    auto tok_buf =
-        std::allocator_traits<decltype(tok_alloc)>::allocate(tok_alloc, buffer_size);
+    auto tok_buf   = std::allocator_traits<decltype(tok_alloc)>::allocate(
+        tok_alloc, buffer_size);
 
     for (auto _ : state)
     {

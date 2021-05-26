@@ -1,7 +1,13 @@
 #pragma once
 
+#include <vector>
+#include <string>
 #include <cstdint>
+#include <numeric>
+#include <span>
 
+#include "ely/variant.hpp"
+#include "ely/atmosphere.hpp"
 #include "ely/defines.h"
 
 namespace ely
