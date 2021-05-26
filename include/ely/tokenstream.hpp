@@ -67,13 +67,13 @@ public:
         }
     skip_leading_atmo:
 
-        RawToken raw_tok = RawToken(lexeme);
+        Lexeme<I> token_lexeme = lexeme;
 
-        if (raw_tok.is_eof())
+        if (token_lexeme.kind == LexemeKind::Eof)
         {
             return Token(std::move(leading_atmosphere),
                          std::move(trailing_atmosphere),
-                         std::move(raw_tok));
+                         std::move(token_lexeme));
         }
 
         lexeme = scanner_.next();
@@ -89,7 +89,7 @@ public:
 
         return Token(std::move(leading_atmosphere),
                      std::move(trailing_atmosphere),
-                     std::move(raw_tok));
+                     std::move(token_lexeme));
     }
 };
 } // namespace ely

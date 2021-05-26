@@ -12,11 +12,98 @@
 
 namespace ely
 {
+namespace detail
+{
+/// a pressurized token has atmosphere around it
+template<typename RawTok>
+class Pressurized
+{
+private:
+    std::vector<Atmosphere>      leading_atmosphere_;
+    std::vector<Atmosphere>      trailing_atmosphere_;
+    [[no_unique_address]] RawTok tok_;
+
+public:
+    template<typename... Args>
+    constexpr Pressurized(std::vector<Atmosphere> leading,
+                          std::vector<Atmosphere> trailing,
+                          Args&&... args)
+        : leading_atmosphere_(std::move(leading)),
+          trailing_atmosphere_(std::move(trailing)),
+          tok_(static_cast<Args&&>(args)...)
+    {}
+
+    constexpr RawTok& raw_token() & noexcept
+    {
+        return static_cast<RawTok&>(tok_);
+    }
+
+    constexpr const RawTok& raw_token() const& noexcept
+    {
+        return static_cast<const RawTok&>(tok_);
+    }
+
+    constexpr RawTok&& raw_token() && noexcept
+    {
+        return static_cast<RawTok&&>(tok_);
+    }
+
+    constexpr const RawTok&& raw_token() const&& noexcept
+    {
+        return static_cast<const RawTok&&>(tok_);
+    }
+
+    constexpr std::span<const Atmosphere> leading_atmosphere() const
+    {
+        return {leading_atmosphere_.begin(), leading_atmosphere_.end()};
+    }
+
+    constexpr std::span<const Atmosphere> trailing_atmosphere() const
+    {
+        return {trailing_atmosphere_.begin(), trailing_atmosphere_.end()};
+    }
+
+    constexpr std::size_t vacuum_size() const
+    {
+        return tok_.size();
+    }
+
+    constexpr std::size_t pressurized_size() const
+    {
+        constexpr auto atmosphere_adder =
+            [](std::size_t sz, const auto& atmosphere) -> std::size_t {
+            return sz + atmosphere.size();
+        };
+
+        std::size_t sz = std::accumulate(leading_atmosphere_.begin(),
+                                         leading_atmosphere_.end(),
+                                         std::size_t{},
+                                         atmosphere_adder);
+
+        sz += std::accumulate(trailing_atmosphere_.begin(),
+                              trailing_atmosphere_.end(),
+                              std::size_t{},
+                              atmosphere_adder);
+
+        return sz + vacuum_size();
+    }
+};
+} // namespace detail
+
 namespace token
+{
+namespace raw
 {
 class LParen
 {
 public:
+    LParen() = default;
+
+    template<typename I>
+    constexpr LParen([[maybe_unused]] I first, [[maybe_unused]] std::size_t len)
+        : LParen()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -26,6 +113,13 @@ public:
 class RParen
 {
 public:
+    RParen() = default;
+
+    template<typename I>
+    constexpr RParen([[maybe_unused]] I first, [[maybe_unused]] std::size_t len)
+        : RParen()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -35,6 +129,14 @@ public:
 class LBracket
 {
 public:
+    LBracket() = default;
+
+    template<typename I>
+    constexpr LBracket([[maybe_unused]] I           first,
+                       [[maybe_unused]] std::size_t len)
+        : LBracket()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -44,6 +146,14 @@ public:
 class RBracket
 {
 public:
+    RBracket() = default;
+
+    template<typename I>
+    constexpr RBracket([[maybe_unused]] I           first,
+                       [[maybe_unused]] std::size_t len)
+        : RBracket()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -53,6 +163,12 @@ public:
 class LBrace
 {
 public:
+    LBrace() = default;
+
+    template<typename I>
+    constexpr LBrace([[maybe_unused]] I first, std::size_t len) : LBrace()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -62,6 +178,12 @@ public:
 class RBrace
 {
 public:
+    RBrace() = default;
+
+    template<typename I>
+    constexpr RBrace([[maybe_unused]] I first, std::size_t len) : RBrace()
+    {}
+
     static constexpr std::size_t size()
     {
         return 1;
@@ -278,11 +400,33 @@ public:
         return 0;
     }
 };
+} // namespace raw
+
+using LParen = detail::Pressurized<raw::LParen>;
+using RParen = detail::Pressurized<raw::RParen>;
+
+using LBracket = detail::Pressurized<raw::LBracket>;
+using RBracket = detail::Pressurized<raw::RBracket>;
+
+using LBrace = detail::Pressurized<raw::LBrace>;
+using RBrace = detail::Pressurized<raw::RBrace>;
+
+using Identifier = detail::Pressurized<raw::Identifier>;
+
+using IntLit     = detail::Pressurized<raw::IntLit>;
+using FloatLit   = detail::Pressurized<raw::FloatLit>;
+using CharLit    = detail::Pressurized<raw::CharLit>;
+using StringLit  = detail::Pressurized<raw::StringLit>;
+using KeywordLit = detail::Pressurized<raw::KeywordLit>;
+using BoolLit    = detail::Pressurized<raw::BoolLit>;
+
+using Poison = detail::Pressurized<raw::Poison>;
+using Eof    = detail::Pressurized<raw::Eof>;
 } // namespace token
 
-/// unlike a Lexeme, a RawToken owns the data it holds
-class RawToken
+class Token
 {
+private:
     using VariantType = ely::Variant<token::LParen,
                                      token::RParen,
                                      token::LBracket,
@@ -303,84 +447,57 @@ private:
     VariantType variant_;
 
 public:
-    template<typename T, typename... Args>
-    explicit constexpr RawToken(std::in_place_type_t<T>, Args&&... args)
-        : variant_(std::in_place_type<T>, static_cast<Args&&>(args)...)
-    {}
-
     template<typename I>
-    constexpr RawToken(Lexeme<I> lexeme)
+    ELY_CONSTEXPR_VECTOR Token(std::vector<Atmosphere> leading,
+                               std::vector<Atmosphere> trailing,
+                               Lexeme<I>               lexeme)
         : variant_([&]() -> VariantType {
-              ELY_ASSERT(!ely::lexeme_is_atmosphere(lexeme.kind),
-                         "RawToken cannot be made from atmosphere");
+              auto construct_token = [&](auto in_place_type) -> VariantType {
+                  return VariantType(std::move(in_place_type),
+                                     std::move(leading),
+                                     std::move(trailing),
+                                     lexeme.start,
+                                     lexeme.size());
+              };
+
+#define DISPATCH(tok)                                                          \
+    case LexemeKind::tok:                                                      \
+        return construct_token(std::in_place_type<token::tok>)
 
               switch (lexeme.kind)
               {
-              case LexemeKind::LParen:
-                  return VariantType(std::in_place_type<token::LParen>);
-              case LexemeKind::RParen:
-                  return VariantType(std::in_place_type<token::RParen>);
-              case LexemeKind::LBracket:
-                  return VariantType(std::in_place_type<token::LBracket>);
-              case LexemeKind::RBracket:
-                  return VariantType(std::in_place_type<token::RBracket>);
-              case LexemeKind::LBrace:
-                  return VariantType(std::in_place_type<token::LBrace>);
-              case LexemeKind::RBrace:
-                  return VariantType(std::in_place_type<token::RBrace>);
-
-              case LexemeKind::Identifier:
-                  return VariantType(std::in_place_type<token::Identifier>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::IntLit:
-                  return VariantType(std::in_place_type<token::IntLit>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::FloatLit:
-                  return VariantType(std::in_place_type<token::FloatLit>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::CharLit:
-                  return VariantType(std::in_place_type<token::CharLit>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::StringLit:
-                  return VariantType(std::in_place_type<token::StringLit>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::KeywordLit:
-                  return VariantType(std::in_place_type<token::KeywordLit>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::BoolLit:
-                  return VariantType(std::in_place_type<token::BoolLit>,
-                                     lexeme.start,
-                                     lexeme.size());
-
-              case LexemeKind::Poison:
-                  return VariantType(std::in_place_type<token::Poison>,
-                                     lexeme.start,
-                                     lexeme.size());
-              case LexemeKind::Eof:
-                  return VariantType(std::in_place_type<token::Eof>,
-                                     lexeme.start,
-                                     lexeme.size());
-
+                  DISPATCH(LParen);
+                  DISPATCH(RParen);
+                  DISPATCH(LBracket);
+                  DISPATCH(RBracket);
+                  DISPATCH(LBrace);
+                  DISPATCH(RBrace);
+                  DISPATCH(Identifier);
+                  DISPATCH(IntLit);
+                  DISPATCH(FloatLit);
+                  DISPATCH(CharLit);
+                  DISPATCH(StringLit);
+                  DISPATCH(KeywordLit);
+                  DISPATCH(BoolLit);
+                  DISPATCH(Poison);
+                  DISPATCH(Eof);
               default:
                   __builtin_unreachable();
               }
+
+#undef DISPATCH
           }())
+
     {}
 
     template<typename F>
-    constexpr auto visit(F&& fn) const& -> decltype(auto)
+    constexpr auto visit(F&& fn) & -> decltype(auto)
     {
         return ely::visit(variant_, static_cast<F&&>(fn));
     }
 
     template<typename F>
-    constexpr auto visit(F&& fn) & -> decltype(auto)
+    constexpr auto visit(F&& fn) const& -> decltype(auto)
     {
         return ely::visit(variant_, static_cast<F&&>(fn));
     }
@@ -399,9 +516,10 @@ public:
 
     constexpr bool is_eof() const noexcept
     {
-        return visit([](const auto& x) {
-            using ty = std::remove_cvref_t<decltype(x)>;
-            return std::is_same_v<ty, token::Eof>;
+        return visit([](const auto& tok) {
+            const auto& raw_tok = tok.raw_token();
+            using raw_ty        = std::remove_cvref_t<decltype(raw_tok)>;
+            return std::is_same_v<raw_ty, ely::token::raw::Eof>;
         });
     }
 
@@ -410,109 +528,27 @@ public:
         return !is_eof();
     }
 
-    constexpr std::size_t size() const
+    constexpr std::span<const Atmosphere> leading_atmosphere() const
     {
-        return visit([](const auto& x) -> std::size_t { return x.size(); });
-    }
-};
-
-class Token
-{
-    std::vector<Atmosphere> leading_atmo;
-    std::vector<Atmosphere> trailing_atmo;
-    RawToken                raw;
-
-public:
-    ELY_CONSTEXPR_VECTOR Token(std::vector<Atmosphere> leading_atmosphere,
-                               std::vector<Atmosphere> trailing_atmosphere,
-                               RawToken                tok)
-        : leading_atmo(std::move(leading_atmosphere)),
-          trailing_atmo(std::move(trailing_atmosphere)), raw(std::move(tok))
-    {}
-
-    constexpr RawToken& raw_token() &
-    {
-        return raw;
+        return visit([](const auto& tok) { return tok.leading_atmosphere(); });
     }
 
-    constexpr const RawToken& raw_token() const&
+    constexpr std::span<const Atmosphere> trailing_atmosphere() const
     {
-        return raw;
+        return visit([](const auto& tok) { return tok.trailing_atmosphere(); });
     }
 
-    constexpr RawToken&& raw_token() &&
+    constexpr std::size_t pressurized_size() const
     {
-        return std::move(raw);
+        return visit([](const auto& tok) -> std::size_t {
+            return tok.pressurized_size();
+        });
     }
 
-    constexpr const RawToken&& raw_token() const&&
+    constexpr std::size_t vacuum_size() const
     {
-        return std::move(raw);
-    }
-
-    ELY_CONSTEXPR_VECTOR std::span<const Atmosphere> leading_atmosphere() const&
-    {
-        return std::span<const Atmosphere>{leading_atmo.begin(),
-                                           leading_atmo.end()};
-    }
-
-    ELY_CONSTEXPR_VECTOR std::span<const Atmosphere>
-                         trailing_atmosphere() const&
-    {
-        return std::span<const Atmosphere>{trailing_atmo.begin(),
-                                           trailing_atmo.end()};
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) & -> decltype(auto)
-    {
-        return static_cast<RawToken&>(raw).visit(static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const& -> decltype(auto)
-    {
-        return static_cast<const RawToken&>(raw).visit(static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) && -> decltype(auto)
-    {
-        return static_cast<RawToken&&>(raw).visit(static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const&& -> decltype(auto)
-    {
-        return static_cast<const RawToken&&>(raw).visit(static_cast<F&&>(fn));
-    }
-
-    constexpr bool is_eof() const noexcept
-    {
-        return raw_token().is_eof();
-    }
-
-    explicit constexpr operator bool() const noexcept
-    {
-        return !is_eof();
-    }
-
-    ELY_CONSTEXPR_VECTOR std::size_t size() const
-    {
-        std::size_t atmosphere_size = std::accumulate(
-            leading_atmo.begin(),
-            leading_atmo.end(),
-            std::size_t{0},
-            [](auto cur_sz, const auto& tok) { return cur_sz + tok.size(); });
-
-        atmosphere_size = std::accumulate(
-            trailing_atmo.begin(),
-            trailing_atmo.end(),
-            atmosphere_size,
-            [](auto cur_sz, const auto& tok) { return cur_sz + tok.size(); });
-
-        return atmosphere_size +
-               visit([](const auto& x) -> std::size_t { return x.size(); });
+        return visit(
+            [](const auto& tok) -> std::size_t { return tok.vacuum_size(); });
     }
 };
 } // namespace ely
