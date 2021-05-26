@@ -396,37 +396,6 @@ public:
 };
 } // namespace token
 
-namespace detail
-{
-union AtmosphereUnion
-{
-#define DEFINE_CONSTRUCTOR(variant, member)                                    \
-    template<typename... Args>                                                 \
-    explicit constexpr AtmosphereUnion(std::in_place_type_t<variant>,          \
-                                       Args&&... args)                         \
-        : member(static_cast<Args&&>(args)...)                                 \
-    {}
-
-    DEFINE_CONSTRUCTOR(atmosphere::Whitespace, whitespace)
-    DEFINE_CONSTRUCTOR(atmosphere::Tab, tab)
-    DEFINE_CONSTRUCTOR(atmosphere::NewlineCr, newline_cr)
-    DEFINE_CONSTRUCTOR(atmosphere::NewlineLf, newline_lf)
-    DEFINE_CONSTRUCTOR(atmosphere::NewlineCrlf, newline_crlf)
-    DEFINE_CONSTRUCTOR(atmosphere::Comment, comment)
-#undef DEFINE_CONSTRUCTOR
-
-    ~AtmosphereUnion()
-    {}
-
-    atmosphere::Whitespace  whitespace;
-    atmosphere::Tab         tab;
-    atmosphere::NewlineCr   newline_cr;
-    atmosphere::NewlineLf   newline_lf;
-    atmosphere::NewlineCrlf newline_crlf;
-    atmosphere::Comment     comment;
-};
-} // namespace detail
-
 class Atmosphere
 {
 private:
