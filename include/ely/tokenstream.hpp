@@ -38,8 +38,8 @@ public:
 
     reference next()
     {
-        std::vector<Atmosphere> atmosphere_collector{};
-        std::size_t             trailing_start = 0;
+        std::vector<Atmosphere> leading_atmosphere{};
+        std::vector<Atmosphere> trailing_atmosphere{};
 
         Lexeme<I> lexeme;
 
@@ -47,8 +47,7 @@ public:
         {
             if (lexeme_is_atmosphere(cache_.kind))
             {
-                ++trailing_start;
-                atmosphere_collector.emplace_back(cache_);
+                leading_atmosphere.emplace_back(cache_);
                 cache_.len = std::numeric_limits<uint32_t>::max();
             }
             else
@@ -63,9 +62,7 @@ public:
 
         while (lexeme && ely::lexeme_is_atmosphere(lexeme.kind))
         {
-            ++trailing_start;
-
-            atmosphere_collector.emplace_back(lexeme);
+            leading_atmosphere.emplace_back(lexeme);
             lexeme = scanner_.next();
         }
     skip_leading_atmo:
@@ -74,8 +71,8 @@ public:
 
         if (raw_tok.is_eof())
         {
-            return Token(std::move(atmosphere_collector),
-                         trailing_start,
+            return Token(std::move(leading_atmosphere),
+                         std::move(trailing_atmosphere),
                          std::move(raw_tok));
         }
 
@@ -84,14 +81,14 @@ public:
         while (lexeme_is_atmosphere(lexeme.kind) &&
                lexeme_is_newline(lexeme.kind))
         {
-            atmosphere_collector.emplace_back(lexeme);
+            trailing_atmosphere.emplace_back(lexeme);
             lexeme = scanner_.next();
         }
 
         cache_ = lexeme;
 
-        return Token(std::move(atmosphere_collector),
-                     trailing_start,
+        return Token(std::move(leading_atmosphere),
+                     std::move(trailing_atmosphere),
                      std::move(raw_tok));
     }
 };

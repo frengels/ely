@@ -1,14 +1,14 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <cstdint>
 #include <numeric>
 #include <span>
+#include <string>
+#include <vector>
 
-#include "ely/variant.hpp"
 #include "ely/atmosphere.hpp"
 #include "ely/defines.h"
+#include "ely/variant.hpp"
 
 namespace ely
 {
@@ -418,16 +418,16 @@ public:
 
 class Token
 {
-    std::vector<Atmosphere> surrounding_atmosphere;
-    std::size_t             trailing_at;
+    std::vector<Atmosphere> leading_atmo;
+    std::vector<Atmosphere> trailing_atmo;
     RawToken                raw;
 
 public:
-    ELY_CONSTEXPR_VECTOR Token(std::vector<Atmosphere> surrounding_atmosphere,
-                               std::size_t             trailing_at,
+    ELY_CONSTEXPR_VECTOR Token(std::vector<Atmosphere> leading_atmosphere,
+                               std::vector<Atmosphere> trailing_atmosphere,
                                RawToken                tok)
-        : surrounding_atmosphere(std::move(surrounding_atmosphere)),
-          trailing_at(trailing_at), raw(std::move(tok))
+        : leading_atmo(std::move(leading_atmosphere)),
+          trailing_atmo(std::move(trailing_atmosphere)), raw(std::move(tok))
     {}
 
     constexpr RawToken& raw_token() &
@@ -452,16 +452,15 @@ public:
 
     ELY_CONSTEXPR_VECTOR std::span<const Atmosphere> leading_atmosphere() const&
     {
-        return std::span<const Atmosphere>{surrounding_atmosphere.begin(),
-                                           trailing_at};
+        return std::span<const Atmosphere>{leading_atmo.begin(),
+                                           leading_atmo.end()};
     }
 
     ELY_CONSTEXPR_VECTOR std::span<const Atmosphere>
                          trailing_atmosphere() const&
     {
-        return std::span<const Atmosphere>{surrounding_atmosphere.begin() +
-                                               trailing_at,
-                                           surrounding_atmosphere.end()};
+        return std::span<const Atmosphere>{trailing_atmo.begin(),
+                                           trailing_atmo.end()};
     }
 
     template<typename F>
@@ -501,12 +500,17 @@ public:
     ELY_CONSTEXPR_VECTOR std::size_t size() const
     {
         std::size_t atmosphere_size = std::accumulate(
-            surrounding_atmosphere.begin(),
-            surrounding_atmosphere.end(),
+            leading_atmo.begin(),
+            leading_atmo.end(),
             std::size_t{0},
-            [](std::size_t sz, const auto& atmo) -> std::size_t {
-                return sz + atmo.size();
-            });
+            [](auto cur_sz, const auto& tok) { return cur_sz + tok.size(); });
+
+        atmosphere_size = std::accumulate(
+            trailing_atmo.begin(),
+            trailing_atmo.end(),
+            atmosphere_size,
+            [](auto cur_sz, const auto& tok) { return cur_sz + tok.size(); });
+
         return atmosphere_size +
                visit([](const auto& x) -> std::size_t { return x.size(); });
     }
