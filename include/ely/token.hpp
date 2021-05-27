@@ -515,6 +515,27 @@ public:
         return !is_eof();
     }
 
+    template<typename T>
+    friend constexpr bool holds(const Token& self) noexcept
+    {
+        return self.visit([](const auto& x) {
+            using ty = std::remove_cvref_t<decltype(x)>;
+            return std::is_same_v<T, ty>;
+        });
+    }
+
+    template<typename T>
+    friend constexpr T& unsafe_get(Token& self) noexcept
+    {
+        return *get_if<T>(&self.variant_);
+    }
+
+    template<typename T>
+    friend constexpr T&& unsafe_get(Token&& self) noexcept
+    {
+        return static_cast<T&&>(*get_if<T>(&self.variant_));
+    }
+
     constexpr const AtmosphereList& leading_atmosphere() const
     {
         return visit([](const auto& tok) -> const AtmosphereList& {
