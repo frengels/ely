@@ -3,6 +3,7 @@
 #include <optional>
 #include <type_traits>
 
+#include "ely/list.hpp"
 #include "ely/node.hpp"
 #include "ely/tokenstream.hpp"
 
@@ -83,7 +84,7 @@ private:
     template<typename L, typename R>
     constexpr Node parse_list(L&& lparen)
     {
-        std::list<Node> nodes;
+        ely::List<Node> nodes;
 
         ely::Token t = tokens_.next();
 

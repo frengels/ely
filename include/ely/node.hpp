@@ -3,12 +3,14 @@
 #include <cstdint>
 #include <list>
 
+#include "ely/list.hpp"
 #include "ely/token.hpp"
 #include "ely/variant.hpp"
 
 namespace ely
 {
 class Node;
+
 namespace node
 {
 using BoolLit    = ely::token::BoolLit;
@@ -26,35 +28,35 @@ template<typename L, typename R>
 class List
 {
 private:
-    std::list<Node>         children_;
+    ely::List<Node>         children_;
     [[no_unique_address]] L left_closing_;
     [[no_unique_address]] R right_closing_;
 
 public:
-    constexpr List(std::list<Node> children, L left_closing, R right_closing)
+    constexpr List(ely::List<Node> children, L left_closing, R right_closing)
         : children_(std::move(children)),
           left_closing_(std::move(left_closing)),
           right_closing_(std::move(right_closing))
     {}
 
-    constexpr const std::list<Node>& children() const& noexcept
+    constexpr auto begin() noexcept
     {
-        return children_;
+        return children_.begin();
     }
 
-    constexpr std::list<Node>& children() & noexcept
+    constexpr auto end() noexcept
     {
-        return children_;
+        return children_.end();
     }
 
-    constexpr const std::list<Node>&& children() const&& noexcept
+    constexpr auto begin() const noexcept
     {
-        return std::move(children_);
+        return children_.begin();
     }
 
-    constexpr std::list<Node>&& children() && noexcept
+    constexpr auto end() const noexcept
     {
-        return std::move(children_);
+        return children_.end();
     }
 };
 
