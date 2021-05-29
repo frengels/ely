@@ -117,12 +117,6 @@ public:
         return lhs.it_ == rhs.it_;
     }
 
-    friend constexpr bool operator!=(const IListIterator& lhs,
-                                     const IListIterator& rhs) noexcept
-    {
-        return lhs.it_ != rhs.it_;
-    }
-
     constexpr IListIterator& operator++() noexcept
     {
         it_ = it_->next;
