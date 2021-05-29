@@ -432,10 +432,14 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         case '\\':
             ++it;
             ELY_MUSTTAIL return scan_char(it, end);
+        case '%':
+            ++it;
+            ELY_MUSTTAIL return scan_identifier_continue(it, end);
         case '\'':
         case '`':
         case ',':
         default:
+            ELY_UNIMPLEMENTED("abbreviations not implemented");
             ++it;
             ELY_MUSTTAIL return scan_poisoned(it, end);
         }
