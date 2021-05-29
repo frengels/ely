@@ -158,6 +158,11 @@ public:
     {
         return *operator->();
     }
+
+    static constexpr IListIterator from_ref(reference ref) noexcept
+    {
+        return IListIterator{HookAccess::base(ref)};
+    }
 };
 
 template<typename T, typename Hook>
@@ -181,6 +186,9 @@ public:
 
 private:
     using HookAccess = IListHookAccess<Hook>;
+
+private:
+    std::size_t sz_{};
 
 public:
     constexpr IList() : Hook{this, this}
@@ -211,6 +219,17 @@ public:
 
     IList(const IList&) = delete;
     IList& operator=(const IList&) = delete;
+
+    static constexpr iterator iterator_from_ref(reference ref) noexcept
+    {
+        return iterator{ref};
+    }
+
+    static constexpr const_iterator
+    iterator_from_ref(const_reference cref) noexcept
+    {
+        return const_iterator{cref};
+    }
 
     constexpr iterator begin() noexcept
     {
@@ -272,24 +291,53 @@ public:
         return rend();
     }
 
-    constexpr void insert(const_iterator it, reference ref) noexcept
+    constexpr std::size_t size() const noexcept
     {
-        Hook* self = const_cast<Hook*>(it.it_);
+        return sz_;
+    }
 
-        self->prev->next = std::addressof(HookAccess::base(ref));
-        HookAccess::set_prev(ref, self->prev);
-        self->prev = std::addressof(HookAccess::base(ref));
-        HookAccess::set_next(ref, self);
+    constexpr void insert(reference pos, reference ref) noexcept
+    {
+        Hook& pos_hook = HookAccess::base(pos);
+
+        pos_hook.prev->next = std::addressof(HookAccess::base(ref));
+        HookAccess::set_prev(ref, pos_hook.prev);
+        pos_hook.prev = std::addressof(HookAccess::base(ref));
+        HookAccess::set_next(ref, std::addressof(pos_hook));
+        ++sz_;
+    }
+
+    constexpr void insert(iterator pos, reference ref) noexcept
+    {
+        return insert(*pos, ref);
     }
 
     constexpr void insert_back(T& ref) noexcept
     {
-        insert(cend(), ref);
+        return insert(end(), ref);
     }
 
     constexpr void insert_front(T& ref) noexcept
     {
-        insert(cbegin(), ref);
+        return insert(begin(), ref);
+    }
+
+    constexpr iterator erase(reference ref)
+    {
+        Hook& h    = HookAccess::base(ref);
+        Hook* next = h.next;
+
+        h.next->prev = h.prev;
+        h.prev->next = h.next;
+
+        --sz_;
+
+        return iterator_from_ref(HookAccess::template upcast<T>(*next));
+    }
+
+    constexpr iterator erase(iterator pos) noexcept
+    {
+        return erase(*pos);
     }
 
     constexpr void swap(IList& other) noexcept
