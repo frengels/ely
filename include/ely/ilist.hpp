@@ -98,7 +98,7 @@ public:
     using value_type        = std::remove_const_t<T>;
     using reference         = T&;
     using pointer           = T*;
-    using difference_type   = std::size_t;
+    using difference_type   = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
 
 private:
