@@ -2,6 +2,7 @@
 #include <doctest/doctest.h>
 
 #include <ely/ilist.hpp>
+#include <ely/list.hpp>
 
 class Hooked : public ely::IListBaseHook<>
 {
@@ -47,6 +48,33 @@ TEST_CASE("ilist")
             REQUIRE_EQ(it++->i, 2);
             REQUIRE_EQ(it++->i, 3);
             REQUIRE_EQ(it, list.end());
+        }
+    }
+}
+
+TEST_CASE("list")
+{
+    ely::List<int> list{};
+
+    SUBCASE("insert")
+    {
+        REQUIRE_EQ(list.size(), 0);
+
+        list.emplace_back(1);
+        list.emplace_back(2);
+        list.emplace_back(3);
+
+        REQUIRE_EQ(list.size(), 3);
+
+        auto it = list.begin();
+        REQUIRE_EQ(*it++, 1);
+        REQUIRE_EQ(*it++, 2);
+        REQUIRE_EQ(*it++, 3);
+        REQUIRE_EQ(it, list.end());
+
+        SUBCASE("removal")
+        {
+            REQUIRE_EQ(list.size(), 3);
         }
     }
 }
