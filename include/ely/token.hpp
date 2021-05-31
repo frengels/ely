@@ -181,79 +181,94 @@ public:
 class Identifier
 {
 private:
-    std::string name;
+    std::string name_;
 
 public:
     Identifier() = default;
 
     template<typename I>
     constexpr Identifier(I first, std::size_t len)
-        : name(first, std::next(first, len))
+        : name_(first, std::next(first, len))
     {}
 
     template<typename... Args>
     constexpr Identifier(std::in_place_t, Args&&... args)
-        : name(static_cast<Args&&>(args)...)
+        : name_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view name() const noexcept
+    {
+        return static_cast<std::string_view>(name_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return name.size();
+        return name_.size();
     }
 };
 
 class IntLit
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     IntLit() = default;
 
     template<typename I>
     constexpr IntLit(I first, std::size_t len)
-        : str(first, std::next(first, len))
+        : str_(first, std::next(first, len))
     {}
 
     template<typename... Args>
     constexpr IntLit(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return str.size();
+        return str_.size();
     }
 };
 
 class FloatLit
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     FloatLit() = default;
 
     template<typename I>
     constexpr FloatLit(I first, std::size_t len)
-        : str(first, std::next(first, len))
+        : str_(first, std::next(first, len))
     {}
 
     template<typename... Args>
     constexpr FloatLit(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return str.size();
+        return str_.size();
     }
 };
 
 class CharLit
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     CharLit() = default;
@@ -261,65 +276,80 @@ public:
     /// automatically cuts off the first 2 values from the iterator
     template<typename I>
     constexpr CharLit(I first, std::size_t len)
-        : str(std::next(first, 2), std::next(first, len))
+        : str_(std::next(first, 2), std::next(first, len))
     {}
 
     template<typename... Args>
     constexpr CharLit(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 2 + str.size();
+        return 2 + str_.size();
     }
 };
 
 class StringLit
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     StringLit() = default;
 
     template<typename I>
     constexpr StringLit(I first, std::size_t len)
-        : str(std::next(first), std::next(first, len - 1))
+        : str_(std::next(first), std::next(first, len - 1))
     {}
 
     template<typename... Args>
     constexpr StringLit(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 2 + str.size();
+        return 2 + str_.size();
     }
 };
 
 class KeywordLit
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     KeywordLit() = default;
 
     template<typename I>
     constexpr KeywordLit(I first, std::size_t len)
-        : str(std::next(first, 2), std::next(first, len))
+        : str_(std::next(first, 2), std::next(first, len))
     {}
 
     template<typename... Args>
     constexpr KeywordLit(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 2 + str.size();
+        return 2 + str_.size();
     }
 };
 
@@ -353,24 +383,29 @@ public:
 class Poison
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     Poison() = default;
 
     template<typename I>
     constexpr Poison(I first, std::size_t len)
-        : str(first, std::next(first, len))
+        : str_(first, std::next(first, len))
     {}
 
     template<typename... Args>
     explicit constexpr Poison(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return str.size();
+        return str_.size();
     }
 };
 
