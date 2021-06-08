@@ -316,6 +316,29 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
 }
 
 template<typename I, typename S>
+constexpr ScanResult<I> scan_string(I it, S end)
+{
+    bool escaping = false;
+
+
+    while (it != end)
+    {
+        char ch = *it++;
+
+        if (ch == '\\')
+        {
+            escaping = !escaping;
+        }
+        else if (ch == '"' && !escaping)
+        {
+            return {it, LexemeKind::StringLit};
+        }
+    }
+
+    return {it, LexemeKind::UnterminatedStringLit};
+}
+
+template<typename I, typename S>
 constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
@@ -483,6 +506,8 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
         return {it, LexemeKind::LBrace};
     case '}':
         return {it, LexemeKind::RBrace};
+    case '"':
+        ELY_MUSTTAIL return detail::scan_string(it, end);
     case '+':
     case '-':
         ELY_MUSTTAIL return detail::scan_sign(it, end);
