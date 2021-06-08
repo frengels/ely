@@ -35,7 +35,9 @@ enum class LexemeKind : uint8_t
     KeywordLit,
     BoolLit,
 
-    Poison,
+    UnterminatedStringLit,
+    InvalidNumberSign,
+
     Eof,
 };
 
@@ -251,9 +253,15 @@ constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 template<typename I, typename S>
 constexpr ScanResult<I> scan_keyword(I it, S end)
 {
-    I new_it = advance_to_delimiter(it, end);
+    I next = advance_to_delimiter(it, end);
+    return {next, LexemeKind::KeywordLit};
+}
 
-    return {new_it, LexemeKind::KeywordLit};
+template<typename I, typename S>
+constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
+{
+    I next = advance_to_delimiter(it, end);
+    return {next, LexemeKind::InvalidNumberSign};
 }
 
 template<typename I, typename S>
@@ -432,16 +440,9 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         case '\\':
             ++it;
             ELY_MUSTTAIL return scan_char(it, end);
-        case '%':
-            ++it;
-            ELY_MUSTTAIL return scan_identifier_continue(it, end);
-        case '\'':
-        case '`':
-        case ',':
         default:
-            ELY_UNIMPLEMENTED("abbreviations not implemented");
             ++it;
-            ELY_MUSTTAIL return scan_poisoned(it, end);
+            ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
         }
     }
 
