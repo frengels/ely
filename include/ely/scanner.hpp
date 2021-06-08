@@ -95,9 +95,9 @@ constexpr bool lexeme_is_identifier(LexemeKind kind)
 template<typename I>
 struct Lexeme
 {
-    I          start;
-    uint32_t   len;
-    LexemeKind kind;
+    I          start{};
+    uint32_t   len{};
+    LexemeKind kind{LexemeKind::Eof};
 
     explicit constexpr operator bool() const noexcept
     {
