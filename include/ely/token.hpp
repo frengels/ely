@@ -89,9 +89,10 @@ public:
     LParen() = default;
 
     template<typename I>
-    constexpr LParen([[maybe_unused]] I first, [[maybe_unused]] std::size_t len)
-        : LParen()
-    {}
+    explicit constexpr LParen([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::LParen, "expected LParen");
+    }
 
     static constexpr std::size_t size()
     {
@@ -105,9 +106,10 @@ public:
     RParen() = default;
 
     template<typename I>
-    constexpr RParen([[maybe_unused]] I first, [[maybe_unused]] std::size_t len)
-        : RParen()
-    {}
+    explicit constexpr RParen([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::RParen, "expected RParen");
+    }
 
     static constexpr std::size_t size()
     {
@@ -121,10 +123,10 @@ public:
     LBracket() = default;
 
     template<typename I>
-    constexpr LBracket([[maybe_unused]] I           first,
-                       [[maybe_unused]] std::size_t len)
-        : LBracket()
-    {}
+    explicit constexpr LBracket([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::LBracket, "expected LBracket");
+    }
 
     static constexpr std::size_t size()
     {
@@ -138,10 +140,10 @@ public:
     RBracket() = default;
 
     template<typename I>
-    constexpr RBracket([[maybe_unused]] I           first,
-                       [[maybe_unused]] std::size_t len)
-        : RBracket()
-    {}
+    explicit constexpr RBracket([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::RBracket, "expected RBracket");
+    }
 
     static constexpr std::size_t size()
     {
@@ -155,8 +157,10 @@ public:
     LBrace() = default;
 
     template<typename I>
-    constexpr LBrace([[maybe_unused]] I first, std::size_t len) : LBrace()
-    {}
+    explicit constexpr LBrace([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::LBrace, "expected LBrace");
+    }
 
     static constexpr std::size_t size()
     {
@@ -170,8 +174,10 @@ public:
     RBrace() = default;
 
     template<typename I>
-    constexpr RBrace([[maybe_unused]] I first, std::size_t len) : RBrace()
-    {}
+    explicit constexpr RBrace([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::RBrace, "expected RBrace");
+    }
 
     static constexpr std::size_t size()
     {
@@ -188,9 +194,10 @@ public:
     Identifier() = default;
 
     template<typename I>
-    constexpr Identifier(I first, std::size_t len)
-        : name_(first, std::next(first, len))
-    {}
+    explicit constexpr Identifier(Lexeme<I> lex) : name_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::Identifier, "expected Identifier");
+    }
 
     template<typename... Args>
     constexpr Identifier(std::in_place_t, Args&&... args)
@@ -217,9 +224,10 @@ public:
     IntLit() = default;
 
     template<typename I>
-    constexpr IntLit(I first, std::size_t len)
-        : str_(first, std::next(first, len))
-    {}
+    explicit constexpr IntLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::IntLit, "expected IntLit");
+    }
 
     template<typename... Args>
     constexpr IntLit(std::in_place_t, Args&&... args)
@@ -246,9 +254,10 @@ public:
     FloatLit() = default;
 
     template<typename I>
-    constexpr FloatLit(I first, std::size_t len)
-        : str_(first, std::next(first, len))
-    {}
+    explicit constexpr FloatLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::FloatLit, "expected FloatLit");
+    }
 
     template<typename... Args>
     constexpr FloatLit(std::in_place_t, Args&&... args)
@@ -274,11 +283,11 @@ private:
 public:
     CharLit() = default;
 
-    /// automatically cuts off the first 2 values from the iterator
     template<typename I>
-    constexpr CharLit(I first, std::size_t len)
-        : str_(std::next(first, 2), std::next(first, len))
-    {}
+    explicit constexpr CharLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::CharLit, "expected CharLit");
+    }
 
     template<typename... Args>
     constexpr CharLit(std::in_place_t, Args&&... args)
@@ -292,7 +301,7 @@ public:
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 2 + str_.size();
+        return str_.size();
     }
 };
 
@@ -305,9 +314,10 @@ public:
     StringLit() = default;
 
     template<typename I>
-    constexpr StringLit(I first, std::size_t len)
-        : str_(std::next(first), std::next(first, len - 1))
-    {}
+    constexpr StringLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
+    }
 
     template<typename... Args>
     constexpr StringLit(std::in_place_t, Args&&... args)
@@ -321,7 +331,7 @@ public:
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 2 + str_.size();
+        return str_.size();
     }
 };
 
@@ -334,9 +344,10 @@ public:
     KeywordLit() = default;
 
     template<typename I>
-    constexpr KeywordLit(I first, std::size_t len)
-        : str_(std::next(first, 2), std::next(first, len))
-    {}
+    explicit constexpr KeywordLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::KeywordLit, "expected KeywordLit");
+    }
 
     template<typename... Args>
     constexpr KeywordLit(std::in_place_t, Args&&... args)
@@ -350,29 +361,37 @@ public:
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 2 + str_.size();
+        return str_.size();
     }
 };
 
 class BoolLit
 {
 private:
-    bool b;
+    bool b{false};
 
 public:
     BoolLit() = default;
 
+    // assuming the contents are either '#t' or '#f'
     template<typename I>
-    constexpr BoolLit(I first, [[maybe_unused]] std::size_t len)
-        : b(*std::next(first) == 't')
-    {}
+    explicit constexpr BoolLit(Lexeme<I> lex)
+        : b(*std::next(lex.begin()) == 't')
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::BoolLit, "expected BoolLit");
+    }
 
-    constexpr BoolLit(bool b) : b(b)
+    explicit constexpr BoolLit(bool b) : b(b)
     {}
 
     constexpr bool value() const
     {
         return b;
+    }
+
+    constexpr std::string_view str() const
+    {
+        return b ? std::string_view{"#t"} : std::string_view{"#f"};
     }
 
     static constexpr std::size_t size()
@@ -388,17 +407,11 @@ private:
 
 public:
     template<typename I>
-    explicit constexpr UnterminatedStringLit(Lexeme<I> lexeme)
-        : str_(std::next(lexeme.start),
-               std::next(lexeme.start, static_cast<std::ptrdiff_t>(lexeme.len)))
+    explicit constexpr UnterminatedStringLit(Lexeme<I> lex)
+        : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lexeme.kind == LexemeKind::StringLit, "expected StringLit");
+        ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
     }
-
-    template<typename I>
-    constexpr UnterminatedStringLit(I start, std::size_t len)
-        : str_(std::next(start), std::next(start, len))
-    {}
 
     ELY_CONSTEXPR_STRING std::string_view str() const noexcept
     {
@@ -407,7 +420,7 @@ public:
 
     ELY_CONSTEXPR_STRING std::size_t size() const noexcept
     {
-        return str_.size() + 1;
+        return str_.size();
     }
 };
 
@@ -418,18 +431,12 @@ private:
 
 public:
     template<typename I>
-    explicit constexpr InvalidNumberSign(Lexeme<I> lexeme)
-        : str_(std::next(lexeme.start),
-               std::next(lexeme.start, static_cast<std::ptrdiff_t>(lexeme.len)))
+    explicit constexpr InvalidNumberSign(Lexeme<I> lex)
+        : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lexeme.kind == LexemeKind::InvalidNumberSign,
+        ELY_ASSERT(lex.kind == LexemeKind::InvalidNumberSign,
                    "expected InvalidNumberSign");
     }
-
-    template<typename I>
-    constexpr InvalidNumberSign(I start, std::size_t len)
-        : str_(std::next(start), std::next(start, len))
-    {}
 
     ELY_CONSTEXPR_STRING std::string_view str() const noexcept
     {
@@ -438,7 +445,7 @@ public:
 
     ELY_CONSTEXPR_STRING std::size_t size() const noexcept
     {
-        return str_.size() + 1;
+        return str_.size();
     }
 };
 
@@ -448,8 +455,10 @@ public:
     Eof() = default;
 
     template<typename I>
-    constexpr Eof(I, std::size_t) : Eof()
-    {}
+    explicit constexpr Eof([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::Eof, "expected Eof");
+    }
 
     static constexpr std::size_t size()
     {
@@ -514,8 +523,7 @@ public:
                   return VariantType(std::move(in_place_type),
                                      std::move(leading),
                                      std::move(trailing),
-                                     lexeme.start,
-                                     lexeme.size());
+                                     lexeme);
               };
 
 #define DISPATCH(tok)                                                          \

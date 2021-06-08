@@ -104,6 +104,19 @@ struct Lexeme
         return kind != LexemeKind::Eof;
     }
 
+    constexpr I begin() const
+    {
+        return start;
+    }
+
+    constexpr I end() const
+    {
+        return std::next(
+            start,
+            static_cast<typename std::iterator_traits<I>::difference_type>(
+                len));
+    }
+
     constexpr std::size_t size() const noexcept
     {
         return static_cast<std::size_t>(len);
