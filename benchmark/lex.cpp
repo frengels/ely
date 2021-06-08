@@ -10,7 +10,9 @@
 #include <ely/token.h>
 #include <ely/tokenstream.hpp>
 
-constexpr int         lines       = 1000000;
+#include <ely/ast.hpp>
+
+constexpr int         lines       = 5;
 constexpr std::size_t buffer_size = 1024;
 
 std::string long_source()
@@ -23,12 +25,6 @@ std::string long_source()
 ; just another comment about the code
 )r");
     std::string res{src.begin(), src.end()};
-
-    for (int i = 0; i < lines; i += 5)
-    {
-        res.insert(res.end(), src.begin(), src.end());
-    }
-
     return res;
 }
 
