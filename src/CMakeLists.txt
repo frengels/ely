@@ -1,11 +1,5 @@
 set(ELY_SRC
-    assert.cpp
-    ast.cpp
-    token.c
-    lexer.cpp
-    reader.c
-    list.c
-    string.c)
+    assert.cpp)
 
 include(GenerateExportHeader)
 
@@ -29,10 +23,6 @@ target_compile_options(ely PRIVATE
     $<BUILD_INTERFACE:$<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall -Wextra -Wimplicit-fallthrough>>)
 target_compile_features(ely PRIVATE c_std_99)
 target_compile_features(ely PUBLIC cxx_std_20)
-
-
-add_executable(elyc main.c)
-target_link_libraries(elyc PUBLIC ely::ely)
 
 add_executable(elycpp ely.cpp)
 target_link_libraries(elycpp PUBLIC ely::ely)
