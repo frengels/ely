@@ -21,8 +21,10 @@ using CharLit    = ely::token::CharLit;
 using StringLit  = ely::token::StringLit;
 using KeywordLit = ely::token::KeywordLit;
 
-using Eof    = ely::token::Eof;
-using Poison = ely::token::Poison;
+using UnterminatedStringLit = ely::token::UnterminatedStringLit;
+using InvalidNumberSign     = ely::token::InvalidNumberSign;
+
+using Eof = ely::token::Eof;
 
 template<typename L, typename R>
 class List
@@ -38,6 +40,16 @@ public:
           left_closing_(std::move(left_closing)),
           right_closing_(std::move(right_closing))
     {}
+
+    constexpr const auto& children() const noexcept
+    {
+        return children_;
+    }
+
+    constexpr auto& children() noexcept
+    {
+        return children_;
+    }
 
     constexpr auto begin() noexcept
     {
@@ -75,8 +87,9 @@ private:
                                      node::StringLit,
                                      node::KeywordLit,
                                      node::BoolLit,
+                                     node::InvalidNumberSign,
+                                     node::UnterminatedStringLit,
                                      node::Eof,
-                                     node::Poison,
                                      node::ParensList,
                                      node::BracketList,
                                      node::BraceList>;

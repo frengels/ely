@@ -6,7 +6,6 @@
 
 #include "ely/assert.h"
 #include "ely/defines.h"
-#include "ely/token.h"
 
 namespace ely
 {
@@ -40,55 +39,6 @@ enum class LexemeKind : uint8_t
 
     Eof,
 };
-
-constexpr ElyTokenKind lexeme_kind_to_ctoken_kind(LexemeKind lex)
-{
-    switch (lex)
-    {
-    case LexemeKind::Whitespace:
-        return ELY_TOKEN_WHITESPACE;
-    case LexemeKind::Tab:
-        return ELY_TOKEN_TAB;
-    case LexemeKind::NewlineCr:
-        return ELY_TOKEN_NEWLINE_CR;
-    case LexemeKind::NewlineLf:
-        return ELY_TOKEN_NEWLINE_LF;
-    case LexemeKind::NewlineCrlf:
-        return ELY_TOKEN_NEWLINE_CRLF;
-    case LexemeKind::Comment:
-        return ELY_TOKEN_COMMENT;
-    case LexemeKind::LParen:
-        return ELY_TOKEN_LPAREN;
-    case LexemeKind::RParen:
-        return ELY_TOKEN_RPAREN;
-    case LexemeKind::LBracket:
-        return ELY_TOKEN_LBRACKET;
-    case LexemeKind::RBracket:
-        return ELY_TOKEN_RBRACKET;
-    case LexemeKind::LBrace:
-        return ELY_TOKEN_LBRACE;
-    case LexemeKind::RBrace:
-        return ELY_TOKEN_RBRACE;
-    case LexemeKind::Identifier:
-        return ELY_TOKEN_ID;
-    case LexemeKind::IntLit:
-        return ELY_TOKEN_INT_LIT;
-    case LexemeKind::FloatLit:
-        return ELY_TOKEN_FLOAT_LIT;
-    case LexemeKind::CharLit:
-        return ELY_TOKEN_CHAR_LIT;
-    case LexemeKind::StringLit:
-        return ELY_TOKEN_STRING_LIT;
-    case LexemeKind::KeywordLit:
-        return ELY_TOKEN_KEYWORD_LIT;
-    case LexemeKind::BoolLit:
-        return ELY_TOKEN_TRUE_LIT;
-    case LexemeKind::Poison:
-        ELY_UNIMPLEMENTED("there's no equivalent in the C code");
-    default:
-        __builtin_unreachable();
-    }
-}
 
 constexpr bool lexeme_is_newline(LexemeKind kind)
 {
@@ -237,13 +187,6 @@ struct ScanResult
 };
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_poisoned(I it, S end)
-{
-    I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::Poison};
-}
-
-template<typename I, typename S>
 constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
@@ -319,7 +262,6 @@ template<typename I, typename S>
 constexpr ScanResult<I> scan_string(I it, S end)
 {
     bool escaping = false;
-
 
     while (it != end)
     {
@@ -453,7 +395,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                 if (!is_delimiter(ch))
                 {
                     ++it;
-                    ELY_MUSTTAIL return scan_poisoned(it, end);
+                    ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
                 }
             }
             return {it, LexemeKind::BoolLit};
@@ -469,7 +411,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Poison};
+    return {it, LexemeKind::InvalidNumberSign};
 }
 
 template<typename I, typename S>

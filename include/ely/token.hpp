@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "ely/assert.h"
 #include "ely/atmosphere.hpp"
 #include "ely/defines.h"
 #include "ely/variant.hpp"
@@ -380,22 +381,23 @@ public:
     }
 };
 
-class Poison
+class UnterminatedStringLit
 {
 private:
     std::string str_;
 
 public:
-    Poison() = default;
+    template<typename I>
+    explicit constexpr UnterminatedStringLit(Lexeme<I> lexeme)
+        : str_(std::next(lexeme.start),
+               std::next(lexeme.start, static_cast<std::ptrdiff_t>(lexeme.len)))
+    {
+        ELY_ASSERT(lexeme.kind == LexemeKind::StringLit, "expected StringLit");
+    }
 
     template<typename I>
-    constexpr Poison(I first, std::size_t len)
-        : str_(first, std::next(first, len))
-    {}
-
-    template<typename... Args>
-    explicit constexpr Poison(std::in_place_t, Args&&... args)
-        : str_(static_cast<Args&&>(args)...)
+    constexpr UnterminatedStringLit(I start, std::size_t len)
+        : str_(std::next(start), std::next(start, len))
     {}
 
     ELY_CONSTEXPR_STRING std::string_view str() const noexcept
@@ -403,9 +405,40 @@ public:
         return static_cast<std::string_view>(str_);
     }
 
-    ELY_CONSTEXPR_STRING std::size_t size() const
+    ELY_CONSTEXPR_STRING std::size_t size() const noexcept
     {
-        return str_.size();
+        return str_.size() + 1;
+    }
+};
+
+class InvalidNumberSign
+{
+private:
+    std::string str_;
+
+public:
+    template<typename I>
+    explicit constexpr InvalidNumberSign(Lexeme<I> lexeme)
+        : str_(std::next(lexeme.start),
+               std::next(lexeme.start, static_cast<std::ptrdiff_t>(lexeme.len)))
+    {
+        ELY_ASSERT(lexeme.kind == LexemeKind::InvalidNumberSign,
+                   "expected InvalidNumberSign");
+    }
+
+    template<typename I>
+    constexpr InvalidNumberSign(I start, std::size_t len)
+        : str_(std::next(start), std::next(start, len))
+    {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const noexcept
+    {
+        return str_.size() + 1;
     }
 };
 
@@ -443,8 +476,10 @@ using StringLit  = detail::Pressurized<raw::StringLit>;
 using KeywordLit = detail::Pressurized<raw::KeywordLit>;
 using BoolLit    = detail::Pressurized<raw::BoolLit>;
 
-using Poison = detail::Pressurized<raw::Poison>;
-using Eof    = detail::Pressurized<raw::Eof>;
+using InvalidNumberSign     = detail::Pressurized<raw::InvalidNumberSign>;
+using UnterminatedStringLit = detail::Pressurized<raw::UnterminatedStringLit>;
+
+using Eof = detail::Pressurized<raw::Eof>;
 } // namespace token
 
 class Token
@@ -463,7 +498,8 @@ private:
                                      token::StringLit,
                                      token::KeywordLit,
                                      token::BoolLit,
-                                     token::Poison,
+                                     token::UnterminatedStringLit,
+                                     token::InvalidNumberSign,
                                      token::Eof>;
 
 private:
@@ -501,7 +537,8 @@ public:
                   DISPATCH(StringLit);
                   DISPATCH(KeywordLit);
                   DISPATCH(BoolLit);
-                  DISPATCH(Poison);
+                  DISPATCH(InvalidNumberSign);
+                  DISPATCH(UnterminatedStringLit);
                   DISPATCH(Eof);
               default:
                   __builtin_unreachable();
