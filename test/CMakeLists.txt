@@ -1,5 +1,4 @@
 set(ELY_TESTS
-    util
     ilist
     memory)
 

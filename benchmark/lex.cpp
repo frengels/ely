@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 
-#include <ely/lexer.h>
 #include <ely/parser.hpp>
 #include <ely/tokenstream.hpp>
 
