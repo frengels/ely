@@ -14,75 +14,9 @@
 
 namespace ely
 {
-namespace detail
-{
-/// a pressurized token has atmosphere around it
-template<typename RawTok>
-class Pressurized
-{
-private:
-    AtmosphereList               leading_atmosphere_;
-    AtmosphereList               trailing_atmosphere_;
-    [[no_unique_address]] RawTok tok_;
-
-public:
-    template<typename... Args>
-    constexpr Pressurized(AtmosphereList leading,
-                          AtmosphereList trailing,
-                          Args&&... args)
-        : leading_atmosphere_(std::move(leading)),
-          trailing_atmosphere_(std::move(trailing)),
-          tok_(static_cast<Args&&>(args)...)
-    {}
-
-    constexpr RawTok& raw_token() & noexcept
-    {
-        return static_cast<RawTok&>(tok_);
-    }
-
-    constexpr const RawTok& raw_token() const& noexcept
-    {
-        return static_cast<const RawTok&>(tok_);
-    }
-
-    constexpr RawTok&& raw_token() && noexcept
-    {
-        return static_cast<RawTok&&>(tok_);
-    }
-
-    constexpr const RawTok&& raw_token() const&& noexcept
-    {
-        return static_cast<const RawTok&&>(tok_);
-    }
-
-    constexpr std::size_t vacuum_size() const
-    {
-        return tok_.size();
-    }
-
-    constexpr const AtmosphereList& leading_atmosphere() const
-    {
-        return leading_atmosphere_;
-    }
-
-    constexpr const AtmosphereList& trailing_atmosphere() const
-    {
-        return trailing_atmosphere_;
-    }
-
-    constexpr std::size_t pressurized_size() const
-    {
-
-        return leading_atmosphere_.atmosphere_size() +
-               trailing_atmosphere_.atmosphere_size() + vacuum_size();
-    }
-};
-} // namespace detail
-
 namespace token
 {
-namespace raw
-{
+
 class LParen
 {
 public:
@@ -465,30 +399,6 @@ public:
         return 0;
     }
 };
-} // namespace raw
-
-using LParen = detail::Pressurized<raw::LParen>;
-using RParen = detail::Pressurized<raw::RParen>;
-
-using LBracket = detail::Pressurized<raw::LBracket>;
-using RBracket = detail::Pressurized<raw::RBracket>;
-
-using LBrace = detail::Pressurized<raw::LBrace>;
-using RBrace = detail::Pressurized<raw::RBrace>;
-
-using Identifier = detail::Pressurized<raw::Identifier>;
-
-using IntLit     = detail::Pressurized<raw::IntLit>;
-using FloatLit   = detail::Pressurized<raw::FloatLit>;
-using CharLit    = detail::Pressurized<raw::CharLit>;
-using StringLit  = detail::Pressurized<raw::StringLit>;
-using KeywordLit = detail::Pressurized<raw::KeywordLit>;
-using BoolLit    = detail::Pressurized<raw::BoolLit>;
-
-using InvalidNumberSign     = detail::Pressurized<raw::InvalidNumberSign>;
-using UnterminatedStringLit = detail::Pressurized<raw::UnterminatedStringLit>;
-
-using Eof = detail::Pressurized<raw::Eof>;
 } // namespace token
 
 class Token
@@ -512,18 +422,18 @@ private:
                                      token::Eof>;
 
 private:
-    VariantType variant_;
+    AtmosphereList leading_;
+    AtmosphereList trailing_;
+    VariantType    variant_;
 
 public:
     template<typename I>
     ELY_CONSTEXPR_VECTOR
     Token(AtmosphereList leading, AtmosphereList trailing, Lexeme<I> lexeme)
-        : variant_([&]() -> VariantType {
+        : leading_(std::move(leading)), trailing_(std::move(trailing)),
+          variant_([&]() -> VariantType {
               auto construct_token = [&](auto in_place_type) -> VariantType {
-                  return VariantType(std::move(in_place_type),
-                                     std::move(leading),
-                                     std::move(trailing),
-                                     lexeme);
+                  return VariantType(std::move(in_place_type), lexeme);
               };
 
 #define DISPATCH(tok)                                                          \
@@ -584,9 +494,8 @@ public:
     constexpr bool is_eof() const noexcept
     {
         return visit([](const auto& tok) {
-            const auto& raw_tok = tok.raw_token();
-            using raw_ty        = std::remove_cvref_t<decltype(raw_tok)>;
-            return std::is_same_v<raw_ty, ely::token::raw::Eof>;
+            using raw_ty = std::remove_cvref_t<decltype(tok)>;
+            return std::is_same_v<raw_ty, ely::token::Eof>;
         });
     }
 
@@ -618,29 +527,23 @@ public:
 
     constexpr const AtmosphereList& leading_atmosphere() const
     {
-        return visit([](const auto& tok) -> const AtmosphereList& {
-            return tok.leading_atmosphere();
-        });
+        return leading_;
     }
 
     constexpr const AtmosphereList& trailing_atmosphere() const
     {
-        return visit([](const auto& tok) -> const AtmosphereList& {
-            return tok.trailing_atmosphere();
-        });
+        return trailing_;
     }
 
-    constexpr std::size_t pressurized_size() const
+    ELY_CONSTEXPR_VECTOR std::size_t full_size() const
     {
-        return visit([](const auto& tok) -> std::size_t {
-            return tok.pressurized_size();
-        });
+        return leading_.atmosphere_size() + trailing_.atmosphere_size() +
+               size();
     }
 
-    constexpr std::size_t vacuum_size() const
+    constexpr std::size_t size() const
     {
-        return visit(
-            [](const auto& tok) -> std::size_t { return tok.vacuum_size(); });
+        return visit([](const auto& tok) -> std::size_t { return tok.size(); });
     }
 };
 } // namespace ely
