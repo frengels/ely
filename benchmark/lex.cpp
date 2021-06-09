@@ -6,6 +6,7 @@
 
 #include <ely/parser.hpp>
 #include <ely/tokenstream.hpp>
+#include <ely/reader.hpp>
 
 #include <ely/ast.hpp>
 

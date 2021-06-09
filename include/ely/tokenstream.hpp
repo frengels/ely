@@ -32,7 +32,7 @@ public:
     constexpr TokenStream(I it, S end) : scanner_(std::move(it), std::move(end))
     {}
 
-    constexpr TokenStream(ely::ScannerStream<I, S> scanner)
+    explicit constexpr TokenStream(ely::ScannerStream<I, S> scanner)
         : scanner_(std::move(scanner))
     {}
 
