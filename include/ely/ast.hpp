@@ -216,10 +216,25 @@ public:
 class LexicalContext
 {};
 
+class SyntaxList
+{
+private:
+    std::vector<Syntax> values_;
+
+    explicit ELY_CONSTEXPR_VECTOR SyntaxList(std::vector<Syntax> values)
+        : values_(std::move(values))
+    {}
+
+    constexpr const std::vector<Val>& values() const&
+    {
+        return values_;
+    }
+};
+
 class Syntax
 {
 private:
-    ely::Variant<Atom, List>             variants_;
+    ely::Variant<Atom, SyntaxList>       variants_;
     [[no_unique_address]] LexicalContext ctx_;
 
 public:
@@ -227,9 +242,65 @@ public:
         : variants_(std::move(a)), ctx_(std::move(ctx))
     {}
 
-    ELY_CONSTEXPR_VECTOR Syntax(List l, LexicalContext ctx)
-        : variants_(std::move(l)), ctx_(std::move(ctx))
+    ELY_CONSTEXPR_VECTOR Syntax(SyntaxList sl, LexicalContext ctx)
+        : variants_(std::move(sl)), ctx_(std::move(ctx))
     {}
+
+    template<typename F>
+    constexpr auto visit(F&& fn) & -> decltype(auto)
+    {
+        return ely::visit(variants_, static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) const& -> decltype(auto)
+    {
+        return ely::visit(variants_, static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) && -> decltype(auto)
+    {
+        return ely::visit(std::move(variants_), static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) const&& -> decltype(auto)
+    {
+        return ely::visit(std::move(variants_), static_cast<F&&>(fn));
+    }
+
+    // strips the lexical context recursively
+    constexpr ely::Variant<Atom, List> strip() const&
+    {
+        return visit([&](const auto& x) {
+            using x_ty = std::remove_cvref_t<decltype(x)>;
+
+            if constexpr (std::is_same_v<x_ty, Atom>)
+            {
+                return ely::Variant<Atom, List>(x);
+            }
+            else if constexpr (std::is_same_v<x_ty, SyntaxList>)
+            {
+                std::vector<Val> vals;
+                for (const auto& stx : x.values())
+                {
+                    vals.emplace_back(
+                        ely::visit(stx.strip(), [&](auto&& atom_or_list) {
+                            using strip_ty =
+                                std::remove_cvref_t<decltype(atom_or_list)>;
+
+                            return Val(std::in_place_type<strip_ty>,
+                                       static_cast<decltype(atom_or_list)&&>(
+                                           atom_or_list));
+                        }));
+                }
+
+                return ely::Variant<Atom, List>(std::in_place_type<List>,
+                                                std::move(vals));
+            }
+        });
+    }
 };
 
 class Val
