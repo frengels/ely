@@ -111,10 +111,52 @@ public:
     }
 };
 
+class Literal
+{
+private:
+    ely::Variant<ely::token::IntLit,
+                 ely::token::FloatLit,
+                 ely::token::CharLit,
+                 ely::token::StringLit,
+                 ely::token::KeywordLit,
+                 ely::token::BoolLit>
+        variants_;
+
+public:
+    template<typename T, typename... Args>
+    explicit constexpr Literal(std::in_place_type_t<T> t, Args&&... args)
+        : variants_(t, static_cast<Args&&>(args)...)
+    {}
+
+    template<typename F>
+    constexpr auto visit(F&& fn) & -> decltype(auto)
+    {
+        return ely::visit(variants_, static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) const& -> decltype(auto)
+    {
+        return ely::visit(variants_, static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) && -> decltype(auto)
+    {
+        return ely::visit(std::move(variants_), static_cast<F&&>(fn));
+    }
+
+    template<typename F>
+    constexpr auto visit(F&& fn) const&& -> decltype(auto)
+    {
+        return ely::visit(std::move(variants_), static_cast<F&&>(fn));
+    }
+};
+
 class Atom
 {
 private:
-    ely::Variant<Symbol> variants_;
+    ely::Variant<Symbol, Literal> variants_;
 
 public:
     template<typename T, typename... Args>
@@ -219,27 +261,102 @@ class LexicalContext
 class SyntaxList
 {
 private:
+    LexicalContext      ctx_;
     std::vector<Syntax> values_;
 
-    explicit ELY_CONSTEXPR_VECTOR SyntaxList(std::vector<Syntax> values)
-        : values_(std::move(values))
+public:
+    ELY_CONSTEXPR_VECTOR SyntaxList(LexicalContext      ctx,
+                                    std::vector<Syntax> values)
+        : ctx_(std::move(ctx)), values_(std::move(values))
     {}
+
+    constexpr const LexicalContext& lexical_context() const
+    {
+        return ctx_;
+    }
 
     constexpr const std::vector<Val>& values() const&
     {
         return values_;
+    }
+
+    ELY_CONSTEXPR_VECTOR List strip() const
+    {
+        std::vector<Val> vals;
+
+        for (const auto& stx : values_)
+        {
+            vals.emplace_back(
+                ely::visit(stx.strip(), [&](auto&& sym_lit_list) -> Val {
+                    using strip_ty =
+                        std::remove_cvref_t<decltype(sym_lit_list)>;
+
+                    return Val(
+                        std::in_place_type<strip_ty>,
+                        static_cast<decltype(sym_lit_list)&&>(sym_lit_list));
+                }));
+        }
+
+        return List(std::move(vals));
+    }
+};
+
+class SyntaxLiteral
+{
+private:
+    LexicalContext ctx_;
+    Literal        lit_;
+
+public:
+    ELY_CONSTEXPR_STRING SyntaxLiteral(LexicalContext ctx, Literal lit)
+        : ctx_(std::move(ctx)), lit_(std::move(lit))
+    {}
+
+    constexpr const LexicalContext& lexical_context() const
+    {
+        return ctx_;
+    }
+
+    constexpr Literal strip() const
+    {
+        return lit_;
+    }
+};
+
+class Identifier
+{
+private:
+    LexicalContext ctx_;
+    Symbol         sym_;
+
+public:
+    constexpr(LexicalContext ctx, Symbol sym)
+        : ctx_(std::move(ctx)), sym_(std::move(sym))
+    {}
+
+    constexpr const LexicalContext& lexical_context() const
+    {
+        return ctx_;
+    }
+
+    constexpr Symbol strip() const&
+    {
+        return sym_;
     }
 };
 
 class Syntax
 {
 private:
-    ely::Variant<Atom, SyntaxList>       variants_;
-    [[no_unique_address]] LexicalContext ctx_;
+    ely::Variant<SyntaxLiteral, Identifier, SyntaxList> variants_;
 
 public:
-    ELY_CONSTEXPR_STRING Syntax(Atom a, LexicalContext ctx)
+    ELY_CONSTEXPR_STRING Syntax(Literal a, LexicalContext ctx)
         : variants_(std::move(a)), ctx_(std::move(ctx))
+    {}
+
+    ELY_CONSTEXPR_STRING Syntax(Symbol s, LexicalContext ctx)
+        : variants_(std::move(s)), ctx_(std::move(ctx))
     {}
 
     ELY_CONSTEXPR_VECTOR Syntax(SyntaxList sl, LexicalContext ctx)
@@ -270,36 +387,17 @@ public:
         return ely::visit(std::move(variants_), static_cast<F&&>(fn));
     }
 
-    // strips the lexical context recursively
-    constexpr ely::Variant<Atom, List> strip() const&
+    constexpr const LexicalContext& lexical_context() const
     {
-        return visit([&](const auto& x) {
-            using x_ty = std::remove_cvref_t<decltype(x)>;
-
-            if constexpr (std::is_same_v<x_ty, Atom>)
-            {
-                return ely::Variant<Atom, List>(x);
-            }
-            else if constexpr (std::is_same_v<x_ty, SyntaxList>)
-            {
-                std::vector<Val> vals;
-                for (const auto& stx : x.values())
-                {
-                    vals.emplace_back(
-                        ely::visit(stx.strip(), [&](auto&& atom_or_list) {
-                            using strip_ty =
-                                std::remove_cvref_t<decltype(atom_or_list)>;
-
-                            return Val(std::in_place_type<strip_ty>,
-                                       static_cast<decltype(atom_or_list)&&>(
-                                           atom_or_list));
-                        }));
-                }
-
-                return ely::Variant<Atom, List>(std::in_place_type<List>,
-                                                std::move(vals));
-            }
+        return visit([](const auto& stx) -> const LexicalContext& {
+            return stx.lexical_context();
         });
+    }
+
+    // strips the lexical context recursively, used for parsing quote
+    ely::Variant<Symbol, Literal, List> strip() const&
+    {
+        return visit([&](const auto& x) { return ely::Variant{x.strip()}; });
     }
 };
 
