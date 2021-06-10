@@ -15,6 +15,7 @@ namespace ast
 {
 class Ast;
 class Val;
+class Syntax;
 
 class Name
 {
@@ -261,8 +262,8 @@ class LexicalContext
 class SyntaxList
 {
 private:
-    LexicalContext      ctx_;
-    std::vector<Syntax> values_;
+    [[no_unique_address]] LexicalContext ctx_;
+    std::vector<Syntax>                  values_;
 
 public:
     ELY_CONSTEXPR_VECTOR SyntaxList(LexicalContext      ctx,
@@ -275,37 +276,19 @@ public:
         return ctx_;
     }
 
-    constexpr const std::vector<Val>& values() const&
+    constexpr const std::vector<Syntax>& values() const&
     {
         return values_;
     }
 
-    ELY_CONSTEXPR_VECTOR List strip() const
-    {
-        std::vector<Val> vals;
-
-        for (const auto& stx : values_)
-        {
-            vals.emplace_back(
-                ely::visit(stx.strip(), [&](auto&& sym_lit_list) -> Val {
-                    using strip_ty =
-                        std::remove_cvref_t<decltype(sym_lit_list)>;
-
-                    return Val(
-                        std::in_place_type<strip_ty>,
-                        static_cast<decltype(sym_lit_list)&&>(sym_lit_list));
-                }));
-        }
-
-        return List(std::move(vals));
-    }
+    ELY_CONSTEXPR_VECTOR List strip() const;
 };
 
 class SyntaxLiteral
 {
 private:
-    LexicalContext ctx_;
-    Literal        lit_;
+    [[no_unique_address]] LexicalContext ctx_;
+    Literal                              lit_;
 
 public:
     ELY_CONSTEXPR_STRING SyntaxLiteral(LexicalContext ctx, Literal lit)
@@ -317,7 +300,7 @@ public:
         return ctx_;
     }
 
-    constexpr Literal strip() const
+    ELY_CONSTEXPR_STRING Literal strip() const
     {
         return lit_;
     }
@@ -326,11 +309,11 @@ public:
 class Identifier
 {
 private:
-    LexicalContext ctx_;
-    Symbol         sym_;
+    [[no_unique_address]] LexicalContext ctx_;
+    Symbol                               sym_;
 
 public:
-    constexpr(LexicalContext ctx, Symbol sym)
+    ELY_CONSTEXPR_STRING Identifier(LexicalContext ctx, Symbol sym)
         : ctx_(std::move(ctx)), sym_(std::move(sym))
     {}
 
@@ -339,7 +322,7 @@ public:
         return ctx_;
     }
 
-    constexpr Symbol strip() const&
+    ELY_CONSTEXPR_STRING Symbol strip() const&
     {
         return sym_;
     }
@@ -351,16 +334,9 @@ private:
     ely::Variant<SyntaxLiteral, Identifier, SyntaxList> variants_;
 
 public:
-    ELY_CONSTEXPR_STRING Syntax(Literal a, LexicalContext ctx)
-        : variants_(std::move(a)), ctx_(std::move(ctx))
-    {}
-
-    ELY_CONSTEXPR_STRING Syntax(Symbol s, LexicalContext ctx)
-        : variants_(std::move(s)), ctx_(std::move(ctx))
-    {}
-
-    ELY_CONSTEXPR_VECTOR Syntax(SyntaxList sl, LexicalContext ctx)
-        : variants_(std::move(sl)), ctx_(std::move(ctx))
+    template<typename T, typename... Args>
+    explicit constexpr Syntax(std::in_place_type_t<T> t, Args&&... args)
+        : variants_(t, static_cast<Args&&>(args)...)
     {}
 
     template<typename F>
@@ -397,7 +373,9 @@ public:
     // strips the lexical context recursively, used for parsing quote
     ely::Variant<Symbol, Literal, List> strip() const&
     {
-        return visit([&](const auto& x) { return ely::Variant{x.strip()}; });
+        return visit([&](const auto& x) {
+            return ely::Variant<Symbol, Literal, List>{x.strip()};
+        });
     }
 };
 
@@ -472,5 +450,34 @@ public:
         return ely::visit(std::move(variants_), static_cast<F&&>(fn));
     }
 };
+
+List SyntaxList::strip() const
+{
+    std::vector<Val> vals;
+
+    for (const auto& stx : values())
+    {
+        vals.emplace_back(
+            ely::visit(stx.strip(), [&](auto&& sym_lit_list) -> Val {
+                using strip_ty = std::remove_cvref_t<decltype(sym_lit_list)>;
+
+                if constexpr (std::is_same_v<List, strip_ty>)
+                {
+                    return Val(
+                        std::in_place_type<List>,
+                        static_cast<decltype(sym_lit_list)&&>(sym_lit_list));
+                }
+                else
+                {
+                    return Val(
+                        std::in_place_type<Atom>,
+                        std::in_place_type<strip_ty>,
+                        static_cast<decltype(sym_lit_list)&&>(sym_lit_list));
+                }
+            }));
+    }
+
+    return List(std::move(vals));
+}
 } // namespace ast
 } // namespace ely

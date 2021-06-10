@@ -54,7 +54,7 @@ private:
     {
         using lit_ty = std::remove_cvref_t<decltype(lit)>;
         return ast::Syntax{std::in_place_type<ast::SyntaxLiteral>,
-                           ast::LiteralContext{},
+                           ast::LexicalContext{},
                            static_cast<Lit&&>(lit)};
     }
 
@@ -102,7 +102,7 @@ private:
             {
                 auto list = ely::ast::SyntaxList(std::move(values));
                 auto stx =
-                    ely::ast::Syntax(std::move(list), ely::astLexicalContext{});
+                    ely::ast::Syntax(std::move(list), ely::ast::LexicalContext{});
                 return stx;
             }
             else if (holds<ely::token::Eof>(tok_next))
