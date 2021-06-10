@@ -1,4 +1,4 @@
-project(ely)
+project(Ely)
 cmake_minimum_required(VERSION 3.11)
 
 set(IS_MASTER_PROJECT OFF)
