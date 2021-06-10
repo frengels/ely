@@ -49,32 +49,71 @@ private:
             });
     }
 
-    constexpr ast::Syntax read(ely::token::StringLit str_lit, ely::Token tok)
+    template<typename Lit>
+    constexpr ast::Syntax read_stx_lit(Lit&& lit, ely::Token&& tok)
     {
-
+        using lit_ty = std::remove_cvref_t<decltype(lit)>;
+        return ast::Syntax{std::in_place_type<ast::SyntaxLiteral>,
+                           ast::LiteralContext{},
+                           static_cast<Lit&&>(lit)};
     }
 
-    constexpr ast::Syntax read(ely::token::LParen, ely::Token tok)
+    constexpr ast::Syntax read(ely::token::IntLit&& int_lit, ely::Token&& tok)
+    {
+        return read_stx_lit(std::move(int_lit), std::move(tok));
+    }
+
+    constexpr ast::Syntax read(ely::token::FloatLit&& float_lit,
+                               ely::Token&&           tok)
+    {
+        return read_stx_lit(std::move(float_lit), std::move(tok));
+    }
+
+    constexpr ast::Syntax read(ely::token::StringLit&& str_lit,
+                               ely::Token&&            tok)
+    {
+        return read_stx_lit(std::move(str_lit), std::move(tok));
+    }
+
+    constexpr ast::Syntax read(ely::token::CharLit&& ch_lit, ely::Token&& tok)
+    {
+        return read_stx_lit(std::move(ch_lit), std::move(tok));
+    }
+
+    constexpr ast::Syntax read(ely::token::KeywordLit&& kw_lit,
+                               ely::Token&&             tok)
+    {
+        return read_stx_lit(std::move(kw_lit), std::move(tok));
+    }
+
+    constexpr ast::Syntax read(ely::token::BoolLit&& b_lit, ely::Token&& tok)
+    {
+        return read_stx_lit(std::move(b_lit), std::move(tok));
+    }
+
+    constexpr ast::Syntax read(ely::token::LParen&&, ely::Token&& tok)
     {
         std::vector<ely::ast::Syntax> values{};
         auto                          tok_next = tok_stream_.next();
 
-        std::move(tok_next).visit([&](auto&& tok) {
-            using tok_ty = std::remove_cvref_t<decltype(tok)>;
+        while (true)
+        {
+            if (holds<ely::token::RParen>(tok_next))
+            {
+                auto list = ely::ast::SyntaxList(std::move(values));
+                auto stx =
+                    ely::ast::Syntax(std::move(list), ely::astLexicalContext{});
+                return stx;
+            }
+            else if (holds<ely::token::Eof>(tok_next))
+            {
+                assert(false && "TODO: poison the syntax, missing `)`");
+            }
 
-            if constexpr (std::is_same_v<ely::token::RParen, tok_ty>)
-            {
-                auto list = ely::ast::List(std::move(values));
-                auto stx  = ely::ast::Syntax(std::move(list),
-                                            ely::ast::LexicalContext{});
-                return std::optional<ast::Syntax>(std::move(stx));
-            }
-            else
-            {
-                auto stx = read(std::move(tok), std::move(token));
-                values.emplace_back(std::move(stx));
-            }
-        });
+            values.emplace_back(next_impl(std::move(tok_next)));
+
+            tok_next = tok_stream_.next();
+        }
     }
 };
 } // namespace ely
