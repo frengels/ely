@@ -1,5 +1,6 @@
 set(ELY_SRC
-    assert.cpp)
+    assert.cpp
+    ast.cpp)
 
 include(GenerateExportHeader)
 
