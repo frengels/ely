@@ -8,11 +8,34 @@
 #include "ely/defines.h"
 #include "ely/ilist.hpp"
 #include "ely/variant.hpp"
+#include "ely/token.hpp"
 
 namespace ely
 {
 namespace ast
 {
+class LexicalContext
+{};
+
+class Poison
+{
+    [[no_unique_address]] LexicalContext ctx_;
+
+public:
+    constexpr Poison strip() const
+    {
+        return *this;
+    }
+
+    constexpr const LexicalContext& lexical_context() const
+    {
+        return ctx_;
+    }
+};
+
+template<typename... Args>
+using Variant = ely::Variant<Poison, Args...>;
+
 class Ast;
 class Val;
 class Syntax;
@@ -115,7 +138,7 @@ public:
 class Literal
 {
 private:
-    ely::Variant<ely::token::IntLit,
+    ast::Variant<ely::token::IntLit,
                  ely::token::FloatLit,
                  ely::token::CharLit,
                  ely::token::StringLit,
@@ -157,7 +180,7 @@ public:
 class Atom
 {
 private:
-    ely::Variant<Symbol, Literal> variants_;
+    ast::Variant<Symbol, Literal> variants_;
 
 public:
     template<typename T, typename... Args>
@@ -256,9 +279,6 @@ public:
     }
 };
 
-class LexicalContext
-{};
-
 class SyntaxList
 {
 private:
@@ -331,7 +351,7 @@ public:
 class Syntax
 {
 private:
-    ely::Variant<SyntaxLiteral, Identifier, SyntaxList> variants_;
+    ast::Variant<SyntaxLiteral, Identifier, SyntaxList> variants_;
 
 public:
     template<typename T, typename... Args>
@@ -371,10 +391,10 @@ public:
     }
 
     // strips the lexical context recursively, used for parsing quote
-    ely::Variant<Symbol, Literal, List> strip() const&
+    ast::Variant<Symbol, Literal, List> strip() const&
     {
         return visit([&](const auto& x) {
-            return ely::Variant<Symbol, Literal, List>{x.strip()};
+            return ast::Variant<Symbol, Literal, List>{x.strip()};
         });
     }
 };
@@ -382,7 +402,7 @@ public:
 class Val
 {
 private:
-    ely::Variant<Fn, Atom, List, Syntax> variants_;
+    ast::Variant<Fn, Atom, List, Syntax> variants_;
 
 public:
     template<typename T, typename... Args>
@@ -418,7 +438,7 @@ public:
 class Ast
 {
 private:
-    ely::Variant<Call, Var, Val> variants_;
+    ast::Variant<Call, Var, Val> variants_;
 
 public:
     template<typename T, typename... Args>
