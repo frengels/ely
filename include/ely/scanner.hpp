@@ -53,7 +53,7 @@ constexpr bool lexeme_is_newline(LexemeKind kind)
     }
 }
 
-constexpr bool lexeme_is_atmosphere(LexemeKind kind)
+constexpr bool lexeme_is_trailing_atmosphere(LexemeKind kind)
 {
     switch (kind)
     {
@@ -62,8 +62,18 @@ constexpr bool lexeme_is_atmosphere(LexemeKind kind)
     case LexemeKind::Comment:
         return true;
     default:
-        ELY_MUSTTAIL return lexeme_is_newline(kind);
+        return false;
     }
+}
+
+constexpr bool lexeme_is_atmosphere(LexemeKind kind)
+{
+    return lexeme_is_trailing_atmosphere(kind) || lexeme_is_newline(kind);
+}
+
+constexpr bool lexeme_is_leading_atmosphere(LexemeKind kind)
+{
+    ELY_MUSTTAIL return lexeme_is_atmosphere(kind);
 }
 
 constexpr bool lexeme_is_literal(LexemeKind kind)
@@ -95,6 +105,11 @@ constexpr bool lexeme_is_identifier(LexemeKind kind)
 template<typename I>
 struct Lexeme
 {
+public:
+    using iterator = I;
+    using size_type = uint32_t;
+
+public:
     I          start{};
     uint32_t   len{};
     LexemeKind kind{LexemeKind::Eof};
@@ -104,12 +119,12 @@ struct Lexeme
         return kind != LexemeKind::Eof;
     }
 
-    constexpr I begin() const
+    constexpr iterator begin() const
     {
         return start;
     }
 
-    constexpr I end() const
+    constexpr iterator end() const
     {
         return std::next(
             start,

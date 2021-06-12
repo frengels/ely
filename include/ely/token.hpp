@@ -422,14 +422,16 @@ private:
                                      token::Eof>;
 
 private:
-    AtmosphereList leading_;
-    AtmosphereList trailing_;
-    VariantType    variant_;
+    AtmosphereList<AtmospherePosition::Leading>  leading_;
+    AtmosphereList<AtmospherePosition::Trailing> trailing_;
+    VariantType                                  variant_;
 
 public:
     template<typename I>
     ELY_CONSTEXPR_VECTOR
-    Token(AtmosphereList leading, AtmosphereList trailing, Lexeme<I> lexeme)
+    Token(AtmosphereList<AtmospherePosition::Leading>  leading,
+          AtmosphereList<AtmospherePosition::Trailing> trailing,
+          Lexeme<I>                                    lexeme)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
           variant_([&]() -> VariantType {
               auto construct_token = [&](auto in_place_type) -> VariantType {
@@ -525,23 +527,24 @@ public:
         return static_cast<T&&>(*get_if<T>(&self.variant_));
     }
 
-    constexpr const AtmosphereList& leading_atmosphere() const
+    constexpr const AtmosphereList<AtmospherePosition::Leading>&
+    leading_atmosphere() const
     {
         return leading_;
     }
 
-    constexpr const AtmosphereList& trailing_atmosphere() const
+    constexpr const AtmosphereList<AtmospherePosition::Trailing>&
+    trailing_atmosphere() const
     {
         return trailing_;
     }
 
-    ELY_CONSTEXPR_VECTOR std::size_t full_size() const
+    ELY_CONSTEXPR_VECTOR std::size_t size() const
     {
-        return leading_.atmosphere_size() + trailing_.atmosphere_size() +
-               size();
+        return leading_.size() + trailing_.size() + size();
     }
 
-    constexpr std::size_t size() const
+    constexpr std::size_t inner_size() const
     {
         return visit([](const auto& tok) -> std::size_t { return tok.size(); });
     }

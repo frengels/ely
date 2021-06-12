@@ -22,9 +22,7 @@ public:
 
 private:
     ely::ScannerStream<I, S> scanner_;
-    Lexeme<I>                cache_{{},
-                     std::numeric_limits<uint32_t>::max(),
-                     static_cast<LexemeKind>(0)};
+    std::optional<Lexeme<I>> cache_{};
 
 public:
     TokenStream() = default;
@@ -38,54 +36,35 @@ public:
 
     reference next()
     {
-        AtmosphereList leading_atmosphere{};
-        AtmosphereList trailing_atmosphere{};
+        AtmosphereList<AtmospherePosition::Leading>  leading_atmosphere{};
+        AtmosphereList<AtmospherePosition::Trailing> trailing_atmosphere{};
 
-        Lexeme<I> lexeme;
-
-        if (cache_.len != std::numeric_limits<uint32_t>::max())
-        {
-            if (lexeme_is_atmosphere(cache_.kind))
+        Lexeme<I> lexeme = [&] {
+            if (cache_)
             {
-                leading_atmosphere.emplace_back(cache_);
-                cache_.len = std::numeric_limits<uint32_t>::max();
+                return *cache_;
             }
             else
             {
-                lexeme     = cache_;
-                cache_.len = std::numeric_limits<uint32_t>::max();
-                goto skip_leading_atmo;
+                return scanner_.next();
             }
-        }
+        }();
 
-        lexeme = scanner_.next();
-
-        while (lexeme && ely::lexeme_is_atmosphere(lexeme.kind))
+        while (leading_atmosphere.try_emplace_back(lexeme))
         {
-            leading_atmosphere.emplace_back(lexeme);
             lexeme = scanner_.next();
         }
-    skip_leading_atmo:
 
         Lexeme<I> token_lexeme = lexeme;
 
-        if (token_lexeme.kind == LexemeKind::Eof)
-        {
-            return Token(std::move(leading_atmosphere),
-                         std::move(trailing_atmosphere),
-                         std::move(token_lexeme));
-        }
-
         lexeme = scanner_.next();
 
-        while (lexeme_is_atmosphere(lexeme.kind) &&
-               lexeme_is_newline(lexeme.kind))
+        while (trailing_atmosphere.try_emplace_back(lexeme))
         {
-            trailing_atmosphere.emplace_back(lexeme);
             lexeme = scanner_.next();
         }
 
-        cache_ = lexeme;
+        cache_ = std::optional<Lexeme<I>>(lexeme);
 
         return Token(std::move(leading_atmosphere),
                      std::move(trailing_atmosphere),

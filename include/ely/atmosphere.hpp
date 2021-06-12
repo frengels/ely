@@ -27,9 +27,11 @@ public:
     }
 
     template<typename I>
-    constexpr Whitespace([[maybe_unused]] I first, std::size_t len)
-        : Whitespace(len)
-    {}
+    constexpr Whitespace([[maybe_unused]] Lexeme<I> lex)
+        : Whitespace(lex.size())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::Whitespace, "expected Whitespace");
+    }
 
     constexpr std::size_t size() const
     {
@@ -183,7 +185,7 @@ public:
               ELY_ASSERT(ely::lexeme_is_atmosphere(lex.kind),
                          "Atmosphere must be made from atmosphere");
 
-              switch (lexeme.kind)
+              switch (lex.kind)
               {
               case LexemeKind::Whitespace:
                   return atmosphere::Whitespace(lex);
@@ -234,8 +236,18 @@ public:
     }
 };
 
+enum class AtmospherePosition
+{
+    Leading,
+    Trailing,
+};
+
+template<AtmospherePosition Pos>
 class AtmosphereList
 {
+public:
+    static constexpr auto position = Pos;
+
 private:
     std::vector<Atmosphere> list_;
     std::size_t             size_;
@@ -243,11 +255,32 @@ private:
 public:
     AtmosphereList() = default;
 
-    template<typename... Args>
-    ELY_CONSTEXPR_VECTOR void emplace_back(Args&&... args)
+    template<typename I>
+    bool try_emplace_back(Lexeme<I> lex)
     {
-        const auto& atmos = list_.emplace_back(static_cast<Args&&>(args)...);
-        size_ += atmos.size();
+        constexpr auto check_atmosphere = []() {
+            if constexpr (position == AtmospherePosition::Leading)
+            {
+                return [](LexemeKind kind) {
+                    return lexeme_is_leading_atmosphere(kind);
+                };
+            }
+            else if constexpr (position == AtmospherePosition::Trailing)
+            {
+                return [](LexemeKind kind) {
+                    return lexeme_is_trailing_atmosphere(kind);
+                };
+            }
+        }();
+
+        if (check_atmosphere(lex.kind))
+        {
+            list_.emplace_back(lex);
+            size_ += lex.size();
+            return true;
+        }
+
+        return false;
     }
 
     ELY_CONSTEXPR_VECTOR std::span<const Atmosphere> elements() const
