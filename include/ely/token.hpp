@@ -456,6 +456,46 @@ public:
         return ely::visit(std::move(variant_), static_cast<F&&>(fn));
     }
 
+    template<typename F>
+    constexpr auto visit_all(F&& fn) & -> decltype(auto)
+    {
+        return visit([&](auto& tok) -> decltype(auto) {
+            return std::invoke(
+                static_cast<F&&>(fn), tok, token.leading_, token.trailing_);
+        });
+    }
+
+    template<typename F>
+    constexpr auto visit_all(F&& fn) const& -> decltype(auto)
+    {
+        return visit([&](const auto& tok) -> decltype(auto) {
+            return std::invoke(
+                static_cast<F&&>(fn), tok, token.leading_, token.trailing_);
+        });
+    }
+
+    template<typename F>
+    constexpr auto visit_all(F&& fn) && -> decltype(auto)
+    {
+        return std::move(*this).visit([&](auto&& tok) -> decltype(auto) {
+            return std::invoke(static_cast<F&&>(fn),
+                               std::move(tok),
+                               std::move(token.leading_),
+                               std::move(token.trailing_));
+        });
+    }
+
+    template<typename F>
+    constexpr auto visit_all(F&& fn) const&& -> decltype(auto)
+    {
+        return std::move(*this).visit([&](auto&& tok) -> decltype(auto) {
+            return std::invoke(static_cast<F&&>(fn),
+                               std::move(tok),
+                               std::move(token.leading_),
+                               std::move(token.trailing_));
+        });
+    }
+
     template<typename T>
     friend constexpr bool holds(const TokenVariant& self) noexcept
     {
@@ -489,9 +529,19 @@ public:
         return trailing_;
     }
 
-    ELY_CONSTEXPR_VECTOR std::size_t size() const
+    constexpr std::size_t leading_size() const
     {
-        return leading_.size() + trailing_.size() + size();
+        return leading_.size();
+    }
+
+    constexpr std::size_t trailing_size() const
+    {
+        return trailing_.size();
+    }
+
+    constexpr std::size_t size() const
+    {
+        return leading_size() + trailing_size() + inner_size();
     }
 
     constexpr std::size_t inner_size() const
