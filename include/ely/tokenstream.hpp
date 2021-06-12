@@ -66,9 +66,9 @@ public:
 
         cache_ = std::optional<Lexeme<I>>(lexeme);
 
-        return Token(std::move(leading_atmosphere),
-                     std::move(trailing_atmosphere),
-                     std::move(token_lexeme));
+        return make_token(std::move(leading_atmosphere),
+                          std::move(trailing_atmosphere),
+                          std::move(token_lexeme));
     }
 };
 } // namespace ely

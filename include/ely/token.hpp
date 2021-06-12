@@ -401,25 +401,12 @@ public:
 };
 } // namespace token
 
-class Token
+template<typename... Toks>
+class TokenVariant
 {
-private:
-    using VariantType = ely::Variant<token::LParen,
-                                     token::RParen,
-                                     token::LBracket,
-                                     token::RBracket,
-                                     token::LBrace,
-                                     token::RBrace,
-                                     token::Identifier,
-                                     token::IntLit,
-                                     token::FloatLit,
-                                     token::CharLit,
-                                     token::StringLit,
-                                     token::KeywordLit,
-                                     token::BoolLit,
-                                     token::UnterminatedStringLit,
-                                     token::InvalidNumberSign,
-                                     token::Eof>;
+
+public:
+    using VariantType = ely::Variant<Toks...>;
 
 private:
     AtmosphereList<AtmospherePosition::Leading>  leading_;
@@ -427,46 +414,22 @@ private:
     VariantType                                  variant_;
 
 public:
-    template<typename I>
+    template<typename T, typename... Args>
     ELY_CONSTEXPR_VECTOR
-    Token(AtmosphereList<AtmospherePosition::Leading>  leading,
-          AtmosphereList<AtmospherePosition::Trailing> trailing,
-          Lexeme<I>                                    lexeme)
+    TokenVariant(AtmosphereList<AtmospherePosition::Leading>&&  leading,
+                 AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+                 std::in_place_type_t<T>                        t,
+                 Args&&... args)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
-          variant_([&]() -> VariantType {
-              auto construct_token = [&](auto in_place_type) -> VariantType {
-                  return VariantType(std::move(in_place_type), lexeme);
-              };
+          variant_(t, static_cast<Args&&>(args)...)
+    {}
 
-#define DISPATCH(tok)                                                          \
-    case LexemeKind::tok:                                                      \
-        return construct_token(std::in_place_type<token::tok>)
-
-              switch (lexeme.kind)
-              {
-                  DISPATCH(LParen);
-                  DISPATCH(RParen);
-                  DISPATCH(LBracket);
-                  DISPATCH(RBracket);
-                  DISPATCH(LBrace);
-                  DISPATCH(RBrace);
-                  DISPATCH(Identifier);
-                  DISPATCH(IntLit);
-                  DISPATCH(FloatLit);
-                  DISPATCH(CharLit);
-                  DISPATCH(StringLit);
-                  DISPATCH(KeywordLit);
-                  DISPATCH(BoolLit);
-                  DISPATCH(InvalidNumberSign);
-                  DISPATCH(UnterminatedStringLit);
-                  DISPATCH(Eof);
-              default:
-                  __builtin_unreachable();
-              }
-
-#undef DISPATCH
-          }())
-
+    ELY_CONSTEXPR_VECTOR
+    TokenVariant(AtmosphereList<AtmospherePosition::Leading>&&  leading,
+                 AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+                 VariantType&&                                  tok)
+        : leading_(std::move(leading)), trailing_(std::move(trailing)),
+          variant_(std::move(tok))
     {}
 
     template<typename F>
@@ -493,21 +456,8 @@ public:
         return ely::visit(std::move(variant_), static_cast<F&&>(fn));
     }
 
-    constexpr bool is_eof() const noexcept
-    {
-        return visit([](const auto& tok) {
-            using raw_ty = std::remove_cvref_t<decltype(tok)>;
-            return std::is_same_v<raw_ty, ely::token::Eof>;
-        });
-    }
-
-    explicit constexpr operator bool() const noexcept
-    {
-        return !is_eof();
-    }
-
     template<typename T>
-    friend constexpr bool holds(const Token& self) noexcept
+    friend constexpr bool holds(const TokenVariant& self) noexcept
     {
         return self.visit([](const auto& x) {
             using ty = std::remove_cvref_t<decltype(x)>;
@@ -516,13 +466,13 @@ public:
     }
 
     template<typename T>
-    friend constexpr T& unsafe_get(Token& self) noexcept
+    friend constexpr T& unsafe_get(TokenVariant& self) noexcept
     {
         return *get_if<T>(&self.variant_);
     }
 
     template<typename T>
-    friend constexpr T&& unsafe_get(Token&& self) noexcept
+    friend constexpr T&& unsafe_get(TokenVariant&& self) noexcept
     {
         return static_cast<T&&>(*get_if<T>(&self.variant_));
     }
@@ -549,4 +499,57 @@ public:
         return visit([](const auto& tok) -> std::size_t { return tok.size(); });
     }
 };
+
+using Token = TokenVariant<token::LParen,
+                           token::RParen,
+                           token::LBracket,
+                           token::RBracket,
+                           token::LBrace,
+                           token::RBrace,
+                           token::Identifier,
+                           token::IntLit,
+                           token::FloatLit,
+                           token::CharLit,
+                           token::StringLit,
+                           token::KeywordLit,
+                           token::BoolLit,
+                           token::UnterminatedStringLit,
+                           token::InvalidNumberSign,
+                           token::Eof>;
+
+template<typename I>
+constexpr Token
+make_token(AtmosphereList<AtmospherePosition::Leading>&&  leading,
+           AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+           Lexeme<I>                                      lex)
+{
+    return Token{std::move(leading), std::move(trailing), [&] {
+
+#define DISPATCH(tok)                                                          \
+    case LexemeKind::tok:                                                      \
+        return typename Token::VariantType(std::in_place_type<token::tok>, lex);
+                     switch (lex.kind)
+                     {
+                         DISPATCH(LParen);
+                         DISPATCH(RParen);
+                         DISPATCH(LBracket);
+                         DISPATCH(RBracket);
+                         DISPATCH(LBrace);
+                         DISPATCH(RBrace);
+                         DISPATCH(Identifier);
+                         DISPATCH(IntLit);
+                         DISPATCH(FloatLit);
+                         DISPATCH(CharLit);
+                         DISPATCH(StringLit);
+                         DISPATCH(KeywordLit);
+                         DISPATCH(BoolLit);
+                         DISPATCH(InvalidNumberSign);
+                         DISPATCH(UnterminatedStringLit);
+                         DISPATCH(Eof);
+                     default:
+                         __builtin_unreachable();
+                     }
+#undef DISPATCH
+                 }()};
+}
 } // namespace ely

@@ -121,7 +121,8 @@ static void BM_token_stream(benchmark::State& state)
 
             auto tok = stream.next();
 
-            while (tok && buf_it != tok_buf + buffer_size)
+            while (!holds<ely::token::Eof>(tok) &&
+                   buf_it != tok_buf + buffer_size)
             {
                 std::allocator_traits<decltype(tok_alloc)>::construct(
                     tok_alloc, buf_it, std::move(tok));
@@ -138,7 +139,7 @@ static void BM_token_stream(benchmark::State& state)
                     tok_alloc, tok_buf + i);
             }
 
-            if (!tok)
+            if (holds<ely::token::Eof>(tok))
             {
                 break;
             }
