@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <string>
+#include <vector>
 
 #include "ely/scanner.hpp"
 #include "ely/variant.hpp"
@@ -14,11 +16,15 @@ namespace atmosphere
 class Whitespace
 {
 private:
-    std::size_t len;
+    std::size_t len{1};
 
 public:
+    Whitespace() = default;
+
     explicit constexpr Whitespace(std::size_t len) : len(len)
-    {}
+    {
+        ELY_ASSERT(len != 0, "whitespace must be at least 1 in length");
+    }
 
     template<typename I>
     constexpr Whitespace([[maybe_unused]] I first, std::size_t len)
@@ -31,68 +37,28 @@ public:
     }
 };
 
-class SmallWhitespace
-{
-private:
-    std::uint8_t len;
-
-public:
-    explicit constexpr SmallWhitespace(std::uint8_t len) : len(len)
-    {}
-
-    template<typename I>
-    constexpr SmallWhitespace([[maybe_unused]] I first, std::size_t len)
-        : SmallWhitespace(static_cast<std::uint8_t>(len))
-    {
-        ELY_ASSERT(len <= std::numeric_limits<std::uint8_t>::max(),
-                   "to fit in SmallWhitespace the length must be 255 or less");
-    }
-
-    constexpr std::size_t size() const
-    {
-        return static_cast<std::size_t>(len);
-    }
-};
-
 class Tab
 {
 private:
-    std::size_t len;
+    std::size_t len{1};
 
 public:
-    constexpr Tab(std::size_t len) : len(len)
-    {}
+    Tab() = default;
+
+    explicit constexpr Tab(std::size_t len) : len(len)
+    {
+        ELY_ASSERT(len != 0, "tab must be at least 1 in length");
+    }
 
     template<typename I>
-    constexpr Tab([[maybe_unused]] I first, std::size_t len) : Tab(len)
-    {}
+    explicit constexpr Tab(Lexeme<I> lex) : len(lex.size())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::Tab, "expected Tab");
+    }
 
     constexpr std::size_t size() const
     {
         return len;
-    }
-};
-
-class SmallTab
-{
-private:
-    std::uint8_t len;
-
-public:
-    constexpr SmallTab(std::uint8_t len) : len(len)
-    {}
-
-    template<typename I>
-    constexpr SmallTab([[maybe_unused]] I first, std::size_t len)
-        : SmallTab(static_cast<std::uint8_t>(len))
-    {
-        ELY_ASSERT(len <= std::numeric_limits<std::uint8_t>::max(),
-                   "to fit in SmallTab the length must be 255 or less");
-    }
-
-    constexpr std::size_t size() const
-    {
-        return static_cast<std::size_t>(len);
     }
 };
 
@@ -102,10 +68,15 @@ public:
     NewlineCr() = default;
 
     template<typename I>
-    constexpr NewlineCr([[maybe_unused]] I           first,
-                        [[maybe_unused]] std::size_t len)
-        : NewlineCr()
-    {}
+    explicit constexpr NewlineCr([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::NewlineCr, "expected NewlineCr");
+    }
+
+    static constexpr std::string_view str() noexcept
+    {
+        return std::string_view{"\r"};
+    }
 
     static constexpr std::size_t size()
     {
@@ -119,10 +90,15 @@ public:
     NewlineLf() = default;
 
     template<typename I>
-    constexpr NewlineLf([[maybe_unused]] I           first,
-                        [[maybe_unused]] std::size_t len)
-        : NewlineLf()
-    {}
+    explicit constexpr NewlineLf([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::NewlineLf, "expected NewlineLf");
+    }
+
+    static constexpr std::string_view str() noexcept
+    {
+        return std::string_view{"\n"};
+    }
 
     static constexpr std::size_t size()
     {
@@ -136,10 +112,15 @@ public:
     NewlineCrlf() = default;
 
     template<typename I>
-    constexpr NewlineCrlf([[maybe_unused]] I           first,
-                          [[maybe_unused]] std::size_t len)
-        : NewlineCrlf()
-    {}
+    explicit constexpr NewlineCrlf([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::NewlineCrlf, "expected NewlineCrlf");
+    }
+
+    static constexpr std::string_view str() noexcept
+    {
+        return std::string_view{"\r\n"};
+    }
 
     static constexpr std::size_t size()
     {
@@ -150,24 +131,30 @@ public:
 class Comment
 {
 private:
-    std::string str;
+    std::string str_;
 
 public:
     Comment() = default;
 
     template<typename I>
-    constexpr Comment(I first, std::size_t len)
-        : str(std::next(first), std::next(first, len))
-    {}
+    explicit constexpr Comment(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::Comment, "expected Comment");
+    }
 
     template<typename... Args>
     constexpr Comment(std::in_place_t, Args&&... args)
-        : str(static_cast<Args&&>(args)...)
+        : str_(static_cast<Args&&>(args)...)
     {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const
+    {
+        return static_cast<std::string_view>(str_);
+    }
 
     ELY_CONSTEXPR_STRING std::size_t size() const
     {
-        return 1 + str.size();
+        return str_.size();
     }
 };
 } // namespace atmosphere
@@ -192,28 +179,29 @@ public:
 
     template<typename I>
     explicit constexpr Atmosphere(Lexeme<I> lexeme)
-        : variant_([&]() -> VariantType {
-              ELY_ASSERT(ely::lexeme_is_atmosphere(lexeme.kind),
+        : variant_([](Lexeme<I> lex) -> VariantType {
+              ELY_ASSERT(ely::lexeme_is_atmosphere(lex.kind),
                          "Atmosphere must be made from atmosphere");
 
               switch (lexeme.kind)
               {
               case LexemeKind::Whitespace:
-                  return atmosphere::Whitespace(lexeme.start, lexeme.size());
+                  return atmosphere::Whitespace(lex);
               case LexemeKind::Tab:
-                  return atmosphere::Tab(lexeme.start, lexeme.size());
+                  return atmosphere::Tab(lex);
               case LexemeKind::NewlineCr:
-                  return atmosphere::NewlineCr(lexeme.start, lexeme.size());
+                  return atmosphere::NewlineCr(lex);
               case LexemeKind::NewlineLf:
-                  return atmosphere::NewlineLf(lexeme.start, lexeme.size());
+                  return atmosphere::NewlineLf(lex);
               case LexemeKind::NewlineCrlf:
-                  return atmosphere::NewlineCrlf(lexeme.start, lexeme.size());
+                  return atmosphere::NewlineCrlf(lex);
               case LexemeKind::Comment:
-                  return atmosphere::Comment(lexeme.start, lexeme.size());
+                  return atmosphere::Comment(lex);
               default:
+                  // this condition has been checked by the assert above
                   __builtin_unreachable();
               }
-          }())
+          }(lexeme))
     {}
 
     template<typename F>
@@ -246,172 +234,11 @@ public:
     }
 };
 
-class SmallAtmosphere
-{
-private:
-    using VariantType = ely::Variant<atmosphere::SmallWhitespace,
-                                     atmosphere::SmallTab,
-                                     atmosphere::NewlineCr,
-                                     atmosphere::NewlineLf,
-                                     atmosphere::NewlineCrlf>;
-
-private:
-    VariantType variant_;
-
-public:
-    template<typename T, typename... Args>
-    explicit constexpr SmallAtmosphere(std::in_place_type_t<T>, Args&&... args)
-        : variant_(std::in_place_type<T>, static_cast<Args&&>(args)...)
-    {}
-
-    template<typename I>
-    explicit constexpr SmallAtmosphere(Lexeme<I> lexeme)
-        : variant_([&]() -> VariantType {
-              ELY_ASSERT(ely::lexeme_is_atmosphere(lexeme.kind) &&
-                             lexeme.kind != LexemeKind::Comment,
-                         "Only non-comment atmosphere is allowed");
-
-              switch (lexeme.kind)
-              {
-              case LexemeKind::Whitespace:
-                  return atmosphere::SmallWhitespace(lexeme.start,
-                                                     lexeme.size());
-              case LexemeKind::Tab:
-                  return atmosphere::SmallTab(lexeme.start, lexeme.size());
-              case LexemeKind::NewlineCr:
-                  return atmosphere::NewlineCr(lexeme.start, lexeme.size());
-              case LexemeKind::NewlineLf:
-                  return atmosphere::NewlineLf(lexeme.start, lexeme.size());
-              case LexemeKind::NewlineCrlf:
-                  return atmosphere::NewlineCrlf(lexeme.start, lexeme.size());
-              default:
-                  __builtin_unreachable();
-              }
-          }())
-    {}
-
-    template<typename F>
-    constexpr auto visit(F&& fn) & -> decltype(auto)
-    {
-        return ely::visit(variant_, static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const& -> decltype(auto)
-    {
-        return ely::visit(variant_, static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) && -> decltype(auto)
-    {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const&& -> decltype(auto)
-    {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
-    }
-
-    constexpr std::size_t size() const
-    {
-        return visit(
-            [](const auto& atmo) -> std::size_t { return atmo.size(); });
-    }
-
-    ELY_CONSTEXPR_STRING Atmosphere to_atmosphere() const
-    {
-        return visit([](const auto& atmo) -> Atmosphere {
-            using ty = std::remove_cvref_t<decltype(atmo)>;
-
-            if constexpr (std::is_same_v<ty, atmosphere::SmallWhitespace>)
-            {
-                return Atmosphere(std::in_place_type<atmosphere::Whitespace>,
-                                  atmo.size());
-            }
-            else if constexpr (std::is_same_v<ty, atmosphere::SmallTab>)
-            {
-                return Atmosphere(std::in_place_type<atmosphere::Tab>,
-                                  atmo.size());
-            }
-            else
-            {
-                return Atmosphere(std::in_place_type<ty>, atmo);
-            }
-        });
-    }
-};
-
-namespace detail
-{
-class SmallAtmosphereList
-{
-private:
-    std::vector<SmallAtmosphere> list_;
-
-public:
-    SmallAtmosphereList() = default;
-
-    template<typename... Args>
-    constexpr void emplace_back(Args&&... args)
-    {
-        list_.emplace_back(static_cast<Args&&>(args)...);
-    }
-
-    ELY_CONSTEXPR_VECTOR std::size_t atmosphere_size() const
-    {
-        return std::accumulate(
-            list_.begin(),
-            list_.end(),
-            std::size_t{},
-            [](std::size_t cur_sz, const auto& atmosphere) -> std::size_t {
-                return cur_sz + atmosphere.size();
-            });
-    }
-
-    ELY_CONSTEXPR_VECTOR std::size_t size() const
-    {
-        return list_.size();
-    }
-};
-
-class LargeAtmosphereList
-{
-private:
-    std::vector<Atmosphere> list_;
-
-public:
-    LargeAtmosphereList() = default;
-
-    template<typename... Args>
-    constexpr void emplace_back(Args&&... args)
-    {
-        list_.emplace_back(static_cast<Args&&>(args)...);
-    }
-
-    ELY_CONSTEXPR_VECTOR std::size_t atmosphere_size() const
-    {
-        return std::accumulate(
-            list_.begin(),
-            list_.end(),
-            std::size_t{},
-            [](std::size_t cur_sz, const auto& atmosphere) -> std::size_t {
-                return cur_sz + atmosphere.size();
-            });
-    }
-
-    ELY_CONSTEXPR_VECTOR std::size_t size() const
-    {
-        return list_.size();
-    }
-};
-} // namespace detail
-
 class AtmosphereList
 {
 private:
     std::vector<Atmosphere> list_;
+    std::size_t             size_;
 
 public:
     AtmosphereList() = default;
@@ -419,30 +246,18 @@ public:
     template<typename... Args>
     ELY_CONSTEXPR_VECTOR void emplace_back(Args&&... args)
     {
-        list_.emplace_back(static_cast<Args&&>(args)...);
+        const auto& atmos = list_.emplace_back(static_cast<Args&&>(args)...);
+        size_ += atmos.size();
     }
 
-    ELY_CONSTEXPR_VECTOR std::size_t atmosphere_size() const
+    ELY_CONSTEXPR_VECTOR std::span<const Atmosphere> elements() const
     {
-        return std::accumulate(
-            list_.begin(),
-            list_.end(),
-            std::size_t{},
-            [](std::size_t cur_sz, const auto& atmosphere) -> std::size_t {
-                return cur_sz + atmosphere.size();
-            });
+        return {list_.begin(), list_.end()};
     }
 
-    template<typename F>
-    constexpr F for_each(F fn) const
+    constexpr std::size_t size() const
     {
-        // we don't offer a
-        return std::for_each(list_.begin(), list_.end(), std::move(fn));
-    }
-
-    ELY_CONSTEXPR_VECTOR std::size_t size() const
-    {
-        return list_.size();
+        return size_;
     }
 };
 } // namespace ely
