@@ -69,40 +69,78 @@ private:
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
     {}
 
-    reference read(ely::token::IntLit,
-                   ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
-                   ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    template<typename Lit>
+    reference
+    read_lit(Lit&&                                               lit,
+             ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
+             ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
+    {
+        using lit_ty = std::remove_cvref_t<decltype(lit)>;
+        return stx::Syntax{std::in_place_type<stx::Literal>,
+                           std::move(leading),
+                           std::move(trailing),
+                           std::in_place_type<lit_ty>,
+                           static_cast<Lit&&>(lit)};
+    }
 
-    reference read(ely::token::FloatLit,
+    reference read(ely::token::IntLit&&                                int_lit,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return read_lit(
+            std::move(int_lit), std::move(leading), std::move(trailing));
+    }
 
-    reference read(ely::token::CharLit,
-                   ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
+    reference read(ely::token::FloatLit&&                             float_lit,
+                   ely::AtmosphereList<AtmospherePosition::Leading>&& leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return read_lit(
+            std::move(float_lit), std::move(leading), std::move(trailing));
+    }
 
-    reference read(ely::token::StringLit,
+    reference read(ely::token::CharLit&&                               ch_lit,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return read_lit(
+            std::move(ch_lit), std::move(leading), std::move(trailing));
+    }
 
-    reference read(ely::token::KeywordLit,
+    reference read(ely::token::StringLit&&                             str_lit,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return read_lit(
+            std::move(str_lit), std::move(leading), std::move(trailing));
+    }
 
-    reference read(ely::token::BoolLit,
+    reference read(ely::token::KeywordLit&&                            kw_lit,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return read_lit(
+            std::move(kw_lit), std::move(leading), std::move(trailing));
+    }
 
-    reference read(ely::token::UnterminatedStringLit,
+    reference read(ely::token::BoolLit&&                               b_lit,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return read_lit(
+            std::move(b_lit), std::move(leading), std::move(trailing));
+    }
+
+    reference read(ely::token::UnterminatedStringLit&&                 str_lit,
+                   ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
+                   ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
+    {
+        return stx::Syntax{std::in_place_type<stx::Literal>,
+                           std::move(leading),
+                           std::move(trailing),
+                           std::in_place_type<token::UnterminatedStringLit>,
+                           std::move(str_lit)};
+    }
 
     reference read(ely::token::InvalidNumberSign,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
