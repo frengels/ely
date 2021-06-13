@@ -16,57 +16,40 @@ class Literal;
 class Identifier;
 class Eof;
 
-namespace poison
+class MissingRParen
 {
-// contains all kinds of poison variants which the expander will have to deal
-// with and output errors for, basically delaying all action to as late as
-// possible
-}
-
-class Poison
-{
-    ely::TokenVariant<token::UnterminatedStringLit> variant_;
-
 public:
-    template<typename T, typename... Args>
-    explicit constexpr Poison(std::in_place_type_t<T> t, Args&&... args)
-        : variant_(t, static_cast<Args&&>(args)...)
-    {}
-
-    constexpr std::size_t size() const
+    static constexpr std::size_t size() noexcept
     {
-        return variant_.size();
-    }
-
-    constexpr std::size_t leading_size() const
-    {
-        return variant_.leading_size();
-    }
-
-    constexpr std::size_t trailing_size() const
-    {
-        return variant_.trailing_size();
-    }
-
-    constexpr std::size_t inner_size() const
-    {
-        return variant_.inner_size();
+        return 0;
     }
 };
 
-template<typename... Toks>
-using TokenVariant = ely::TokenVariant<Toks...>;
+class MissingRBracket
+{
+public:
+    static constexpr std::size_t size() noexcept
+    {
+        return 0;
+    }
+};
 
-template<typename... Toks>
-using PTokenVariant = TokenVariant<Poison, Toks...>;
+class MissingRBrace
+{
+public:
+    static constexpr std::size_t size() noexcept
+    {
+        return 0;
+    }
+};
 
 class List
 {
 private:
-    TokenVariant<ely::token::LParen>
+    ely::TokenVariant<ely::token::LParen>
         lparen_; // owns atmosphere before and after
     // this token can be Poison if no ending parenthesis is found
-    PTokenVariant<ely::token::RParen>
+    ely::TokenVariant<ely::token::RParen, MissingRParen>
         rparen_; // owns atmosphere before and after
 
     std::vector<stx::Syntax> values_{};
@@ -82,7 +65,7 @@ public:
 
     constexpr bool poisoned() const
     {
-        return value_poisoned_ || holds<Poison>(rparen_);
+        return value_poisoned_ || holds<MissingRParen>(rparen_);
     }
 
     constexpr std::size_t leading_size() const
@@ -114,15 +97,28 @@ public:
 class Literal
 {
 private:
-    stx::PTokenVariant<token::IntLit,
-                       token::FloatLit,
-                       token::CharLit,
-                       token::StringLit,
-                       token::KeywordLit,
-                       token::BoolLit>
+    ely::TokenVariant<token::IntLit,
+                      token::FloatLit,
+                      token::CharLit,
+                      token::StringLit,
+                      token::KeywordLit,
+                      token::BoolLit,
+                      token::UnterminatedStringLit>
         lit_;
 
 public:
+    template<typename T, typename... Args>
+    explicit constexpr Literal(
+        ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
+        ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+        std::in_place_type_t<T>                             t,
+        Args&&... args)
+        : lit_(std::move(leading),
+               std::move(trailing),
+               t,
+               static_cast<Args&&>(args)...)
+    {}
+
     constexpr const auto& token() const&
     {
         return lit_;
@@ -130,7 +126,7 @@ public:
 
     constexpr bool poisoned() const
     {
-        return holds<Poison>(token());
+        return holds<token::UnterminatedStringLit>(token());
     }
 
     constexpr std::size_t size() const noexcept
@@ -157,7 +153,7 @@ public:
 class Identifier
 {
 private:
-    stx::PTokenVariant<token::Identifier> tok_;
+    ely::TokenVariant<token::Identifier> tok_;
 
 public:
     constexpr const auto& token() const&
@@ -167,7 +163,7 @@ public:
 
     constexpr bool poisoned() const
     {
-        return holds<Poison>(token());
+        return false;
     }
 
     constexpr std::size_t size() const noexcept
@@ -194,10 +190,10 @@ public:
 class Eof
 {
 private:
-    stx::TokenVariant<token::Eof> tok_;
+    ely::TokenVariant<token::Eof> tok_;
 
 public:
-    constexpr const TokenVariant<token::Eof>& token() const&
+    constexpr const ely::TokenVariant<token::Eof>& token() const&
     {
         return tok_;
     }
