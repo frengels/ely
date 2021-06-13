@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <ranges>
 #include <span>
@@ -460,8 +461,7 @@ public:
     constexpr auto visit_all(F&& fn) & -> decltype(auto)
     {
         return visit([&](auto& tok) -> decltype(auto) {
-            return std::invoke(
-                static_cast<F&&>(fn), tok, token.leading_, token.trailing_);
+            return std::invoke(static_cast<F&&>(fn), tok, leading_, trailing_);
         });
     }
 
@@ -469,8 +469,7 @@ public:
     constexpr auto visit_all(F&& fn) const& -> decltype(auto)
     {
         return visit([&](const auto& tok) -> decltype(auto) {
-            return std::invoke(
-                static_cast<F&&>(fn), tok, token.leading_, token.trailing_);
+            return std::invoke(static_cast<F&&>(fn), tok, leading_, trailing_);
         });
     }
 
@@ -480,8 +479,8 @@ public:
         return std::move(*this).visit([&](auto&& tok) -> decltype(auto) {
             return std::invoke(static_cast<F&&>(fn),
                                std::move(tok),
-                               std::move(token.leading_),
-                               std::move(token.trailing_));
+                               std::move(leading_),
+                               std::move(trailing_));
         });
     }
 
@@ -491,8 +490,8 @@ public:
         return std::move(*this).visit([&](auto&& tok) -> decltype(auto) {
             return std::invoke(static_cast<F&&>(fn),
                                std::move(tok),
-                               std::move(token.leading_),
-                               std::move(token.trailing_));
+                               std::move(leading_),
+                               std::move(trailing_));
         });
     }
 
