@@ -24,7 +24,35 @@ namespace poison
 }
 
 class Poison
-{};
+{
+    ely::TokenVariant<token::UnterminatedStringLit> variant_;
+
+public:
+    template<typename T, typename... Args>
+    explicit constexpr Poison(std::in_place_type_t<T> t, Args&&... args)
+        : variant_(t, static_cast<Args&&>(args)...)
+    {}
+
+    constexpr std::size_t size() const
+    {
+        return variant_.size();
+    }
+
+    constexpr std::size_t leading_size() const
+    {
+        return variant_.leading_size();
+    }
+
+    constexpr std::size_t trailing_size() const
+    {
+        return variant_.trailing_size();
+    }
+
+    constexpr std::size_t inner_size() const
+    {
+        return variant_.inner_size();
+    }
+};
 
 template<typename... Toks>
 using TokenVariant = ely::TokenVariant<Toks...>;
@@ -39,7 +67,7 @@ private:
         lparen_; // owns atmosphere before and after
     // this token can be Poison if no ending parenthesis is found
     PTokenVariant<ely::token::RParen>
-        rparen_{}; // owns atmosphere before and after
+        rparen_; // owns atmosphere before and after
 
     std::vector<stx::Syntax> values_{};
     // summed size of the inner part of the stx node (  |__|__|__)
@@ -47,13 +75,24 @@ private:
     bool        value_poisoned_{false};
 
 public:
-    template<typename L>
-    constexpr List(L&& lparen) : lparen_(static_cast<L&&>(lparen))
+    template<typename L, typename R>
+    constexpr List(L&& lparen, R&& rparen)
+        : lparen_(static_cast<L&&>(lparen)), rparen_(static_cast<R&&>(rparen))
     {}
 
     constexpr bool poisoned() const
     {
-        value_poisoned_ || holds<Poison>(rparen_);
+        return value_poisoned_ || holds<Poison>(rparen_);
+    }
+
+    constexpr std::size_t leading_size() const
+    {
+        return lparen_.leading_size();
+    }
+
+    constexpr std::size_t trailing_size() const
+    {
+        return rparen_.trailing_size();
     }
 
     constexpr std::size_t size() const
@@ -69,11 +108,7 @@ public:
     }
 
     template<typename... Args>
-    constexpr void emplace_back(Args&&... args)
-    {
-        stx::Syntax& stx = values_.emplace_back(static_cast<Args&&>(args)...);
-        values_size_ += stx.size();
-    }
+    ELY_CONSTEXPR_VECTOR void emplace_back(Args&&... args);
 };
 
 class Literal
@@ -103,17 +138,17 @@ public:
         return token().size();
     }
 
-    constexpr std::size_t leading_size()
+    constexpr std::size_t leading_size() const
     {
         return token().leading_size();
     }
 
-    constexpr std::size_t trailing_size()
+    constexpr std::size_t trailing_size() const
     {
         return token().trailing_size();
     }
 
-    constexpr std::size_t inner_size()
+    constexpr std::size_t inner_size() const
     {
         return token().inner_size();
     }
@@ -137,15 +172,15 @@ public:
 
     constexpr std::size_t size() const noexcept
     {
-        token().size();
+        return token().size();
     }
 
-    constexpr std::size_t leading_size()
+    constexpr std::size_t leading_size() const
     {
         return token().leading_size();
     }
 
-    constexpr std::size_t trailing_size()
+    constexpr std::size_t trailing_size() const
     {
         return token().trailing_size();
     }
@@ -177,12 +212,12 @@ public:
         return token().size();
     }
 
-    constexpr std::size_t leading_size()
+    constexpr std::size_t leading_size() const
     {
         return token().leading_size();
     }
 
-    constexpr std::size_t trailing_size()
+    constexpr std::size_t trailing_size() const
     {
         return token().trailing_size();
     }
@@ -206,7 +241,7 @@ public:
 
     explicit constexpr operator bool() const noexcept
     {
-        return holds<Eof>(variant_);
+        return holds_alternative<Eof>(variant_);
     }
 
     template<typename F>
@@ -253,5 +288,12 @@ public:
         return visit([](const auto& stx) { return stx.inner_size(); });
     }
 };
+
+template<typename... Args>
+ELY_CONSTEXPR_VECTOR void List::emplace_back(Args&&... args)
+{
+    stx::Syntax& stx = values_.emplace_back(static_cast<Args&&>(args)...);
+    values_size_ += stx.size();
+}
 } // namespace stx
 } // namespace ely
