@@ -107,7 +107,7 @@ public:
     using allocator_type = std::allocator<T>;
 
 private:
-    using node_alloc_type = std::allocator_traits<
+    using node_alloc_type = typename std::allocator_traits<
         allocator_type>::template rebind_alloc<detail::ListNode<T>>;
     using alloc_traits = std::allocator_traits<node_alloc_type>;
 

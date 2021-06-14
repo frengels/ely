@@ -52,7 +52,7 @@ class SharedPtr
 public:
     using element_type = T;
     using pointer =
-        std::pointer_traits<block_ptr>::template rebind<element_type>;
+        typename std::pointer_traits<block_ptr>::template rebind<element_type>;
 
 private:
     block_ptr p_{};
