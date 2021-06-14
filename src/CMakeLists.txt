@@ -10,7 +10,7 @@ generate_export_header(Ely
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/ely/export.h)
 
 target_include_directories(Ely PUBLIC 
-    $<BUILD_INTERFACE:${ely_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${Ely_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 set_target_properties(Ely
