@@ -35,7 +35,7 @@ private:
     [[no_unique_address]] R right_closing_;
 
 public:
-    constexpr List(ely::List<Node> children, L left_closing, R right_closing)
+    List(ely::List<Node> children, L left_closing, R right_closing)
         : children_(std::move(children)),
           left_closing_(std::move(left_closing)),
           right_closing_(std::move(right_closing))
