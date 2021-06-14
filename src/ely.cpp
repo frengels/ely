@@ -40,7 +40,7 @@ void tokenize_stream(std::string_view src)
 
     auto tok = tokenizer.next();
 
-    while (tok)
+    while (!holds<ely::token::Eof>(tok))
     {
         tok.visit([](const auto& x) {
             using ty = std::remove_cvref_t<decltype(x)>;
