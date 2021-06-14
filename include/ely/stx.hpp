@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -19,6 +20,9 @@ class Eof;
 class MissingRParen
 {
 public:
+    using poison_tag = void;
+
+public:
     static constexpr std::size_t size() noexcept
     {
         return 0;
@@ -28,6 +32,9 @@ public:
 class MissingRBracket
 {
 public:
+    using poison_tag = void;
+
+public:
     static constexpr std::size_t size() noexcept
     {
         return 0;
@@ -36,6 +43,9 @@ public:
 
 class MissingRBrace
 {
+public:
+    using poison_tag = void;
+
 public:
     static constexpr std::size_t size() noexcept
     {
@@ -58,14 +68,31 @@ private:
     bool        value_poisoned_{false};
 
 public:
-    template<typename L, typename R>
-    constexpr List(L&& lparen, R&& rparen)
-        : lparen_(static_cast<L&&>(lparen)), rparen_(static_cast<R&&>(rparen))
+    template<typename... LArgs, typename... RArgs>
+    constexpr List(std::tuple<LArgs...>       lparen_args,
+                   std::tuple<RArgs...>       rparen_args,
+                   std::vector<stx::Syntax>&& values,
+                   std::size_t                values_size,
+                   bool                       value_poisoned)
+        : lparen_(std::apply(
+              [](auto&&... args) {
+                  return decltype(lparen_){
+                      static_cast<decltype(args)&&>(args)...};
+              },
+              std::move(lparen_args))),
+          rparen_(std::apply(
+              [](auto&&... args) {
+                  return decltype(rparen_){
+                      static_cast<decltype(args)&&>(args)...};
+              },
+              std::move(rparen_args))),
+          values_(std::move(values)), values_size_(values_size),
+          value_poisoned_(value_poisoned)
     {}
 
-    constexpr bool poisoned() const
+    constexpr bool is_poison() const noexcept
     {
-        return value_poisoned_ || holds<MissingRParen>(rparen_);
+        return value_poisoned_ || lparen_.is_poison() || rparen_.is_poison();
     }
 
     constexpr std::size_t leading_size() const
@@ -124,9 +151,9 @@ public:
         return lit_;
     }
 
-    constexpr bool poisoned() const
+    constexpr bool is_poison() const noexcept
     {
-        return holds<token::UnterminatedStringLit>(token());
+        return lit_.is_poison();
     }
 
     constexpr std::size_t size() const noexcept
@@ -153,17 +180,29 @@ public:
 class Identifier
 {
 private:
-    ely::TokenVariant<token::Identifier> tok_;
+    ely::TokenVariant<token::Identifier, token::InvalidNumberSign> tok_;
 
 public:
+    template<typename T, typename... Args>
+    constexpr Identifier(
+        ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
+        ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+        std::in_place_type_t<T>                             t,
+        Args&&... args)
+        : tok_(std::move(leading),
+               std::move(trailing),
+               t,
+               static_cast<Args&&>(args)...)
+    {}
+
     constexpr const auto& token() const&
     {
         return tok_;
     }
 
-    constexpr bool poisoned() const
+    constexpr bool is_poison() const noexcept
     {
-        return false;
+        return tok_.is_poison();
     }
 
     constexpr std::size_t size() const noexcept
@@ -193,12 +232,22 @@ private:
     ely::TokenVariant<token::Eof> tok_;
 
 public:
+    ELY_CONSTEXPR_VECTOR
+    Eof(AtmosphereList<AtmospherePosition::Leading>&&  leading,
+        AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+        token::Eof&&                                   eof)
+        : tok_(std::move(leading),
+               std::move(trailing),
+               std::in_place_type<token::Eof>,
+               std::move(eof))
+    {}
+
     constexpr const ely::TokenVariant<token::Eof>& token() const&
     {
         return tok_;
     }
 
-    constexpr bool poisoned() const
+    constexpr bool is_poison() const
     {
         return false;
     }
@@ -262,6 +311,11 @@ public:
     constexpr auto visit(F&& fn) const&& -> decltype(auto)
     {
         return ely::visit(std::move(variant_), static_cast<F&&>(fn));
+    }
+
+    constexpr bool is_poison() const noexcept
+    {
+        return visit([](const auto& stx) { return stx.is_poison(); });
     }
 
     constexpr std::size_t size() const noexcept

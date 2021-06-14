@@ -34,40 +34,112 @@ public:
     }
 
 private:
-    reference read(ely::token::LParen,
+    reference read(ely::token::LParen&&                                lp,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        std::vector<stx::Syntax> values{};
+        std::size_t              values_size{0};
+        bool                     value_poisoned{false};
+
+        std::optional<reference> res{};
+        do
+        {
+            res = tok_stream_.next().visit_all([&](auto&& tok,
+                                                   auto&& tok_leading,
+                                                   auto&& tok_trailing)
+                                                   -> std::optional<
+                                                       stx::Syntax> {
+                using tok_ty = std::remove_cvref_t<decltype(tok)>;
+
+                if constexpr (std::is_same_v<tok_ty, ely::token::RParen>)
+                {
+                    return stx::Syntax{
+                        std::in_place_type<stx::List>,
+                        std::forward_as_tuple(std::move(leading),
+                                              std::move(trailing),
+                                              std::in_place_type<token::LParen>,
+                                              std::move(lp)),
+                        std::forward_as_tuple(std::move(tok_leading),
+                                              std::move(tok_trailing),
+                                              std::in_place_type<token::RParen>,
+                                              std::move(tok)),
+                        std::move(values),
+                        values_size,
+                        value_poisoned};
+                }
+                else if constexpr (std::is_same_v<tok_ty, ely::token::RBracket>)
+                {
+                    ELY_UNIMPLEMENTED("unimplemented! expected `)`, got `]`");
+                }
+                else if constexpr (std::is_same_v<tok_ty, ely::token::RBrace>)
+                {
+                    ELY_UNIMPLEMENTED("unimplemented! expected `)`, got `}`");
+                }
+                else if constexpr (std::is_same_v<tok_ty, ely::token::Eof>)
+                {
+                    ELY_UNIMPLEMENTED("unimplemented! expected `)`, got EOF");
+                }
+                else
+                {
+                    values.emplace_back(read(std::move(tok),
+                                             std::move(tok_leading),
+                                             std::move(tok_trailing)));
+                    return std::nullopt;
+                }
+
+                return std::nullopt;
+            });
+        } while (!res);
+
+        return *res;
+    }
 
     reference read(ely::token::RParen,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        ELY_UNIMPLEMENTED("TODO: produce error, `)` without preceding `(`");
+    }
 
     reference read(ely::token::LBracket,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        ELY_UNIMPLEMENTED("TODO: read [...]");
+    }
 
     reference read(ely::token::RBracket,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        ELY_UNIMPLEMENTED("TODO: produce error, `]` without preceding `[`");
+    }
 
     reference read(ely::token::LBrace,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        ELY_UNIMPLEMENTED("TODO: read {...}");
+    }
 
     reference read(ely::token::RBrace,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        ELY_UNIMPLEMENTED("TODO: produce error, `}` without preceding `{`");
+    }
 
-    reference read(ely::token::Identifier,
+    reference read(ely::token::Identifier&&                            ident,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return stx::Syntax{std::in_place_type<stx::Identifier>,
+                           std::move(leading),
+                           std::move(trailing),
+                           std::in_place_type<token::Identifier>,
+                           std::move(ident)};
+    }
 
     template<typename Lit>
     reference
@@ -142,14 +214,25 @@ private:
                            std::move(str_lit)};
     }
 
-    reference read(ely::token::InvalidNumberSign,
+    reference read(ely::token::InvalidNumberSign&&                     num_sign,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return stx::Syntax{std::in_place_type<stx::Identifier>,
+                           std::move(leading),
+                           std::move(trailing),
+                           std::in_place_type<token::InvalidNumberSign>,
+                           std::move(num_sign)};
+    }
 
-    reference read(ely::token::Eof,
+    reference read(ely::token::Eof&&                                   eof,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
-    {}
+    {
+        return stx::Syntax{std::in_place_type<stx::Eof>,
+                           std::move(leading),
+                           std::move(trailing),
+                           std::move(eof)};
+    }
 };
 } // namespace ely
