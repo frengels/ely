@@ -592,10 +592,9 @@ using Token = TokenVariant<token::LParen,
                            token::Eof>;
 
 template<typename I>
-constexpr Token
-make_token(AtmosphereList<AtmospherePosition::Leading>&&  leading,
-           AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-           Lexeme<I>                                      lex)
+Token make_token(AtmosphereList<AtmospherePosition::Leading>&&  leading,
+                 AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+                 Lexeme<I>                                      lex)
 {
     return Token{std::move(leading), std::move(trailing), [&] {
 
