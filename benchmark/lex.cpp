@@ -5,7 +5,7 @@
 #include <string>
 
 #include <ely/parser.hpp>
-#include <ely/reader2.hpp>
+#include <ely/reader.hpp>
 #include <ely/tokenstream.hpp>
 
 #include <ely/ast.hpp>
