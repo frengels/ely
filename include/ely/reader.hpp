@@ -38,7 +38,7 @@ private:
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
     {
-        std::vector<stx::Syntax> values{};
+        ely::Vector<stx::Syntax> values{};
         std::size_t              values_size{0};
         bool                     value_poisoned{false};
 

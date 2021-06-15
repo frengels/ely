@@ -2,8 +2,8 @@
 
 #include <tuple>
 #include <type_traits>
-#include <vector>
 
+#include "ely/vector.hpp"
 #include "ely/token.hpp"
 #include "ely/variant.hpp"
 
@@ -62,7 +62,7 @@ private:
     ely::TokenVariant<ely::token::RParen, MissingRParen>
         rparen_; // owns atmosphere before and after
 
-    std::vector<stx::Syntax> values_{};
+    ely::Vector<stx::Syntax> values_{};
     // summed size of the inner part of the stx node (  |__|__|__)
     std::size_t values_size_{0};
     bool        value_poisoned_{false};
@@ -71,7 +71,7 @@ public:
     template<typename... LArgs, typename... RArgs>
     constexpr List(std::tuple<LArgs...>       lparen_args,
                    std::tuple<RArgs...>       rparen_args,
-                   std::vector<stx::Syntax>&& values,
+                   ely::Vector<stx::Syntax>&& values,
                    std::size_t                values_size,
                    bool                       value_poisoned)
         : lparen_(std::apply(

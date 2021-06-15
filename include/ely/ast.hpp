@@ -3,12 +3,12 @@
 #include <memory>
 #include <span>
 #include <variant>
-#include <vector>
 
 #include "ely/defines.h"
 #include "ely/ilist.hpp"
-#include "ely/variant.hpp"
 #include "ely/token.hpp"
+#include "ely/variant.hpp"
+#include "ely/vector.hpp"
 
 namespace ely
 {
@@ -217,11 +217,11 @@ class Call
 {
 private:
     std::unique_ptr<Ast> callee_;
-    std::vector<Ast>     args_;
+    ely::Vector<Ast>     args_;
 
 public:
     ELY_CONSTEXPR_VECTOR Call(std::unique_ptr<Ast> callee,
-                              std::vector<Ast>     args)
+                              ely::Vector<Ast>     args)
         : callee_(std::move(callee)), args_(std::move(args))
     {}
 
@@ -235,7 +235,7 @@ public:
         return *callee_;
     }
 
-    constexpr const std::vector<Ast>& args() const
+    constexpr const ely::Vector<Ast>& args() const
     {
         return args_;
     }
@@ -244,11 +244,11 @@ public:
 class Fn
 {
 private:
-    std::vector<Var>     args_;
+    ely::Vector<Var>     args_;
     std::unique_ptr<Ast> body_;
 
 public:
-    ELY_CONSTEXPR_VECTOR Fn(std::vector<Var> args, std::unique_ptr<Ast> body)
+    ELY_CONSTEXPR_VECTOR Fn(ely::Vector<Var> args, std::unique_ptr<Ast> body)
         : args_(std::move(args)), body_(std::move(body))
     {}
 
@@ -257,7 +257,7 @@ public:
         return *body_;
     }
 
-    constexpr const std::vector<Var>& args() const& noexcept
+    constexpr const ely::Vector<Var>& args() const& noexcept
     {
         return args_;
     }
@@ -266,14 +266,14 @@ public:
 class List
 {
 private:
-    std::vector<Val> values_;
+    ely::Vector<Val> values_;
 
 public:
-    explicit ELY_CONSTEXPR_VECTOR List(std::vector<Val> values)
+    explicit ELY_CONSTEXPR_VECTOR List(ely::Vector<Val> values)
         : values_(std::move(values))
     {}
 
-    constexpr const std::vector<Val>& values() const&
+    constexpr const ely::Vector<Val>& values() const&
     {
         return values_;
     }
@@ -283,11 +283,11 @@ class SyntaxList
 {
 private:
     [[no_unique_address]] LexicalContext ctx_;
-    std::vector<Syntax>                  values_;
+    ely::Vector<Syntax>                  values_;
 
 public:
     ELY_CONSTEXPR_VECTOR SyntaxList(LexicalContext      ctx,
-                                    std::vector<Syntax> values)
+                                    ely::Vector<Syntax> values)
         : ctx_(std::move(ctx)), values_(std::move(values))
     {}
 
@@ -296,7 +296,7 @@ public:
         return ctx_;
     }
 
-    constexpr const std::vector<Syntax>& values() const&
+    constexpr const ely::Vector<Syntax>& values() const&
     {
         return values_;
     }
@@ -473,7 +473,7 @@ public:
 
 List SyntaxList::strip() const
 {
-    std::vector<Val> vals;
+    ely::Vector<Val> vals;
 
     for (const auto& stx : values())
     {

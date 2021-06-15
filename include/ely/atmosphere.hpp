@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <span>
 #include <string>
-#include <vector>
 
+#include "ely/vector.hpp"
 #include "ely/scanner.hpp"
 #include "ely/variant.hpp"
 
@@ -249,7 +249,7 @@ public:
     static constexpr auto position = Pos;
 
 private:
-    std::vector<Atmosphere> list_;
+    ely::Vector<Atmosphere> list_;
     std::size_t             size_;
 
 public:
