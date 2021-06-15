@@ -4,9 +4,9 @@
 #include <span>
 #include <string>
 
-#include "ely/vector.hpp"
 #include "ely/scanner.hpp"
 #include "ely/variant.hpp"
+#include "ely/vector.hpp"
 
 namespace ely
 {
@@ -283,7 +283,7 @@ public:
         return false;
     }
 
-    ELY_CONSTEXPR_VECTOR std::span<const Atmosphere> elements() const
+    constexpr std::span<const Atmosphere> elements() const
     {
         return {list_.begin(), list_.end()};
     }

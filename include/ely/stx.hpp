@@ -3,9 +3,9 @@
 #include <tuple>
 #include <type_traits>
 
-#include "ely/vector.hpp"
 #include "ely/token.hpp"
 #include "ely/variant.hpp"
+#include "ely/vector.hpp"
 
 namespace ely
 {
@@ -118,7 +118,7 @@ public:
     }
 
     template<typename... Args>
-    ELY_CONSTEXPR_VECTOR void emplace_back(Args&&... args);
+    constexpr void emplace_back(Args&&... args);
 };
 
 class Literal
@@ -232,10 +232,9 @@ private:
     ely::TokenVariant<token::Eof> tok_;
 
 public:
-    ELY_CONSTEXPR_VECTOR
-    Eof(AtmosphereList<AtmospherePosition::Leading>&&  leading,
-        AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-        token::Eof&&                                   eof)
+    constexpr Eof(AtmosphereList<AtmospherePosition::Leading>&&  leading,
+                  AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+                  token::Eof&&                                   eof)
         : tok_(std::move(leading),
                std::move(trailing),
                std::in_place_type<token::Eof>,
@@ -360,7 +359,7 @@ public:
 };
 
 template<typename... Args>
-ELY_CONSTEXPR_VECTOR void List::emplace_back(Args&&... args)
+constexpr void List::emplace_back(Args&&... args)
 {
     stx::Syntax& stx = values_.emplace_back(static_cast<Args&&>(args)...);
     values_size_ += stx.size();

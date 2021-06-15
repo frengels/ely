@@ -125,7 +125,7 @@ public:
         pointer new_data = alloc_traits::allocate(alloc_, new_capacity);
 
         iterator it     = begin();
-        iterator end_it    = end();
+        iterator end_it = end();
         pointer  new_it = new_data;
 
         for (; it != end_it; ++it, ++new_it)

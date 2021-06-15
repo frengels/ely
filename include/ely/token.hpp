@@ -433,19 +433,19 @@ private:
 
 public:
     template<typename T, typename... Args>
-    ELY_CONSTEXPR_VECTOR
-    TokenVariant(AtmosphereList<AtmospherePosition::Leading>&&  leading,
-                 AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-                 std::in_place_type_t<T>                        t,
-                 Args&&... args)
+    constexpr TokenVariant(
+        AtmosphereList<AtmospherePosition::Leading>&&  leading,
+        AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+        std::in_place_type_t<T>                        t,
+        Args&&... args)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
           variant_(t, static_cast<Args&&>(args)...)
     {}
 
-    ELY_CONSTEXPR_VECTOR
-    TokenVariant(AtmosphereList<AtmospherePosition::Leading>&&  leading,
-                 AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-                 VariantType&&                                  tok)
+    constexpr TokenVariant(
+        AtmosphereList<AtmospherePosition::Leading>&&  leading,
+        AtmosphereList<AtmospherePosition::Trailing>&& trailing,
+        VariantType&&                                  tok)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
           variant_(std::move(tok))
     {}

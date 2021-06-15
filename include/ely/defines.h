@@ -116,10 +116,4 @@
 #else
 #define ELY_CONSTEXPR_STRING inline
 #endif
-
-#ifdef __cpp_lib_constexpr_vector
-#define ELY_CONSTEXPR_VECTOR constexpr
-#else
-#define ELY_CONSTEXPR_VECTOR inline
-#endif
 #endif
