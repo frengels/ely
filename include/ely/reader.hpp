@@ -92,7 +92,7 @@ private:
             });
         } while (!res);
 
-        return *res;
+        return *std::move(res);
     }
 
     reference read(ely::token::RParen,
