@@ -284,9 +284,29 @@ public:
         : variant_(t, static_cast<Args&&>(args)...)
     {}
 
+    constexpr bool is_list() const
+    {
+        return holds_alternative<List>(variant_);
+    }
+
+    constexpr bool is_literal() const
+    {
+        return holds_alternative<Literal>(variant_);
+    }
+
+    constexpr bool is_identifier() const
+    {
+        return holds_alternative<Identifier>(variant_);
+    }
+
+    constexpr bool is_eof() const
+    {
+        return holds_alternative<Eof>(variant_);
+    }
+
     explicit constexpr operator bool() const noexcept
     {
-        return !holds_alternative<Eof>(variant_);
+        return !is_eof();
     }
 
     template<typename F>
