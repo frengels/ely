@@ -286,7 +286,7 @@ public:
 
     explicit constexpr operator bool() const noexcept
     {
-        return holds_alternative<Eof>(variant_);
+        return !holds_alternative<Eof>(variant_);
     }
 
     template<typename F>
