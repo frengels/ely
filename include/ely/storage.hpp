@@ -94,113 +94,6 @@ public:
     Heap() = default;
 };
 
-namespace detail
-{
-template<typename T>
-class StackIterator
-{
-public:
-    using value_type        = std::remove_const_t<T>;
-    using reference         = T&;
-    using pointer           = T*;
-    using difference_type   = std::ptrdiff_t;
-    using iterator_category = std::random_access_iterator_tag;
-
-private:
-    detail::MaybeUninit<value_type>* it_;
-
-public:
-    StackIterator() = default;
-
-    explicit constexpr StackIterator(detail::MaybeUninit<value_type>* it)
-        : it_(it)
-    {}
-
-    constexpr StackIterator(
-        const StackIterator<std::remove_const_t<T>>& other) noexcept
-        requires(std::is_const_v<T>)
-        : it_(other.it_)
-    {}
-
-    friend bool operator==(const StackIterator&,
-                           const StackIterator&)  = default;
-    friend auto operator<=>(const StackIterator&,
-                            const StackIterator&) = default;
-
-    constexpr StackIterator& operator++() noexcept
-    {
-        ++it_;
-        return *this;
-    }
-
-    constexpr StackIterator& operator--() noexcept
-    {
-        --it_;
-        return *this;
-    }
-
-    constexpr StackIterator operator++(int) noexcept
-    {
-        StackIterator res{*this};
-        ++*this;
-        return res;
-    }
-
-    constexpr StackIterator operator--(int) noexcept
-    {
-        StackIterator res{*this};
-        --*this;
-        return res;
-    }
-
-    constexpr StackIterator& operator+=(difference_type offset) noexcept
-    {
-        it_ += offset;
-        return *this;
-    }
-
-    constexpr StackIterator& operator-=(difference_type offset) noexcept
-    {
-        it_ -= offset;
-        return *this;
-    }
-
-    constexpr StackIterator operator+(difference_type offset) noexcept
-    {
-        StackIterator res{*this};
-        res += offset;
-        return res;
-    }
-
-    constexpr StackIterator operator-(difference_type offset) noexcept
-    {
-        StackIterator res{*this};
-        res -= offset;
-        return res;
-    }
-
-    constexpr difference_type operator-(const StackIterator& other) noexcept
-    {
-        return it_ - other.it_;
-    }
-
-    constexpr pointer operator->() const noexcept
-    {
-        return std::addressof(**this);
-    }
-
-    constexpr reference operator*() const noexcept
-    {
-        return it_->get_unchecked();
-    }
-
-    constexpr reference operator[](difference_type offset) const noexcept
-    {
-        return it_[offset].get_unchecked();
-    }
-};
-} // namespace detail
-
 template<typename T, std::size_t Size>
 class Stack
 {
@@ -212,8 +105,8 @@ public:
     using const_pointer   = const T*;
     using size_type       = std::size_t;
 
-    using iterator               = detail::StackIterator<T>;
-    using const_iterator         = detail::StackIterator<const T>;
+    using iterator               = pointer;
+    using const_iterator         = const_pointer;
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -302,7 +195,7 @@ public:
 
     constexpr iterator begin() noexcept
     {
-        iterator{data_};
+        iterator{data()};
     }
 
     constexpr iterator end() noexcept
@@ -312,7 +205,7 @@ public:
 
     constexpr const_iterator begin() const noexcept
     {
-        return const_iterator{data_};
+        return const_iterator{data()};
     }
 
     constexpr const_iterator end() const noexcept
