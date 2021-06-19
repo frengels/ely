@@ -80,35 +80,23 @@ public:
 
     Union(const Union&) requires(copy_construct&& trivially_copy_construct) =
         default;
-    constexpr Union(const Union&) noexcept
-        requires(copy_construct && !trivially_copy_construct)
-    {}
-    Union(const Union&) requires(!copy_construct) = delete;
+    Union(const Union&) requires(!copy_construct ||
+                                 !trivially_copy_construct) = delete;
 
     Union(Union&&) requires(move_construct&& trivially_move_construct) =
         default;
-    constexpr Union(Union&&) noexcept
-        requires(move_construct && !trivially_move_construct)
-    {}
-    Union(Union&&) requires(!move_construct) = delete;
+    Union(Union&&) requires(!move_construct ||
+                            !trivially_move_construct) = delete;
 
     Union& operator                          =(const Union&) requires(
         copy_assign&& trivially_copy_assign) = default;
-    constexpr Union& operator                =(const Union&) noexcept
-        requires(copy_assign && !trivially_copy_assign)
-    {
-        return *this;
-    }
-    Union& operator=(const Union&) requires(!copy_assign) = delete;
+    Union& operator=(const Union&) requires(!copy_assign ||
+                                            !trivially_copy_assign) = delete;
 
     Union&
     operator=(Union&&) requires(move_assign&& trivially_move_assign) = default;
-    constexpr Union& operator=(Union&&) noexcept
-        requires(move_assign && !trivially_move_assign)
-    {
-        return *this;
-    }
-    Union& operator=(Union&&) requires(!move_assign) = delete;
+    Union& operator=(Union&&) requires(!move_assign ||
+                                       !trivially_move_assign) = delete;
 
     ~Union() requires(destructible&& trivially_destructible) = default;
     ~Union() requires(destructible && !trivially_destructible)

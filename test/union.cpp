@@ -25,6 +25,7 @@ TEST_CASE("Union")
                                                      "Hello");
 
         static_assert(!std::is_trivial_v<decltype(u)>);
-        static_assert(std::is_copy_constructible_v<decltype(u)>);
+        // can't copy because not all members are trivial
+        static_assert(!std::is_copy_constructible_v<decltype(u)>);
     }
 }
