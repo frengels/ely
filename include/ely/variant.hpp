@@ -11,12 +11,6 @@
 
 namespace ely
 {
-template<typename V>
-struct variant_size;
-
-template<typename V>
-static constexpr std::size_t variant_size_v = variant_size<V>::value;
-
 namespace variant
 {
 constexpr bool check_any_false(std::initializer_list<bool> blist) noexcept
@@ -35,6 +29,23 @@ constexpr bool check_any_false(std::initializer_list<bool> blist) noexcept
 template<std::size_t I, typename... Ts>
 using nth_element_t = std::tuple_element_t<I, std::tuple<Ts...>>;
 
+template<typename T, typename... Ts>
+static constexpr std::size_t FindElementIndex = [] {
+    constexpr bool v[] = {std::is_same_v<T, Ts>...};
+    std::size_t    idx = 0;
+
+    auto first = std::begin(v);
+    auto last  = std::end(v);
+
+    while (first != last && !*first)
+    {
+        ++idx;
+        ++first;
+    }
+
+    return idx;
+}();
+
 template<typename T, std::size_t I>
 struct OverloadResult
 {
@@ -52,14 +63,14 @@ struct OverloadImpl<I>
 };
 
 template<std::size_t I, typename T, typename... Ts>
-struct OverloadImpl<I, T, Ts...>
+struct OverloadImpl<I, T, Ts...> : OverloadImpl<I + 1, Ts...>
 {
     using OverloadImpl<I + 1, Ts...>::operator();
     OverloadResult<T, I>              operator()(T) const;
 };
 
 template<typename... Ts>
-struct Overload
+struct Overload : OverloadImpl<0, Ts...>
 {
     using OverloadImpl<0, Ts...>::operator();
 };
@@ -147,7 +158,7 @@ public:
 };
 template<std::size_t N>
 using variant_index_t = std::conditional_t<
-    N == 0,
+    N <= 1,
     NoIndex,
     std::conditional_t<
         N <= std::numeric_limits<uint8_t>::max(),
@@ -174,6 +185,25 @@ private:
 
 public:
     Variant() = default;
+
+    template<typename U>
+    constexpr Variant(U&& u)
+        : union_(std::in_place_index<ResolveOverloadIndex<U, Ts...>>,
+                 static_cast<U&&>(u)),
+          index_(ResolveOverloadIndex<U, Ts...>)
+    {}
+
+    template<std::size_t I, typename... Args>
+    explicit constexpr Variant(std::in_place_index_t<I> idx, Args&&... args)
+        : union_(idx, static_cast<Args&&>(args)...), index_(I)
+    {}
+
+    template<typename T, typename... Args>
+    explicit constexpr Variant(std::in_place_type_t<T>, Args&&... args)
+        : union_(std::in_place_index<FindElementIndex<T, Ts...>>,
+                 static_cast<Args&&>(args)...),
+          index_(FindElementIndex<T, Ts...>)
+    {}
 
     constexpr std::size_t index() const
     {
@@ -206,12 +236,14 @@ public:
     }
 
     template<typename V, typename F>
-    friend constexpr decltype(auto) visit(V&& v, F&& fn)
+    friend constexpr decltype(auto)
+    visit(V&& v,
+          F&& fn) requires(std::same_as<std::remove_cvref_t<V>, Variant<Ts...>>)
     {
         using R = decltype(std::invoke(
             static_cast<F&&>(fn),
             static_cast<V&&>(v).template get_unchecked<0>()));
-        return Dispatcher<true, R>::template switch_(static_cast<V&&>(v),
+        return Dispatcher<true, R>::template switch_<0>(static_cast<V&&>(v),
                                                      static_cast<F&&>(fn));
     }
 };
