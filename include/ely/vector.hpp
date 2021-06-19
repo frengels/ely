@@ -11,6 +11,8 @@ namespace ely
 // template<typename T, typename Alloc = std::allocator<T>>
 // using Vector = std::vector<T, Alloc>;
 
+namespace vector
+{
 template<typename T, typename Alloc = std::allocator<T>>
 class Vector
 {
@@ -70,7 +72,7 @@ public:
 
     ~Vector()
     {
-        clear();
+        destroy_all();
         dealloc_data();
     }
 
@@ -136,9 +138,9 @@ public:
 
         // TODO provide strong exception guarantee
 
-        clear();
+        destroy_all();
+        dealloc_data();
 
-        alloc_traits::deallocate(alloc_, data_, size());
         data_ = new_data;
     }
 
@@ -246,12 +248,24 @@ public:
         return res;
     }
 
+private:
+    constexpr void destroy_all() noexcept
+    {
+        std::for_each(begin(), end(), [&](reference x) noexcept {
+            alloc_traits::destroy(alloc_, std::addressof(x));
+        });
+    }
+
+public:
     constexpr void clear() noexcept
     {
-        for (auto& element : *this)
-        {
-            alloc_traits::destroy(alloc_, std::addressof(element));
-        }
+        destroy_all();
+        size_ = size_type{};
     }
 };
+} // namespace vector
+
+template<typename T>
+using Vector = vector::Vector<T, std::allocator<T>>;
+
 } // namespace ely

@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include <ely/parser.hpp>
+//#include <ely/parser.hpp>
 #include <ely/reader.hpp>
 #include <ely/tokenstream.hpp>
 
@@ -173,27 +173,5 @@ static void BM_read(benchmark::State& state)
     state.SetItemsProcessed(lines * state.iterations());
 }
 BENCHMARK(BM_read);
-
-static void BM_parse(benchmark::State& state)
-{
-    auto src      = long_source();
-    auto src_view = static_cast<std::string_view>(src);
-
-    for (auto _ : state)
-    {
-        auto parser = ely::ParseStream(src_view.begin(), src_view.end());
-
-        auto node = parser.next();
-
-        while (node)
-        {
-            node = parser.next();
-        }
-    }
-
-    state.SetBytesProcessed(src_view.size() * state.iterations());
-    state.SetItemsProcessed(lines * state.iterations());
-}
-BENCHMARK(BM_parse);
 
 BENCHMARK_MAIN();
