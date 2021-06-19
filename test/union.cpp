@@ -4,12 +4,29 @@
 #include <string>
 
 #include "ely/union.hpp"
+#include "ely/variant.hpp"
+
+class NoData
+{};
 
 TEST_CASE("Union")
 {
     auto empty = ely::Union<>{};
 
     static_assert(std::is_empty_v<decltype(empty)>);
+
+    SUBCASE("empty optimization")
+    {
+        // not yet implemented
+        // static_assert(std::is_empty_v<ely::Union<NoData>>);
+    }
+
+    SUBCASE("default construct")
+    {
+        auto u = ely::Union<bool, int>{};
+
+        REQUIRE_EQ(u.template get_unchecked<0>(), false);
+    }
 
     SUBCASE("trivial")
     {
@@ -29,3 +46,6 @@ TEST_CASE("Union")
         static_assert(!std::is_copy_constructible_v<decltype(u)>);
     }
 }
+
+TEST_CASE("Variant")
+{}
