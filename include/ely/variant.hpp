@@ -83,6 +83,7 @@ template<typename U, typename... Ts>
 static constexpr std::size_t ResolveOverloadIndex =
     decltype(Overload<Ts...>()(std::declval<U>()))::value;
 
+/*
 template<bool Valid, typename R>
 struct Dispatcher;
 
@@ -145,11 +146,90 @@ struct Dispatcher<true, R>
         }
     }
 };
+*/
+
+template<bool Valid, typename R, std::size_t N>
+struct Dispatcher;
+
+template<typename R, std::size_t N>
+struct Dispatcher<false, R, N>
+{
+    template<std::size_t I, typename F>
+    ELY_ALWAYS_INLINE static constexpr R case_(F&&)
+    {
+        __builtin_unreachable();
+    }
+
+    template<std::size_t B, typename F>
+    ELY_ALWAYS_INLINE static constexpr R switch_(F&&, std::size_t)
+    {
+        __builtin_unreachable();
+    }
+};
+
+template<typename R, std::size_t N>
+struct Dispatcher<true, R, N>
+{
+    template<std::size_t I, typename F>
+    ELY_ALWAYS_INLINE static constexpr R case_(F&& fn)
+    {
+        using Expected = R;
+        using Actual   = decltype(std::invoke(
+            static_cast<F&&>(fn), std::integral_constant<std::size_t, I>{}));
+
+        static_assert(std::is_same_v<Expected, Actual>,
+                      "visit requires a single return type");
+
+        return std::invoke(static_cast<F&&>(fn),
+                           std::integral_constant<std::size_t, I>{});
+    }
+
+    template<std::size_t B, typename F>
+    ELY_ALWAYS_INLINE static constexpr R switch_(F&& fn, std::size_t index)
+    {
+#define DISPATCH(idx)                                                          \
+    case B + idx:                                                              \
+        return Dispatcher<(B + idx) < N, R, N>::template case_<B + idx>(       \
+            static_cast<F&&>(fn))
+
+        switch (index)
+        {
+            DISPATCH(0);
+            DISPATCH(1);
+            DISPATCH(2);
+            DISPATCH(3);
+            DISPATCH(4);
+            DISPATCH(5);
+            DISPATCH(6);
+            DISPATCH(7);
+#undef DISPATCH
+        default:
+            return Dispatcher<(B + 8) < N, R, N>::template switch_<B + 8>(
+                static_cast<F&&>(fn), index);
+        }
+    }
+};
+
+template<std::size_t N, typename F>
+ELY_ALWAYS_INLINE constexpr auto dispatch_index(F&& fn, std::size_t index)
+    -> decltype(std::invoke(
+        static_cast<F&&>(fn),
+        std::integral_constant<std::size_t, 0>{})) requires(N >= 1)
+{
+    using R = decltype(std::invoke(static_cast<F&&>(fn),
+                                   std::integral_constant<std::size_t, 0>{}));
+    return Dispatcher<true, R, N>::template switch_<0>(static_cast<F&&>(fn),
+                                                       index);
+}
 
 class NoIndex
 {
 public:
     NoIndex() = default;
+
+    // this is to make construction from std::size_t easier
+    constexpr NoIndex(std::size_t)
+    {}
 
     constexpr operator std::size_t() const noexcept
     {
@@ -187,7 +267,8 @@ public:
     Variant() = default;
 
     template<typename U>
-    constexpr Variant(U&& u)
+    constexpr Variant(U&& u) requires(
+        !std::same_as<Variant<Ts...>, std::remove_cvref_t<U>>)
         : union_(std::in_place_index<ResolveOverloadIndex<U, Ts...>>,
                  static_cast<U&&>(u)),
           index_(ResolveOverloadIndex<U, Ts...>)
@@ -202,8 +283,113 @@ public:
     explicit constexpr Variant(std::in_place_type_t<T>, Args&&... args)
         : union_(std::in_place_index<FindElementIndex<T, Ts...>>,
                  static_cast<Args&&>(args)...),
-          index_(FindElementIndex<T, Ts...>)
+          index_(static_cast<index_type>(FindElementIndex<T, Ts...>))
     {}
+
+    Variant(const Variant&) requires(
+        (std::is_copy_constructible_v<Ts> && ...) &&
+        (std::is_trivially_copy_constructible_v<Ts> && ...)) = default;
+    Variant(const Variant&) requires(!(std::is_copy_constructible_v<Ts> &&
+                                       ...))                 = delete;
+    constexpr Variant(const Variant& other) noexcept(
+        (std::is_nothrow_copy_constructible_v<Ts> &&
+         ...)) requires((std::is_copy_constructible_v<Ts> && ...) &&
+                        !(std::is_trivially_copy_constructible_v<Ts> && ...))
+        : union_(dispatch_index<sizeof...(Ts)>(
+              [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                  return union_type(std::in_place_index<I>,
+                                    other.template get_unchecked<I>());
+              },
+              other.index())),
+          index_(other.index_)
+    {}
+
+    Variant(Variant&&) requires((std::is_copy_constructible_v<Ts> && ...) &&
+                                (std::is_trivially_move_constructible_v<Ts> &&
+                                 ...))  = default;
+    Variant(Variant&&) requires(!(std::is_copy_constructible_v<Ts> &&
+                                  ...)) = delete;
+    constexpr Variant(Variant&& other) noexcept(
+        (std::is_nothrow_copy_constructible_v<Ts> &&
+         ...)) requires((std::is_copy_constructible_v<Ts> && ...) &&
+                        !(std::is_trivially_copy_constructible_v<Ts> && ...))
+        : union_(dispatch_index<sizeof...(Ts)>(
+              [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                  return union_type(
+                      std::in_place_index<I>,
+                      std::move(other).template get_unchecked<I>());
+              },
+              other.index())),
+          index_(other.index_)
+    {}
+
+    Variant& operator=(const Variant&) requires(
+        (std::is_copy_assignable_v<Ts> && ...) &&
+        (std::is_trivially_copy_assignable_v<Ts> && ...)) = default;
+    Variant& operator                            =(const Variant&) requires(
+        !(std::is_copy_assignable_v<Ts> && ...)) = delete;
+    constexpr Variant& operator=(const Variant& other) noexcept(
+        (std::is_nothrow_copy_assignable_v<Ts> &&
+         ...)) requires((std::is_copy_assignable_v<Ts> && ...) &&
+                        !(std::is_trivially_copy_assignable_v<Ts> && ...))
+    {
+        dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                union_.template destroy<I>();
+            },
+            index());
+
+        index_ = other.index_;
+        dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                union_.template emplace<I>(other.template get_unchecked<I>());
+            },
+            index());
+
+        return *this;
+    }
+
+    Variant& operator                                     =(Variant&&) requires(
+        (std::is_move_assignable_v<Ts> && ...) &&
+        (std::is_trivially_move_assignable_v<Ts> && ...)) = default;
+    Variant& operator=(Variant&&) requires(!(std::is_move_assignable_v<Ts> &&
+                                             ...)) = delete;
+    constexpr Variant& operator                    =(Variant&& other) noexcept(
+        (std::is_nothrow_move_assignable_v<Ts> &&
+         ...)) requires((std::is_move_assignable_v<Ts> && ...) &&
+                        !(std::is_trivially_move_assignable_v<Ts> && ...))
+    {
+        dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                union_.template destroy<I>();
+            },
+            index());
+
+        index_ = other.index_;
+
+        dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                union_.template emplace<I>(
+                    std::move(other).template get_unchecked<I>());
+            },
+            index());
+
+        return *this;
+    }
+
+    ~Variant() requires((std::is_destructible_v<Ts> && ...) &&
+                        (std::is_trivially_destructible_v<Ts> &&
+                         ...))                                = default;
+    ~Variant() requires(!(std::is_destructible_v<Ts> && ...)) = delete;
+    ~Variant() requires((std::is_destructible_v<Ts> && ...) &&
+                        !(std::is_trivially_destructible_v<Ts> && ...))
+    {
+        dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
+                union_.template destroy<I>();
+            },
+            index());
+    }
 
     constexpr std::size_t index() const
     {
@@ -235,6 +421,38 @@ public:
             .template get_unchecked<I>();
     }
 
+    template<typename T>
+    friend constexpr bool holds_alternative(const Variant& v) noexcept
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            []<std::size_t I>(std::integral_constant<std::size_t, I>) -> bool {
+                return std::is_same_v<nth_element_t<I, Ts...>, T>;
+            },
+            v.index());
+    }
+
+    template<typename T>
+    friend constexpr bool holds(const Variant& v) noexcept
+    {
+        return holds_alternative<sizeof...(Ts)>(v);
+    }
+
+    template<std::size_t I>
+    friend constexpr bool holds_alternative(const Variant& v) noexcept
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            []<std::size_t J>(std::integral_constant<std::size_t, J>) -> bool {
+                return I == J;
+            },
+            v.index());
+    }
+
+    template<std::size_t I>
+    friend constexpr bool holds(const Variant& v) noexcept
+    {
+        return holds_alternative<I>(v);
+    }
+
     template<typename V, typename F>
     friend constexpr decltype(auto)
     visit(V&& v,
@@ -243,15 +461,30 @@ public:
         using R = decltype(std::invoke(
             static_cast<F&&>(fn),
             static_cast<V&&>(v).template get_unchecked<0>()));
-        return Dispatcher<true, R>::template switch_<0>(static_cast<V&&>(v),
-                                                     static_cast<F&&>(fn));
+        return dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+                return std::invoke(
+                    static_cast<F&&>(fn),
+                    static_cast<V&&>(v).template get_unchecked<I>());
+            },
+            v.index());
     }
 };
 } // namespace variant
 
-template<typename... Ts>
-using Variant = std::variant<Ts...>;
+// template<typename... Ts>
+// using Variant = std::variant<Ts...>;
 
+template<typename... Ts>
+using Variant = variant::Variant<Ts...>;
+
+template<typename V, typename F>
+constexpr decltype(auto) visit(V&& v, F&& fn)
+{
+    return visit(static_cast<V&&>(v), static_cast<F&&>(fn));
+}
+
+/*
 template<typename F, typename... Ts>
 constexpr auto visit(Variant<Ts...>& var, F&& fn) -> decltype(auto)
 {
@@ -275,6 +508,7 @@ constexpr auto visit(const Variant<Ts...>&& var, F&& fn) -> decltype(auto)
 {
     return std::visit(static_cast<F&&>(fn), std::move(var));
 }
+*/
 } // namespace ely
 
 namespace std

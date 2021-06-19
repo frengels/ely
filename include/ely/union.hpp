@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <type_traits>
 
 namespace ely
@@ -80,23 +81,35 @@ public:
 
     Union(const Union&) requires(copy_construct&& trivially_copy_construct) =
         default;
-    Union(const Union&) requires(!copy_construct ||
-                                 !trivially_copy_construct) = delete;
+    Union(const Union&) requires(!copy_construct) = delete;
+    constexpr Union(const Union&) noexcept
+        requires(copy_construct && !trivially_copy_construct)
+    {}
 
     Union(Union&&) requires(move_construct&& trivially_move_construct) =
         default;
-    Union(Union&&) requires(!move_construct ||
-                            !trivially_move_construct) = delete;
+    Union(Union&&) requires(!move_construct) = delete;
+    constexpr Union(Union&&) noexcept
+        requires(move_construct && !trivially_move_construct)
+    {}
 
     Union& operator                          =(const Union&) requires(
         copy_assign&& trivially_copy_assign) = default;
-    Union& operator=(const Union&) requires(!copy_assign ||
-                                            !trivially_copy_assign) = delete;
+    Union&           operator=(const Union&) requires(!copy_assign) = delete;
+    constexpr Union& operator=(const Union&) noexcept
+        requires(copy_assign && !trivially_copy_assign)
+    {
+        return *this;
+    }
 
     Union&
     operator=(Union&&) requires(move_assign&& trivially_move_assign) = default;
-    Union& operator=(Union&&) requires(!move_assign ||
-                                       !trivially_move_assign) = delete;
+    Union&           operator=(Union&&) requires(!move_assign) = delete;
+    constexpr Union& operator=(Union&&) noexcept
+        requires(move_assign && !trivially_move_assign)
+    {
+        return *this;
+    }
 
     ~Union() requires(destructible&& trivially_destructible) = default;
     ~Union() requires(destructible && !trivially_destructible)
@@ -159,6 +172,31 @@ public:
     {
         return static_cast<const rest_type&&>(rest)
             .template get_unchecked<I - 1>();
+    }
+
+    template<std::size_t I, typename... Args>
+    constexpr T& emplace(Args&&... args) requires(I == 0)
+    {
+        return *std::construct_at<T>(std::addressof(first),
+                                     static_cast<Args&&>(args)...);
+    }
+
+    template<std::size_t I, typename... Args>
+    constexpr decltype(auto) emplace(Args&&... args) requires(I != 0)
+    {
+        return rest.template emplace<I - 1>(static_cast<Args&&>(args)...);
+    }
+
+    template<std::size_t I>
+    constexpr void destroy() noexcept requires(I == 0)
+    {
+        first.~T();
+    }
+
+    template<std::size_t I>
+    constexpr void destroy() noexcept requires(I != 0)
+    {
+        rest.template destroy<I - 1>();
     }
 };
 } // namespace ely

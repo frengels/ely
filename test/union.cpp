@@ -48,4 +48,50 @@ TEST_CASE("Union")
 }
 
 TEST_CASE("Variant")
-{}
+{
+    SUBCASE("single-entry")
+    {
+        // should be the same size as the underlying data
+        auto v = ely::variant::Variant<bool>{};
+        static_assert(sizeof(v) == sizeof(bool));
+    }
+
+    SUBCASE("construct")
+    {
+        auto v = ely::variant::Variant<int, float, std::string>{"hello world"};
+
+        REQUIRE_EQ(v.index(), 2); // require std::string
+    }
+
+    SUBCASE("construct in_place_type")
+    {
+        auto v = ely::variant::Variant<int, float, bool>(
+            std::in_place_type<float>, 5);
+        REQUIRE_EQ(v.index(), 1);
+
+        SUBCASE("copy")
+        {
+            auto v2 = v;
+
+            REQUIRE_EQ(v2.index(), v.index());
+
+            v2 = std::move(v);
+        }
+    }
+
+    SUBCASE("nontrivial")
+    {
+        auto v1 = ely::variant::Variant<std::string>("Hello world");
+
+        REQUIRE_EQ(sizeof(v1), sizeof(std::string));
+
+        SUBCASE("copy")
+        {
+            auto v2 = v1;
+
+            REQUIRE_EQ(v2.index(), v1.index());
+
+            v1 = std::move(v2);
+        }
+    }
+}
