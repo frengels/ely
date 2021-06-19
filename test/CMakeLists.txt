@@ -1,7 +1,8 @@
 set(ELY_TESTS
     ilist
     memory
-    union)
+    union
+    storage)
 
 find_package(doctest REQUIRED)
 
