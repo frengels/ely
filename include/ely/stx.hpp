@@ -226,81 +226,56 @@ public:
     }
 };
 
-class Eof
+class Eof : public ely::TokenVariant<token::Eof>
 {
 private:
-    ely::TokenVariant<token::Eof> tok_;
+    using base = ely::TokenVariant<token::Eof>;
 
 public:
     constexpr Eof(AtmosphereList<AtmospherePosition::Leading>&&  leading,
                   AtmosphereList<AtmospherePosition::Trailing>&& trailing,
                   token::Eof&&                                   eof)
-        : tok_(std::move(leading),
+        : base(std::move(leading),
                std::move(trailing),
                std::in_place_type<token::Eof>,
                std::move(eof))
     {}
 
-    constexpr const ely::TokenVariant<token::Eof>& token() const&
-    {
-        return tok_;
-    }
-
     constexpr bool is_poison() const
     {
         return false;
     }
-
-    constexpr std::size_t size() const noexcept
-    {
-        return token().size();
-    }
-
-    constexpr std::size_t leading_size() const
-    {
-        return token().leading_size();
-    }
-
-    constexpr std::size_t trailing_size() const
-    {
-        return token().trailing_size();
-    }
-
-    constexpr std::size_t inner_size() const noexcept
-    {
-        return token().inner_size();
-    }
 };
 
-class Syntax
+class Syntax : public ely::Variant<List, Literal, Identifier, Eof>
 {
 private:
-    ely::Variant<List, Literal, Identifier, Eof> variant_;
+    using base_ = ely::Variant<List, Literal, Identifier, Eof>;
 
 public:
     template<typename T, typename... Args>
     explicit constexpr Syntax(std::in_place_type_t<T> t, Args&&... args)
-        : variant_(t, static_cast<Args&&>(args)...)
+        : base_(t, static_cast<Args&&>(args)...)
     {}
 
     constexpr bool is_list() const
     {
-        return holds_alternative<List>(variant_);
+        return holds_alternative<List>(*this);
     }
 
     constexpr bool is_literal() const
     {
-        return holds_alternative<Literal>(variant_);
+        return holds_alternative<Literal>(*this);
     }
 
     constexpr bool is_identifier() const
     {
-        return holds_alternative<Identifier>(variant_);
+        return holds_alternative<Identifier>(*this);
     }
 
     constexpr bool is_eof() const
     {
-        return holds_alternative<Eof>(variant_);
+        return holds_alternative<Eof>(*this);
     }
 
     explicit constexpr operator bool() const noexcept
@@ -308,29 +283,7 @@ public:
         return !is_eof();
     }
 
-    template<typename F>
-    constexpr auto visit(F&& fn) & -> decltype(auto)
-    {
-        return ely::visit(variant_, static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const& -> decltype(auto)
-    {
-        return ely::visit(variant_, static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) && -> decltype(auto)
-    {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const&& -> decltype(auto)
-    {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
-    }
+    using base_::visit;
 
     constexpr bool is_poison() const noexcept
     {
