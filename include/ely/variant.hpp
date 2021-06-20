@@ -385,6 +385,62 @@ public:
     {
         return holds_alternative<I>(v);
     }
+
+    template<typename F,
+             typename R = std::invoke_result_t<
+                 F,
+                 decltype(get_unchecked<0>(std::declval<Variant&>()))>>
+    constexpr R visit(F&& fn) &
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(*this));
+            },
+            index());
+    }
+
+    template<typename F,
+             typename R = std::invoke_result_t<
+                 F,
+                 decltype(get_unchecked<0>(std::declval<const Variant&>()))>>
+    constexpr R visit(F&& fn) const&
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(*this));
+            },
+            index());
+    }
+
+    template<typename F,
+             typename R = std::invoke_result_t<
+                 F,
+                 decltype(get_unchecked<0>(std::declval<Variant&&>()))>>
+    constexpr R visit(F&& fn) &&
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(std::move(*this)));
+            },
+            index());
+    }
+
+    template<typename F,
+             typename R = std::invoke_result_t<
+                 F,
+                 decltype(get_unchecked<0>(std::declval<const Variant&&>()))>>
+    constexpr R visit(F&& fn) const&&
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(std::move(*this)));
+            },
+            index());
+    }
 };
 
 // this is required to get gcc to see the get_unchecked friend functions
