@@ -83,71 +83,6 @@ template<typename U, typename... Ts>
 static constexpr std::size_t ResolveOverloadIndex =
     decltype(Overload<Ts...>()(std::declval<U>()))::value;
 
-/*
-template<bool Valid, typename R>
-struct Dispatcher;
-
-template<typename R>
-struct Dispatcher<false, R>
-{
-    template<std::size_t I, typename V, typename F>
-    ELY_ALWAYS_INLINE static constexpr R case_(V&&, F&&)
-    {
-        __builtin_unreachable();
-    }
-
-    template<std::size_t B, typename V, typename F>
-    ELY_ALWAYS_INLINE static constexpr R switch_(V&&, F&&)
-    {
-        __builtin_unreachable();
-    }
-};
-
-template<typename R>
-struct Dispatcher<true, R>
-{
-    template<std::size_t I, typename V, typename F>
-    ELY_ALWAYS_INLINE static constexpr R case_(V&& fn, F&& v)
-    {
-        using Expected = R;
-        using Actual   = decltype(std::invoke(
-            static_cast<F&&>(fn),
-            static_cast<V&&>(v).template get_unchecked<I>()));
-        static_assert(std::is_same_v<Expected, Actual>,
-                      "visit requires a single return type");
-        return std::invoke(static_cast<F&&>(fn),
-                           static_cast<V&&>(v).template get_unchecked<I>());
-    }
-
-    template<std::size_t B, typename V, typename F>
-    ELY_ALWAYS_INLINE static constexpr R switch_(V&& fn, F&& v)
-    {
-        constexpr auto size = std::variant_size_v<std::remove_cvref_t<V>>;
-
-#define DISPATCH(idx)                                                          \
-    case B + idx:                                                              \
-        return Dispatcher<(B + idx) < size, R>::template case_<B + idx>(       \
-            static_cast<F&&>(fn), static_cast<V&&>(v))
-
-        switch (v.index())
-        {
-            DISPATCH(0);
-            DISPATCH(1);
-            DISPATCH(2);
-            DISPATCH(3);
-            DISPATCH(4);
-            DISPATCH(5);
-            DISPATCH(6);
-            DISPATCH(7);
-#undef DISPATCH
-        default:
-            return Dispatcher<(B + 8) < size, R>::template switch_<B + 8>(
-                static_cast<F&&>(fn), static_cast<V&&>(v));
-        }
-    }
-};
-*/
-
 template<bool Valid, typename R, std::size_t N>
 struct Dispatcher;
 
@@ -298,7 +233,7 @@ public:
         : union_(dispatch_index<sizeof...(Ts)>(
               [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
                   return union_type(std::in_place_index<I>,
-                                    other.template get_unchecked<I>());
+                                    get_unchecked<I>(other));
               },
               other.index())),
           index_(other.index_)
@@ -315,9 +250,8 @@ public:
                         !(std::is_trivially_move_constructible_v<Ts> && ...))
         : union_(dispatch_index<sizeof...(Ts)>(
               [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                  return union_type(
-                      std::in_place_index<I>,
-                      std::move(other).template get_unchecked<I>());
+                  return union_type(std::in_place_index<I>,
+                                    get_unchecked<I>(std::move(other)));
               },
               other.index())),
           index_(other.index_)
@@ -342,7 +276,7 @@ public:
         index_ = other.index_;
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template emplace<I>(other.template get_unchecked<I>());
+                union_.template emplace<I>(get_unchecked<I>(other));
             },
             index());
 
@@ -369,8 +303,7 @@ public:
 
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template emplace<I>(
-                    std::move(other).template get_unchecked<I>());
+                union_.template emplace<I>(get_unchecked<I>(std::move(other)));
             },
             index());
 
@@ -391,33 +324,33 @@ public:
             index());
     }
 
-    constexpr std::size_t index() const
+    constexpr std::size_t index() const noexcept
     {
         return index_;
     }
 
     template<std::size_t I>
-    constexpr decltype(auto) get_unchecked() & noexcept
+    friend constexpr decltype(auto) get_unchecked(Variant& v) noexcept
     {
-        return union_.template get_unchecked<I>();
+        return v.union_.template get_unchecked<I>();
     }
 
     template<std::size_t I>
-    constexpr decltype(auto) get_unchecked() const& noexcept
+    friend constexpr decltype(auto) get_unchecked(const Variant& v) noexcept
     {
-        return union_.template get_unchecked<I>();
+        return v.union_.template get_unchecked<I>();
     }
 
     template<std::size_t I>
-    constexpr decltype(auto) get_unchecked() && noexcept
+    friend constexpr decltype(auto) get_unchecked(Variant&& v) noexcept
     {
-        return static_cast<union_type&&>(union_).template get_unchecked<I>();
+        return static_cast<union_type&&>(v.union_).template get_unchecked<I>();
     }
 
     template<std::size_t I>
-    constexpr decltype(auto) get_unchecked() const&& noexcept
+    friend constexpr decltype(auto) get_unchecked(const Variant&& v) noexcept
     {
-        return static_cast<const union_type&&>(union_)
+        return static_cast<const union_type&&>(v.union_)
             .template get_unchecked<I>();
     }
 
@@ -452,28 +385,39 @@ public:
     {
         return holds_alternative<I>(v);
     }
-
-    template<typename V, typename F>
-    friend constexpr decltype(auto)
-    visit(V&& v,
-          F&& fn) requires(std::same_as<std::remove_cvref_t<V>, Variant<Ts...>>)
-    {
-        using R = decltype(std::invoke(
-            static_cast<F&&>(fn),
-            static_cast<V&&>(v).template get_unchecked<0>()));
-        return dispatch_index<sizeof...(Ts)>(
-            [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
-                return std::invoke(
-                    static_cast<F&&>(fn),
-                    static_cast<V&&>(v).template get_unchecked<I>());
-            },
-            v.index());
-    }
 };
-} // namespace variant
 
-// template<typename... Ts>
-// using Variant = std::variant<Ts...>;
+// this is required to get gcc to see the get_unchecked friend functions
+template<std::size_t, typename... Ts>
+void get_unchecked(Variant<Ts...>);
+
+namespace detail
+{
+template<typename T>
+struct is_variant : std::false_type
+{};
+
+template<typename... Ts>
+struct is_variant<ely::variant::Variant<Ts...>> : std::true_type
+{};
+} // namespace detail
+
+template<
+    typename V,
+    typename F,
+    typename R =
+        std::invoke_result_t<F, decltype(get_unchecked<0>(std::declval<V>()))>>
+constexpr R
+visit(V&& v, F&& fn) requires(detail::is_variant<std::remove_cvref_t<V>>::value)
+{
+    return dispatch_index<std::variant_size_v<std::remove_cvref_t<V>>>(
+        [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+            return std::invoke(static_cast<F&&>(fn),
+                               get_unchecked<I>(static_cast<V&&>(v)));
+        },
+        v.index());
+}
+} // namespace variant
 
 template<typename... Ts>
 using Variant = variant::Variant<Ts...>;
@@ -481,34 +425,8 @@ using Variant = variant::Variant<Ts...>;
 template<typename V, typename F>
 constexpr decltype(auto) visit(V&& v, F&& fn)
 {
-    return visit(static_cast<V&&>(v), static_cast<F&&>(fn));
+    return ely::variant::visit(static_cast<V&&>(v), static_cast<F&&>(fn));
 }
-
-/*
-template<typename F, typename... Ts>
-constexpr auto visit(Variant<Ts...>& var, F&& fn) -> decltype(auto)
-{
-    return std::visit(static_cast<F&&>(fn), var);
-}
-
-template<typename F, typename... Ts>
-constexpr auto visit(const Variant<Ts...>& var, F&& fn) -> decltype(auto)
-{
-    return std::visit(static_cast<F&&>(fn), var);
-}
-
-template<typename F, typename... Ts>
-constexpr auto visit(Variant<Ts...>&& var, F&& fn) -> decltype(auto)
-{
-    return std::visit(static_cast<F&&>(fn), std::move(var));
-}
-
-template<typename F, typename... Ts>
-constexpr auto visit(const Variant<Ts...>&& var, F&& fn) -> decltype(auto)
-{
-    return std::visit(static_cast<F&&>(fn), std::move(var));
-}
-*/
 } // namespace ely
 
 namespace std
