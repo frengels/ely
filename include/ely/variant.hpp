@@ -304,15 +304,15 @@ public:
           index_(other.index_)
     {}
 
-    Variant(Variant&&) requires((std::is_copy_constructible_v<Ts> && ...) &&
+    Variant(Variant&&) requires((std::is_move_constructible_v<Ts> && ...) &&
                                 (std::is_trivially_move_constructible_v<Ts> &&
                                  ...))  = default;
-    Variant(Variant&&) requires(!(std::is_copy_constructible_v<Ts> &&
+    Variant(Variant&&) requires(!(std::is_move_constructible_v<Ts> &&
                                   ...)) = delete;
     constexpr Variant(Variant&& other) noexcept(
-        (std::is_nothrow_copy_constructible_v<Ts> &&
-         ...)) requires((std::is_copy_constructible_v<Ts> && ...) &&
-                        !(std::is_trivially_copy_constructible_v<Ts> && ...))
+        (std::is_nothrow_move_constructible_v<Ts> &&
+         ...)) requires((std::is_move_constructible_v<Ts> && ...) &&
+                        !(std::is_trivially_move_constructible_v<Ts> && ...))
         : union_(dispatch_index<sizeof...(Ts)>(
               [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
                   return union_type(
