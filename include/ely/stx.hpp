@@ -121,60 +121,33 @@ public:
     constexpr void emplace_back(Args&&... args);
 };
 
-class Literal
+class Literal : public ely::TokenVariant<token::IntLit,
+                                         token::FloatLit,
+                                         token::CharLit,
+                                         token::StringLit,
+                                         token::KeywordLit,
+                                         token::BoolLit,
+                                         token::UnterminatedStringLit>
 {
 private:
-    ely::TokenVariant<token::IntLit,
-                      token::FloatLit,
-                      token::CharLit,
-                      token::StringLit,
-                      token::KeywordLit,
-                      token::BoolLit,
-                      token::UnterminatedStringLit>
-        lit_;
+    using base_ = ely::TokenVariant<token::IntLit,
+                                    token::FloatLit,
+                                    token::CharLit,
+                                    token::StringLit,
+                                    token::KeywordLit,
+                                    token::BoolLit,
+                                    token::UnterminatedStringLit>;
 
 public:
-    template<typename T, typename... Args>
-    explicit constexpr Literal(
-        ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
-        ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-        std::in_place_type_t<T>                             t,
-        Args&&... args)
-        : lit_(std::move(leading),
-               std::move(trailing),
-               t,
-               static_cast<Args&&>(args)...)
-    {}
+    using base_::base_;
 
-    constexpr const auto& token() const&
-    {
-        return lit_;
-    }
-
-    constexpr bool is_poison() const noexcept
-    {
-        return lit_.is_poison();
-    }
-
-    constexpr std::size_t size() const noexcept
-    {
-        return token().size();
-    }
-
-    constexpr std::size_t leading_size() const
-    {
-        return token().leading_size();
-    }
-
-    constexpr std::size_t trailing_size() const
-    {
-        return token().trailing_size();
-    }
-
-    constexpr std::size_t inner_size() const
-    {
-        return token().inner_size();
-    }
+    using base_::inner_size;
+    using base_::is_poison;
+    using base_::leading_size;
+    using base_::size;
+    using base_::trailing_size;
+    using base_::visit;
+    using base_::visit_all;
 };
 
 class Identifier
