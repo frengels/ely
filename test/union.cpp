@@ -9,6 +9,13 @@
 class NoData
 {};
 
+class Inheriting : public ely::variant::Variant<int, float, std::string>
+{
+    using base = ely::variant::Variant<int, float, std::string>;
+
+    using base::base;
+};
+
 TEST_CASE("Union")
 {
     auto empty = ely::Union<>{};
@@ -42,8 +49,8 @@ TEST_CASE("Union")
                                                      "Hello");
 
         static_assert(!std::is_trivial_v<decltype(u)>);
-        // can't copy because not all members are trivial
-        static_assert(!std::is_copy_constructible_v<decltype(u)>);
+        // copy must be allowed to make variant copy constructible as well
+        static_assert(std::is_copy_constructible_v<decltype(u)>);
     }
 }
 
@@ -61,6 +68,17 @@ TEST_CASE("Variant")
         auto v = ely::variant::Variant<int, float, std::string>{"hello world"};
 
         REQUIRE_EQ(v.index(), 2); // require std::string
+
+        REQUIRE(visit(v, [](auto x) {
+            if constexpr (std::is_same_v<std::string, decltype(x)>)
+            {
+                return x == "hello world";
+            }
+            else
+            {
+                return false;
+            }
+        }));
     }
 
     SUBCASE("construct in_place_type")
@@ -93,5 +111,12 @@ TEST_CASE("Variant")
 
             v1 = std::move(v2);
         }
+    }
+
+    SUBCASE("inherit")
+    {
+        auto i = Inheriting("hello world");
+
+        REQUIRE_EQ(i.index(), 2);
     }
 }
