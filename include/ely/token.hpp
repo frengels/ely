@@ -421,15 +421,13 @@ namespace token
 } // namespace token
 
 template<typename... Toks>
-class TokenVariant
+class TokenVariant : public ely::Variant<Toks...>
 {
-public:
-    using VariantType = ely::Variant<Toks...>;
+    using base = ely::Variant<Toks...>;
 
 private:
     AtmosphereList<AtmospherePosition::Leading>  leading_;
     AtmosphereList<AtmospherePosition::Trailing> trailing_;
-    VariantType                                  variant_;
 
 public:
     template<typename T, typename... Args>
@@ -439,40 +437,18 @@ public:
         std::in_place_type_t<T>                        t,
         Args&&... args)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
-          variant_(t, static_cast<Args&&>(args)...)
+          base(t, static_cast<Args&&>(args)...)
     {}
 
     constexpr TokenVariant(
         AtmosphereList<AtmospherePosition::Leading>&&  leading,
         AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-        VariantType&&                                  tok)
+        base&&                                         tok)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
-          variant_(std::move(tok))
+          base(std::move(tok))
     {}
 
-    template<typename F>
-    constexpr auto visit(F&& fn) & -> decltype(auto)
-    {
-        return ely::visit(variant_, static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const& -> decltype(auto)
-    {
-        return ely::visit(variant_, static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) && -> decltype(auto)
-    {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
-    }
-
-    template<typename F>
-    constexpr auto visit(F&& fn) const&& -> decltype(auto)
-    {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
-    }
+    using base::visit;
 
     template<typename F>
     constexpr auto visit_all(F&& fn) & -> decltype(auto)
@@ -504,7 +480,7 @@ public:
     template<typename F>
     constexpr auto visit_all(F&& fn) const&& -> decltype(auto)
     {
-        return std::move(*this).visit([&](auto&& tok) -> decltype(auto) {
+        return std::move(*this).visit([&](const auto&& tok) -> decltype(auto) {
             return std::invoke(static_cast<F&&>(fn),
                                std::move(tok),
                                std::move(leading_),
@@ -596,33 +572,34 @@ Token make_token(AtmosphereList<AtmospherePosition::Leading>&&  leading,
                  AtmosphereList<AtmospherePosition::Trailing>&& trailing,
                  Lexeme<I>                                      lex)
 {
-    return Token{std::move(leading), std::move(trailing), [&] {
 
 #define DISPATCH(tok)                                                          \
     case LexemeKind::tok:                                                      \
-        return typename Token::VariantType(std::in_place_type<token::tok>, lex);
-                     switch (lex.kind)
-                     {
-                         DISPATCH(LParen);
-                         DISPATCH(RParen);
-                         DISPATCH(LBracket);
-                         DISPATCH(RBracket);
-                         DISPATCH(LBrace);
-                         DISPATCH(RBrace);
-                         DISPATCH(Identifier);
-                         DISPATCH(IntLit);
-                         DISPATCH(FloatLit);
-                         DISPATCH(CharLit);
-                         DISPATCH(StringLit);
-                         DISPATCH(KeywordLit);
-                         DISPATCH(BoolLit);
-                         DISPATCH(InvalidNumberSign);
-                         DISPATCH(UnterminatedStringLit);
-                         DISPATCH(Eof);
-                     default:
-                         __builtin_unreachable();
-                     }
+        return Token(std::move(leading),                                       \
+                     std::move(trailing),                                      \
+                     std::in_place_type<token::tok>,                           \
+                     lex);
+    switch (lex.kind)
+    {
+        DISPATCH(LParen);
+        DISPATCH(RParen);
+        DISPATCH(LBracket);
+        DISPATCH(RBracket);
+        DISPATCH(LBrace);
+        DISPATCH(RBrace);
+        DISPATCH(Identifier);
+        DISPATCH(IntLit);
+        DISPATCH(FloatLit);
+        DISPATCH(CharLit);
+        DISPATCH(StringLit);
+        DISPATCH(KeywordLit);
+        DISPATCH(BoolLit);
+        DISPATCH(InvalidNumberSign);
+        DISPATCH(UnterminatedStringLit);
+        DISPATCH(Eof);
+    default:
+        __builtin_unreachable();
+    }
 #undef DISPATCH
-                 }()};
 }
 } // namespace ely

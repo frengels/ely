@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    reference read(ely::token::LParen&&                                lp,
+    reference read(ely::token::LParen                                  lp,
                    ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
                    ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
     {
@@ -82,6 +82,7 @@ private:
                 }
                 else
                 {
+                    static_assert(!std::is_const_v<decltype(tok)>);
                     values.emplace_back(read(std::move(tok),
                                              std::move(tok_leading),
                                              std::move(tok_trailing)));
