@@ -178,9 +178,11 @@ public:
 };
 
 class Identifier
+    : public ely::TokenVariant<token::Identifier, token::InvalidNumberSign>
 {
 private:
-    ely::TokenVariant<token::Identifier, token::InvalidNumberSign> tok_;
+    using base_ =
+        ely::TokenVariant<token::Identifier, token::InvalidNumberSign>;
 
 public:
     template<typename T, typename... Args>
@@ -189,56 +191,34 @@ public:
         ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing,
         std::in_place_type_t<T>                             t,
         Args&&... args)
-        : tok_(std::move(leading),
-               std::move(trailing),
-               t,
-               static_cast<Args&&>(args)...)
+        : base_(std::move(leading),
+                std::move(trailing),
+                t,
+                static_cast<Args&&>(args)...)
     {}
 
-    constexpr const auto& token() const&
-    {
-        return tok_;
-    }
-
-    constexpr bool is_poison() const noexcept
-    {
-        return tok_.is_poison();
-    }
-
-    constexpr std::size_t size() const noexcept
-    {
-        return token().size();
-    }
-
-    constexpr std::size_t leading_size() const
-    {
-        return token().leading_size();
-    }
-
-    constexpr std::size_t trailing_size() const
-    {
-        return token().trailing_size();
-    }
-
-    constexpr std::size_t inner_size() const noexcept
-    {
-        return token().inner_size();
-    }
+    using base_::inner_size;
+    using base_::is_poison;
+    using base_::leading_size;
+    using base_::size;
+    using base_::trailing_size;
+    using base_::visit;
+    using base_::visit_all;
 };
 
 class Eof : public ely::TokenVariant<token::Eof>
 {
 private:
-    using base = ely::TokenVariant<token::Eof>;
+    using base_ = ely::TokenVariant<token::Eof>;
 
 public:
     constexpr Eof(AtmosphereList<AtmospherePosition::Leading>&&  leading,
                   AtmosphereList<AtmospherePosition::Trailing>&& trailing,
                   token::Eof&&                                   eof)
-        : base(std::move(leading),
-               std::move(trailing),
-               std::in_place_type<token::Eof>,
-               std::move(eof))
+        : base_(std::move(leading),
+                std::move(trailing),
+                std::in_place_type<token::Eof>,
+                std::move(eof))
     {}
 
     constexpr bool is_poison() const
