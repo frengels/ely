@@ -78,7 +78,7 @@ struct CommonAvailability
 
 namespace union2
 {
-class Access
+struct Access
 {
     template<typename U>
     static constexpr auto&& get_unchecked(U&& u,
@@ -106,6 +106,8 @@ class UnionImpl<A>
     template<typename T, typename... Ts>                                       \
     class UnionImpl<available, T, Ts...>                                       \
     {                                                                          \
+        friend Access;                                                         \
+                                                                               \
         union                                                                  \
         {                                                                      \
             T                           first_;                                \
@@ -148,6 +150,31 @@ using Union =
 
 namespace union_
 {
+
+struct Access
+{
+    template<typename U>
+    static constexpr decltype(auto)
+    get_unchecked(U&& u, std::in_place_index_t<0>) noexcept
+    {
+        return (static_cast<U&&>(u).first);
+    }
+
+    template<typename U, std::size_t I>
+    static constexpr decltype(auto)
+    get_unchecked(U&& u, std::in_place_index_t<I>) noexcept
+    {
+        return get_unchecked((static_cast<U&&>(u).rest),
+                             std::in_place_index<I - 1>);
+    }
+};
+
+template<std::size_t I, typename U>
+constexpr decltype(auto) get_unchecked(U&& u) noexcept
+{
+    return Access::get_unchecked(static_cast<U&&>(u), std::in_place_index<I>);
+}
+
 template<typename... Ts>
 class Union;
 
@@ -158,6 +185,8 @@ class Union<>
 template<typename T, typename... Rest>
 class Union<T, Rest...>
 {
+    friend struct Access;
+
 private:
     using first_type = T;
     using rest_type  = Union<Rest...>;
@@ -208,15 +237,13 @@ private:
 public:
     Union() = default;
 
-    template<std::size_t I, typename... Args>
-    explicit constexpr Union(std::in_place_index_t<I>,
-                             Args&&... args) requires(I == 0)
+    template<typename... Args>
+    explicit constexpr Union(std::in_place_index_t<0>, Args&&... args)
         : first(static_cast<Args&&>(args)...)
     {}
 
     template<std::size_t I, typename... Args>
-    explicit constexpr Union(std::in_place_index_t<I>,
-                             Args&&... args) requires(I != 0)
+    explicit constexpr Union(std::in_place_index_t<I>, Args&&... args)
         : rest(std::in_place_index<I - 1>, static_cast<Args&&>(args)...)
     {}
 
@@ -257,64 +284,6 @@ public:
     {}
     ~Union() requires(!destructible) = delete;
 
-    template<std::size_t I>
-    constexpr T& get_unchecked() & noexcept requires(I == 0)
-    {
-        return static_cast<T&>(first);
-    }
-
-    template<std::size_t I>
-    constexpr const T& get_unchecked() const& noexcept requires(I == 0)
-    {
-        return static_cast<const T&>(first);
-    }
-
-    template<std::size_t I>
-    constexpr T&& get_unchecked() && noexcept requires(I == 0)
-    {
-        return static_cast<T&&>(first);
-    }
-
-    template<std::size_t I>
-    constexpr const T&& get_unchecked() const&& noexcept requires(I == 0)
-    {
-        return static_cast<const T&&>(first);
-    }
-
-    template<std::size_t I>
-    constexpr auto get_unchecked() & noexcept
-        -> decltype(static_cast<rest_type&>(rest)
-                        .template get_unchecked<I - 1>()) requires(I != 0)
-    {
-        return static_cast<rest_type&>(rest).template get_unchecked<I - 1>();
-    }
-
-    template<std::size_t I>
-    constexpr auto get_unchecked() const& noexcept
-        -> decltype(static_cast<const rest_type&>(rest)
-                        .template get_unchecked<I - 1>()) requires(I != 0)
-    {
-        return static_cast<const rest_type&>(rest)
-            .template get_unchecked<I - 1>();
-    }
-
-    template<std::size_t I>
-    constexpr auto get_unchecked() && noexcept
-        -> decltype(static_cast<rest_type&&>(rest)
-                        .template get_unchecked<I - 1>()) requires(I != 0)
-    {
-        return static_cast<rest_type&&>(rest).template get_unchecked<I - 1>();
-    }
-
-    template<std::size_t I>
-    constexpr auto get_unchecked() const&& noexcept
-        -> decltype(static_cast<const rest_type&&>(rest)
-                        .template get_unchecked<I - 1>()) requires(I != 0)
-    {
-        return static_cast<const rest_type&&>(rest)
-            .template get_unchecked<I - 1>();
-    }
-
     template<std::size_t I, typename... Args>
     constexpr T& emplace(Args&&... args) requires(I == 0)
     {
@@ -341,6 +310,11 @@ public:
     }
 };
 } // namespace union_
+
+namespace detail
+{
+using UnionAccess = union_::Access;
+}
 
 template<typename... Ts>
 using Union = union_::Union<Ts...>;
