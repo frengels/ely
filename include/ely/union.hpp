@@ -164,6 +164,8 @@ template<ely::detail::Availability A>
 class UnionDestructor<A>
 {
 public:
+    /// only participates if the first element is trivially default
+    /// constructible
     UnionDestructor() = default;
 };
 
