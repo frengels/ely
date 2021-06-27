@@ -5,6 +5,9 @@
 
 namespace ely
 {
+template<std::size_t I, typename... Ts>
+using nth_element_t = std::tuple_element_t<I, std::tuple<Ts...>>;
+
 namespace detail
 {
 enum class Availability
@@ -78,6 +81,12 @@ struct CommonAvailability
 
 namespace union2
 {
+template<ely::detail::Availability A, typename... Ts>
+class UnionDestructor;
+
+template<typename... Ts>
+class Union;
+
 struct Access
 {
     template<typename U>
@@ -91,231 +100,148 @@ struct Access
     static constexpr auto&& get_unchecked(U&& u,
                                           std::in_place_index_t<I>) noexcept
     {
-        return get_unchecked(static_cast<U&&>(u), std::in_place_index<I - 1>);
-    }
-};
-
-template<ely::detail::Availability A, typename... Ts>
-class UnionImpl;
-
-template<ely::detail::Availability A>
-class UnionImpl<A>
-{};
-
-#define UNION_IMPL(available, destructor)                                      \
-    template<typename T, typename... Ts>                                       \
-    class UnionImpl<available, T, Ts...>                                       \
-    {                                                                          \
-        friend Access;                                                         \
-                                                                               \
-        union                                                                  \
-        {                                                                      \
-            T                           first_;                                \
-            UnionImpl<available, Ts...> rest_;                                 \
-        };                                                                     \
-                                                                               \
-        template<typename... Args>                                             \
-        explicit constexpr UnionImpl(std::in_place_index_t<0>, Args&&... args) \
-            : first_(static_cast<Args&&>(args)...)                             \
-        {}                                                                     \
-                                                                               \
-        template<std::size_t Idx, typename... Args>                            \
-        explicit constexpr UnionImpl(std::in_place_index_t<Idx>,               \
-                                     Args&&... args)                           \
-            : rest_(std::in_place_index<Idx - 1>,                              \
-                    static_cast<Args&&>(args)...)                              \
-        {}                                                                     \
-                                                                               \
-        UnionImpl(const UnionImpl&) = default;                                 \
-        UnionImpl(UnionImpl&&)      = default;                                 \
-                                                                               \
-        destructor                                                             \
-                                                                               \
-                   UnionImpl&                                                  \
-                   operator=(const UnionImpl&) = default;                      \
-        UnionImpl& operator=(UnionImpl&&) = default;                           \
-    }
-
-UNION_IMPL(ely::detail::Availability::TriviallyAvailable,
-           ~UnionImpl() = default;);
-UNION_IMPL(ely::detail::Availability::Available, ~UnionImpl(){});
-UNION_IMPL(ely::detail::Availability::Unavailable, ~UnionImpl() = delete;);
-
-#undef UNION_IMPL
-
-template<typename... Ts>
-using Union =
-    UnionImpl<ely::detail::CommonAvailability<Ts...>::destructible, Ts...>;
-} // namespace union2
-
-namespace union_
-{
-
-struct Access
-{
-    template<typename U>
-    static constexpr decltype(auto)
-    get_unchecked(U&& u, std::in_place_index_t<0>) noexcept
-    {
-        return (static_cast<U&&>(u).first);
-    }
-
-    template<typename U, std::size_t I>
-    static constexpr decltype(auto)
-    get_unchecked(U&& u, std::in_place_index_t<I>) noexcept
-    {
-        return get_unchecked((static_cast<U&&>(u).rest),
+        return get_unchecked((static_cast<U&&>(u).rest_),
                              std::in_place_index<I - 1>);
     }
 };
 
-template<std::size_t I, typename U>
-constexpr decltype(auto) get_unchecked(U&& u) noexcept
+namespace detail
+{
+template<typename T>
+struct is_union : std::false_type
+{};
+
+template<typename... Ts>
+struct is_union<::ely::union2::Union<Ts...>> : std::true_type
+{};
+} // namespace detail
+
+template<std::size_t I,
+         typename U,
+         typename =
+             std::enable_if_t<detail::is_union<std::remove_cvref_t<U>>::value>>
+constexpr auto&& get_unchecked(U&& u) noexcept
 {
     return Access::get_unchecked(static_cast<U&&>(u), std::in_place_index<I>);
 }
 
-template<typename... Ts>
-class Union;
-
-template<>
-class Union<>
-{};
-
-template<typename T, typename... Rest>
-class Union<T, Rest...>
+template<std::size_t I, typename... Ts>
+constexpr std::enable_if_t<
+    std::is_destructible<ely::nth_element_t<I, Ts...>>::value>
+destroy(Union<Ts...>& u) noexcept
 {
-    friend struct Access;
+    using ty = ely::nth_element_t<I, Ts...>;
 
-private:
-    using first_type = T;
-    using rest_type  = Union<Rest...>;
-
-    static constexpr auto rest_size = sizeof...(Rest);
-
-    static constexpr bool destructible =
-        std::is_destructible_v<T> && (std::is_destructible_v<Rest> && ...);
-    static constexpr bool trivially_destructible =
-        std::is_trivially_destructible_v<T> &&
-        (std::is_trivially_destructible_v<Rest> && ...);
-
-    static constexpr bool copy_construct =
-        std::is_copy_constructible_v<T> &&
-        (std::is_copy_constructible_v<Rest> && ...);
-    static constexpr bool trivially_copy_construct =
-        std::is_trivially_copy_constructible_v<T> &&
-        (std::is_trivially_copy_constructible_v<Rest> && ...);
-
-    static constexpr bool move_construct =
-        std::is_move_constructible_v<T> &&
-        (std::is_move_constructible_v<Rest> && ...);
-    static constexpr bool trivially_move_construct =
-        std::is_trivially_move_constructible_v<T> &&
-        (std::is_trivially_move_constructible_v<Rest> && ...);
-
-    static constexpr bool copy_assign =
-        std::is_copy_assignable_v<T> &&
-        (std::is_copy_assignable_v<Rest> && ...);
-    static constexpr bool trivially_copy_assign =
-        std::is_trivially_copy_assignable_v<T> &&
-        (std::is_trivially_copy_assignable_v<Rest> && ...);
-
-    static constexpr bool move_assign =
-        std::is_move_assignable_v<T> &&
-        (std::is_move_assignable_v<Rest> && ...);
-    static constexpr bool trivially_move_assign =
-        std::is_trivially_move_assignable_v<T> &&
-        (std::is_trivially_move_assignable_v<Rest> && ...);
-
-private:
-    union
+    if constexpr (!std::is_trivially_destructible<ty>::value)
     {
-        first_type first;
-        rest_type  rest;
-    };
-
-public:
-    Union() = default;
-
-    template<typename... Args>
-    explicit constexpr Union(std::in_place_index_t<0>, Args&&... args)
-        : first(static_cast<Args&&>(args)...)
-    {}
-
-    template<std::size_t I, typename... Args>
-    explicit constexpr Union(std::in_place_index_t<I>, Args&&... args)
-        : rest(std::in_place_index<I - 1>, static_cast<Args&&>(args)...)
-    {}
-
-    Union(const Union&) requires(copy_construct&& trivially_copy_construct) =
-        default;
-    Union(const Union&) requires(!copy_construct) = delete;
-    constexpr Union(const Union&) noexcept
-        requires(copy_construct && !trivially_copy_construct)
-    {}
-
-    Union(Union&&) requires(move_construct&& trivially_move_construct) =
-        default;
-    Union(Union&&) requires(!move_construct) = delete;
-    constexpr Union(Union&&) noexcept
-        requires(move_construct && !trivially_move_construct)
-    {}
-
-    Union& operator                          =(const Union&) requires(
-        copy_assign&& trivially_copy_assign) = default;
-    Union&           operator=(const Union&) requires(!copy_assign) = delete;
-    constexpr Union& operator=(const Union&) noexcept
-        requires(copy_assign && !trivially_copy_assign)
-    {
-        return *this;
+        std::destroy_at<ty>(std::addressof(get_unchecked<I>(u)));
     }
-
-    Union&
-    operator=(Union&&) requires(move_assign&& trivially_move_assign) = default;
-    Union&           operator=(Union&&) requires(!move_assign) = delete;
-    constexpr Union& operator=(Union&&) noexcept
-        requires(move_assign && !trivially_move_assign)
-    {
-        return *this;
-    }
-
-    ~Union() requires(destructible&& trivially_destructible) = default;
-    ~Union() requires(destructible && !trivially_destructible)
-    {}
-    ~Union() requires(!destructible) = delete;
-
-    template<std::size_t I, typename... Args>
-    constexpr T& emplace(Args&&... args) requires(I == 0)
-    {
-        return *std::construct_at<T>(std::addressof(first),
-                                     static_cast<Args&&>(args)...);
-    }
-
-    template<std::size_t I, typename... Args>
-    constexpr decltype(auto) emplace(Args&&... args) requires(I != 0)
-    {
-        return rest.template emplace<I - 1>(static_cast<Args&&>(args)...);
-    }
-
-    template<std::size_t I>
-    constexpr void destroy() noexcept requires(I == 0)
-    {
-        first.~T();
-    }
-
-    template<std::size_t I>
-    constexpr void destroy() noexcept requires(I != 0)
-    {
-        rest.template destroy<I - 1>();
-    }
-};
-} // namespace union_
-
-namespace detail
-{
-using UnionAccess = union_::Access;
 }
 
+template<std::size_t I, typename... Ts, typename... Args>
+constexpr std::enable_if_t<
+    std::is_constructible_v<ely::nth_element_t<I, Ts...>, Args...>>
+emplace(Union<Ts...>& u, Args&&... args)
+{
+    std::construct_at<ely::nth_element_t<I, Ts...>>(
+        std::addressof(get_unchecked<I>(u)), static_cast<Args&&>(args)...);
+}
+
+template<std::size_t I, typename... Ts, typename U, typename... Args>
+constexpr std::enable_if_t<std::is_constructible_v<ely::nth_element_t<I, Ts...>,
+                                                   std::initializer_list<U>,
+                                                   Args...>>
+emplace(Union<Ts...>& u, std::initializer_list<U> il, Args&&... args)
+{
+    std::construct_at<ely::nth_element_t<I, Ts...>>(
+        std::addressof(get_unchecked<I>(u)), il, static_cast<Args&&>(args)...);
+}
+
+template<ely::detail::Availability A, typename... Ts>
+class UnionDestructor;
+
+template<ely::detail::Availability A>
+class UnionDestructor<A>
+{
+public:
+    UnionDestructor() = default;
+};
+
+#define UNION_IMPL(available, destructor)                                      \
+    template<typename T, typename... Ts>                                       \
+    class UnionDestructor<available, T, Ts...>                                 \
+    {                                                                          \
+        friend struct Access;                                                  \
+                                                                               \
+        union                                                                  \
+        {                                                                      \
+            T                                 first_;                          \
+            UnionDestructor<available, Ts...> rest_;                           \
+        };                                                                     \
+                                                                               \
+    public:                                                                    \
+        UnionDestructor() = default;                                           \
+                                                                               \
+        template<typename... Args>                                             \
+        explicit constexpr UnionDestructor(std::in_place_index_t<0>,           \
+                                           Args&&... args)                     \
+            : first_(static_cast<Args&&>(args)...)                             \
+        {}                                                                     \
+        template<typename U, typename... Args>                                 \
+        explicit constexpr UnionDestructor(std::in_place_index_t<0>,           \
+                                           std::initializer_list<U> il,        \
+                                           Args&&... args)                     \
+            : first_(il, static_cast<Args&&>(args)...)                         \
+        {}                                                                     \
+                                                                               \
+        template<std::size_t Idx, typename... Args>                            \
+        explicit constexpr UnionDestructor(std::in_place_index_t<Idx>,         \
+                                           Args&&... args)                     \
+            : rest_(std::in_place_index<Idx - 1>,                              \
+                    static_cast<Args&&>(args)...)                              \
+        {}                                                                     \
+                                                                               \
+        template<std::size_t I, typename U, typename... Args>                  \
+        explicit constexpr UnionDestructor(std::in_place_index_t<I>,           \
+                                           std::initializer_list<U> il,        \
+                                           Args&&... args)                     \
+            : rest_(std::in_place_index<I - 1>,                                \
+                    il,                                                        \
+                    static_cast<Args&&>(args)...)                              \
+        {}                                                                     \
+                                                                               \
+        UnionDestructor(const UnionDestructor&) = default;                     \
+        UnionDestructor(UnionDestructor&&)      = default;                     \
+                                                                               \
+        destructor                                                             \
+                                                                               \
+                         UnionDestructor&                                      \
+                         operator=(const UnionDestructor&) = default;          \
+        UnionDestructor& operator=(UnionDestructor&&) = default;               \
+    }
+
+UNION_IMPL(ely::detail::Availability::TriviallyAvailable,
+           ~UnionDestructor() = default;);
+UNION_IMPL(ely::detail::Availability::Available, ~UnionDestructor(){});
+UNION_IMPL(ely::detail::Availability::Unavailable,
+           ~UnionDestructor() = delete;);
+
+#undef UNION_IMPL
+
 template<typename... Ts>
-using Union = union_::Union<Ts...>;
+class Union : public UnionDestructor<
+                  ely::detail::CommonAvailability<Ts...>::destructible,
+                  Ts...>
+{
+    using base_ =
+        UnionDestructor<ely::detail::CommonAvailability<Ts...>::destructible,
+                        Ts...>;
+
+public:
+    using base_::base_;
+};
+} // namespace union2
+
+template<typename... Ts>
+using Union = union2::Union<Ts...>;
 } // namespace ely

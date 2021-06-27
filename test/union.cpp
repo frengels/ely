@@ -10,9 +10,9 @@ class NoData
 
 TEST_CASE("Union")
 {
-    auto empty = ely::Union<>{};
+    // auto empty = ely::Union<>{};
 
-    static_assert(std::is_empty_v<decltype(empty)>);
+    // static_assert(std::is_empty_v<decltype(empty)>);
 
     SUBCASE("empty optimization")
     {
@@ -22,17 +22,26 @@ TEST_CASE("Union")
 
     SUBCASE("default construct")
     {
-        auto u = ely::Union<bool, int>{};
+        auto u = ely::Union<bool, int>{std::in_place_index<0>};
 
         REQUIRE_EQ(get_unchecked<0>(u), false);
+
+        static_assert(std::is_trivially_copy_constructible_v<decltype(u)>);
+        static_assert(std::is_trivially_copyable_v<decltype(u)>);
     }
 
     SUBCASE("trivial")
     {
         auto u = ely::Union<int, float, double>(std::in_place_index<1>, 5.f);
+        using u_ty = decltype(u);
 
-        static_assert(std::is_trivial_v<decltype(u)>);
-        static_assert(std::is_trivially_copy_constructible_v<decltype(u)>);
+        static_assert(std::is_trivially_copy_constructible_v<u_ty>);
+        static_assert(std::is_trivially_move_constructible_v<u_ty>);
+        static_assert(std::is_trivially_copy_assignable_v<u_ty>);
+        static_assert(std::is_trivially_move_assignable_v<u_ty>);
+        static_assert(std::is_trivially_destructible_v<u_ty>);
+        static_assert(
+            std::is_trivial_v<u_ty>); // requires trivial default construct
     }
 
     SUBCASE("nontrivial")
@@ -40,8 +49,32 @@ TEST_CASE("Union")
         auto u = ely::Union<int, std::string, float>(std::in_place_index<1>,
                                                      "Hello");
 
+        static_assert(!std::is_trivially_copy_constructible_v<decltype(u)>);
+        static_assert(!std::is_trivially_move_constructible_v<decltype(u)>);
+        static_assert(!std::is_copy_constructible_v<decltype(u)>);
+
         static_assert(!std::is_trivial_v<decltype(u)>);
-        // copy must be allowed to make variant copy constructible as well
-        static_assert(std::is_copy_constructible_v<decltype(u)>);
+    }
+
+    SUBCASE("usage")
+    {
+        // example usage with non-trivial types
+        // this should be run with ubsan
+
+        auto u = ely::Union<std::string, int, float, std::vector<int>>(
+            std::in_place_index<0>, "Hello world");
+        REQUIRE_EQ(get_unchecked<0>(u), "Hello world");
+        static_assert(std::is_same_v<decltype(get_unchecked<1>(u)), int&>);
+
+        destroy<0>(u); // need to be destroyed before emplacing another element
+        emplace<1>(u, 10);
+
+        REQUIRE_EQ(get_unchecked<1>(u), 10);
+
+        // can emplace without destroy since int is trivially destructible
+        emplace<3>(u, {1, 2, 3, 4, 5});
+
+        REQUIRE_EQ(get_unchecked<3>(u).size(), 5);
+        destroy<3>(u);
     }
 }
