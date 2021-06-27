@@ -5,7 +5,150 @@
 
 namespace ely
 {
-template<typename... Args>
+namespace detail
+{
+enum class Availability
+{
+    TriviallyAvailable,
+    Available,
+    Unavailable
+};
+
+template<typename T,
+         template<typename>
+         class IsTriviallyAvailable,
+         template<typename>
+         class IsAvailable>
+struct Available
+    : std::integral_constant<Availability,
+                             IsTriviallyAvailable<T>::value ?
+                                 Availability::TriviallyAvailable :
+                             IsAvailable<T>::value ? Availability::Available :
+                                                     Availability::Unavailable>
+{};
+
+constexpr Availability
+common_availability(std::initializer_list<Availability> availables)
+{
+    Availability current = Availability::TriviallyAvailable;
+
+    for (auto availability : availables)
+    {
+        switch (availability)
+        {
+        case Availability::TriviallyAvailable:
+            break;
+        case Availability::Available:
+            current = Availability::Available;
+            break;
+        case Availability::Unavailable:
+            return Availability::Unavailable;
+        default:
+            __builtin_unreachable();
+        }
+    }
+
+    return current;
+}
+
+template<typename... Ts>
+struct CommonAvailability
+{
+    static constexpr Availability copy_constructible =
+        common_availability({Available<Ts,
+                                       std::is_trivially_copy_constructible,
+                                       std::is_copy_constructible>::value...});
+    static constexpr Availability move_constructible =
+        common_availability({Available<Ts,
+                                       std::is_trivially_move_constructible,
+                                       std::is_move_constructible>::value...});
+    static constexpr Availability copy_assignable =
+        common_availability({Available<Ts,
+                                       std::is_trivially_copy_assignable,
+                                       std::is_copy_assignable>::value...});
+    static constexpr Availability move_assignable =
+        common_availability({Available<Ts,
+                                       std::is_trivially_move_assignable,
+                                       std::is_move_assignable>::value...});
+    static constexpr Availability destructible = common_availability(
+        {Available<Ts, std::is_trivially_destructible, std::is_destructible>::
+             value...});
+};
+} // namespace detail
+
+namespace union2
+{
+class Access
+{
+    template<typename U>
+    static constexpr auto&& get_unchecked(U&& u,
+                                          std::in_place_index_t<0>) noexcept
+    {
+        return static_cast<U&&>(u).first_;
+    }
+
+    template<typename U, std::size_t I>
+    static constexpr auto&& get_unchecked(U&& u,
+                                          std::in_place_index_t<I>) noexcept
+    {
+        return get_unchecked(static_cast<U&&>(u), std::in_place_index<I - 1>);
+    }
+};
+
+template<ely::detail::Availability A, typename... Ts>
+class UnionImpl;
+
+template<ely::detail::Availability A>
+class UnionImpl<A>
+{};
+
+#define UNION_IMPL(available, destructor)                                      \
+    template<typename T, typename... Ts>                                       \
+    class UnionImpl<available, T, Ts...>                                       \
+    {                                                                          \
+        union                                                                  \
+        {                                                                      \
+            T                           first_;                                \
+            UnionImpl<available, Ts...> rest_;                                 \
+        };                                                                     \
+                                                                               \
+        template<typename... Args>                                             \
+        explicit constexpr UnionImpl(std::in_place_index_t<0>, Args&&... args) \
+            : first_(static_cast<Args&&>(args)...)                             \
+        {}                                                                     \
+                                                                               \
+        template<std::size_t Idx, typename... Args>                            \
+        explicit constexpr UnionImpl(std::in_place_index_t<Idx>,               \
+                                     Args&&... args)                           \
+            : rest_(std::in_place_index<Idx - 1>,                              \
+                    static_cast<Args&&>(args)...)                              \
+        {}                                                                     \
+                                                                               \
+        UnionImpl(const UnionImpl&) = default;                                 \
+        UnionImpl(UnionImpl&&)      = default;                                 \
+                                                                               \
+        destructor                                                             \
+                                                                               \
+                   UnionImpl&                                                  \
+                   operator=(const UnionImpl&) = default;                      \
+        UnionImpl& operator=(UnionImpl&&) = default;                           \
+    }
+
+UNION_IMPL(ely::detail::Availability::TriviallyAvailable,
+           ~UnionImpl() = default;);
+UNION_IMPL(ely::detail::Availability::Available, ~UnionImpl(){});
+UNION_IMPL(ely::detail::Availability::Unavailable, ~UnionImpl() = delete;);
+
+#undef UNION_IMPL
+
+template<typename... Ts>
+using Union =
+    UnionImpl<ely::detail::CommonAvailability<Ts...>::destructible, Ts...>;
+} // namespace union2
+
+namespace union_
+{
+template<typename... Ts>
 class Union;
 
 template<>
@@ -66,16 +209,14 @@ public:
     Union() = default;
 
     template<std::size_t I, typename... Args>
-    explicit(sizeof...(Args) == 0) constexpr Union(std::in_place_index_t<I>,
-                                                   Args&&... args) requires(I ==
-                                                                            0)
+    explicit constexpr Union(std::in_place_index_t<I>,
+                             Args&&... args) requires(I == 0)
         : first(static_cast<Args&&>(args)...)
     {}
 
     template<std::size_t I, typename... Args>
-    explicit(sizeof...(Args) == 0) constexpr Union(std::in_place_index_t<I>,
-                                                   Args&&... args) requires(I !=
-                                                                            0)
+    explicit constexpr Union(std::in_place_index_t<I>,
+                             Args&&... args) requires(I != 0)
         : rest(std::in_place_index<I - 1>, static_cast<Args&&>(args)...)
     {}
 
@@ -199,4 +340,8 @@ public:
         rest.template destroy<I - 1>();
     }
 };
+} // namespace union_
+
+template<typename... Ts>
+using Union = union_::Union<Ts...>;
 } // namespace ely
