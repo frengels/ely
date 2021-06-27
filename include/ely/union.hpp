@@ -126,11 +126,11 @@ constexpr auto&& get_unchecked(U&& u) noexcept
 }
 
 template<std::size_t I, typename... Ts>
-constexpr std::enable_if_t<
-    std::is_destructible<ely::nth_element_t<I, Ts...>>::value>
-destroy(Union<Ts...>& u) noexcept
+constexpr void destroy(::ely::union2::Union<Ts...>& u) noexcept
 {
     using ty = ely::nth_element_t<I, Ts...>;
+    static_assert(std::is_destructible_v<ty>,
+                  "selected union variant is not destructible");
 
     if constexpr (!std::is_trivially_destructible<ty>::value)
     {
@@ -139,19 +139,16 @@ destroy(Union<Ts...>& u) noexcept
 }
 
 template<std::size_t I, typename... Ts, typename... Args>
-constexpr std::enable_if_t<
-    std::is_constructible_v<ely::nth_element_t<I, Ts...>, Args...>>
-emplace(Union<Ts...>& u, Args&&... args)
+constexpr void emplace(::ely::union2::Union<Ts...>& u, Args&&... args)
 {
     std::construct_at<ely::nth_element_t<I, Ts...>>(
         std::addressof(get_unchecked<I>(u)), static_cast<Args&&>(args)...);
 }
 
 template<std::size_t I, typename... Ts, typename U, typename... Args>
-constexpr std::enable_if_t<std::is_constructible_v<ely::nth_element_t<I, Ts...>,
-                                                   std::initializer_list<U>,
-                                                   Args...>>
-emplace(Union<Ts...>& u, std::initializer_list<U> il, Args&&... args)
+constexpr void emplace(::ely::union2::Union<Ts...>& u,
+                       std::initializer_list<U>     il,
+                       Args&&... args)
 {
     std::construct_at<ely::nth_element_t<I, Ts...>>(
         std::addressof(get_unchecked<I>(u)), il, static_cast<Args&&>(args)...);
