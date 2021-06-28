@@ -144,12 +144,22 @@ struct Dispatcher<true, R, N>
 
 template<std::size_t N, typename F>
 ELY_ALWAYS_INLINE constexpr auto dispatch_index(F&& fn, std::size_t index)
-    -> decltype(std::invoke(
-        static_cast<F&&>(fn),
-        std::integral_constant<std::size_t, 0>{})) requires(N >= 1)
+    -> decltype(std::invoke(static_cast<F&&>(fn),
+                            std::integral_constant<std::size_t, 0>{}))
 {
+    static_assert(N >= 1,
+                  "There must be at least one available number to dispatch on");
     using R = decltype(std::invoke(static_cast<F&&>(fn),
                                    std::integral_constant<std::size_t, 0>{}));
+    return Dispatcher<true, R, N>::template switch_<0>(static_cast<F&&>(fn),
+                                                       index);
+}
+
+template<typename R, std::size_t N, typename F>
+ELY_ALWAYS_INLINE constexpr R dispatch_index(F&& fn, std::size_t index)
+{
+    static_assert(N >= 1,
+                  "There must be atl east one available number to dispatch on");
     return Dispatcher<true, R, N>::template switch_<0>(static_cast<F&&>(fn),
                                                        index);
 }
@@ -211,7 +221,9 @@ class VariantDestructor;
         VariantDestructor(const VariantDestructor&) = default;                 \
         VariantDestructor(VariantDestructor&&)      = default;                 \
                                                                                \
-        destructor         VariantDestructor&                                  \
+        destructor                                                             \
+                                                                               \
+                           VariantDestructor&                                  \
                            operator=(const VariantDestructor&) = default;      \
         VariantDestructor& operator=(VariantDestructor&&) = default;           \
                                                                                \
@@ -226,10 +238,13 @@ VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
 VARIANT_IMPL(
     ely::detail::Availability::Available,
     ~VariantDestructor() {
-        dispatch_index<sizeof...(Ts)>([&](auto i) noexcept {
-            constexpr auto I = decltype(i)::value;
-            destroy<I>(this->union_);
-        });
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) noexcept {
+                constexpr auto I = decltype(i)::value;
+                using ely::destroy;
+                destroy<I>(this->union_);
+            },
+            index());
     });
 VARIANT_IMPL(ely::detail::Availability::Unavailable,
              ~VariantDestructor() = delete;);
@@ -247,6 +262,15 @@ class Variant2 : public VariantDestructor<
 
 public:
     using base_::base_;
+
+    template<typename U,
+             typename = std::enable_if_t<
+                 !std::is_same_v<Variant2<Ts...>, ely::remove_cvref_t<U>>>>
+    constexpr Variant2(U&& u)
+        : Variant2(std::in_place_index<ResolveOverloadIndex<U, Ts...>>,
+                   static_cast<U&&>(u))
+    {}
+
     using base_::index;
 };
 
@@ -415,7 +439,6 @@ public:
         return static_cast<std::size_t>(index_);
     }
 
-
     template<typename T>
     friend constexpr bool holds_alternative(const Variant& v) noexcept
     {
@@ -555,6 +578,11 @@ constexpr decltype(auto) visit(V&& v, F&& fn)
 
 namespace std
 {
+template<typename... Ts>
+struct variant_size<ely::variant::Variant2<Ts...>>
+    : std::integral_constant<std::size_t, sizeof...(Ts)>
+{};
+
 template<typename... Ts>
 struct variant_size<ely::variant::Variant<Ts...>>
     : std::integral_constant<std::size_t, sizeof...(Ts)>
