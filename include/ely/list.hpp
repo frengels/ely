@@ -61,6 +61,12 @@ public:
         return lhs.node_ == rhs.node_;
     }
 
+    friend constexpr bool operator!=(const ListIterator& lhs,
+                                     const ListIterator& rhs) noexcept
+    {
+        return !(lhs == rhs);
+    }
+
     constexpr ListIterator& operator++() noexcept
     {
         node_ = node_->next;
@@ -235,7 +241,7 @@ public:
     }
 
     template<typename... Args>
-    constexpr iterator emplace(iterator pos, Args&&... args)
+    inline iterator emplace(iterator pos, Args&&... args)
     {
         detail::ListNode<T>* node = alloc_traits::allocate(alloc_, 1);
 
