@@ -8,6 +8,10 @@
 class NoData
 {};
 
+using ely::get_unchecked;
+using ely::destroy;
+using ely::emplace;
+
 TEST_CASE("Union")
 {
     // auto empty = ely::Union<>{};

@@ -81,14 +81,16 @@ struct CommonAvailability
 };
 } // namespace detail
 
-namespace union2
+namespace detail
 {
 template<ely::detail::Availability A, typename... Ts>
 class UnionDestructor;
-
+}
 template<typename... Ts>
 class Union;
 
+namespace detail
+{
 template<ely::detail::Availability A, typename... Ts>
 class UnionDestructor;
 
@@ -161,20 +163,22 @@ UNION_IMPL(ely::detail::Availability::Unavailable,
            ~UnionDestructor() = delete;);
 
 #undef UNION_IMPL
-
+} // namespace detail
 template<typename... Ts>
-class Union : public UnionDestructor<
+class Union : public detail::UnionDestructor<
                   ely::detail::CommonAvailability<Ts...>::destructible,
                   Ts...>
 {
-    using base_ =
-        UnionDestructor<ely::detail::CommonAvailability<Ts...>::destructible,
-                        Ts...>;
+    using base_ = detail::UnionDestructor<
+        ely::detail::CommonAvailability<Ts...>::destructible,
+        Ts...>;
 
 public:
     using base_::base_;
 };
 
+namespace detail
+{
 struct Access
 {
     template<typename U>
@@ -193,14 +197,12 @@ struct Access
     }
 };
 
-namespace detail
-{
 template<typename T>
 struct is_union : std::false_type
 {};
 
 template<typename... Ts>
-struct is_union<::ely::union2::Union<Ts...>> : std::true_type
+struct is_union<ely::Union<Ts...>> : std::true_type
 {};
 } // namespace detail
 
@@ -210,11 +212,12 @@ template<std::size_t I,
              std::enable_if_t<detail::is_union<ely::remove_cvref_t<U>>::value>>
 constexpr auto&& get_unchecked(U&& u) noexcept
 {
-    return Access::get_unchecked(static_cast<U&&>(u), std::in_place_index<I>);
+    return detail::Access::get_unchecked(static_cast<U&&>(u),
+                                         std::in_place_index<I>);
 }
 
 template<std::size_t I, typename... Ts>
-constexpr void destroy(::ely::union2::Union<Ts...>& u) noexcept
+constexpr void destroy(ely::Union<Ts...>& u) noexcept
 {
     using ty = ely::nth_element_t<I, Ts...>;
     static_assert(std::is_destructible_v<ty>,
@@ -227,22 +230,17 @@ constexpr void destroy(::ely::union2::Union<Ts...>& u) noexcept
 }
 
 template<std::size_t I, typename... Ts, typename... Args>
-constexpr void emplace(::ely::union2::Union<Ts...>& u, Args&&... args)
+constexpr void emplace(ely::Union<Ts...>& u, Args&&... args)
 {
     ::new (static_cast<void*>(std::addressof(get_unchecked<I>(u))))
         ely::nth_element_t<I, Ts...>(static_cast<Args&&>(args)...);
 }
 
 template<std::size_t I, typename... Ts, typename U, typename... Args>
-constexpr void emplace(::ely::union2::Union<Ts...>& u,
-                       std::initializer_list<U>     il,
-                       Args&&... args)
+constexpr void
+emplace(ely::Union<Ts...>& u, std::initializer_list<U> il, Args&&... args)
 {
     ::new (static_cast<void*>(std::addressof(get_unchecked<I>(u))))
         ely::nth_element_t<I, Ts...>(il, static_cast<Args&&>(args)...);
 }
-} // namespace union2
-
-template<typename... Ts>
-using Union = union2::Union<Ts...>;
 } // namespace ely
