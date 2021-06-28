@@ -183,8 +183,96 @@ using variant_index_t = std::conditional_t<
                                uint64_t>>>>;
 
 template<typename... Ts>
+class Variant2;
+
+template<ely::detail::Availability A, typename... Ts>
+class VariantDestructor;
+
+#define VARIANT_IMPL(availability, destructor)                                 \
+    template<typename... Ts>                                                   \
+    class VariantDestructor<availability, Ts...>                               \
+    {                                                                          \
+        friend struct Access;                                                  \
+                                                                               \
+        [[no_unique_address]] ely::Union<Ts...> union_{                        \
+            std::in_place_index<0>};                                           \
+        [[no_unique_address]] variant_index_t<sizeof...(Ts)> index_{0};        \
+                                                                               \
+    public:                                                                    \
+        VariantDestructor() = default;                                         \
+                                                                               \
+        template<std::size_t I, typename... Args>                              \
+        explicit constexpr VariantDestructor(std::in_place_index_t<I>,         \
+                                             Args&&... args)                   \
+            : union_(std::in_place_index<I>, static_cast<Args&&>(args)...),    \
+              index_(I)                                                        \
+        {}                                                                     \
+                                                                               \
+        VariantDestructor(const VariantDestructor&) = default;                 \
+        VariantDestructor(VariantDestructor&&)      = default;                 \
+                                                                               \
+        destructor         VariantDestructor&                                  \
+                           operator=(const VariantDestructor&) = default;      \
+        VariantDestructor& operator=(VariantDestructor&&) = default;           \
+                                                                               \
+        constexpr std::size_t index() const noexcept                           \
+        {                                                                      \
+            return static_cast<std::size_t>(index_);                           \
+        }                                                                      \
+    }
+
+VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
+             ~VariantDestructor() = default;);
+VARIANT_IMPL(
+    ely::detail::Availability::Available,
+    ~VariantDestructor() {
+        dispatch_index<sizeof...(Ts)>([&](auto i) noexcept {
+            constexpr auto I = decltype(i)::value;
+            destroy<I>(this->union_);
+        });
+    });
+VARIANT_IMPL(ely::detail::Availability::Unavailable,
+             ~VariantDestructor() = delete;);
+
+#undef VARIANT_IMPL
+
+template<typename... Ts>
+class Variant2 : public VariantDestructor<
+                     ely::detail::CommonAvailability<Ts...>::destructible,
+                     Ts...>
+{
+    using base_ =
+        VariantDestructor<ely::detail::CommonAvailability<Ts...>::destructible,
+                          Ts...>;
+
+public:
+    using base_::base_;
+    using base_::index;
+};
+
+template<typename... Ts>
+class Variant;
+
+namespace detail
+{
+template<typename T>
+struct is_variant : std::false_type
+{};
+
+template<typename... Ts>
+struct is_variant<Variant<Ts...>> : std::true_type
+{};
+
+template<typename... Ts>
+struct is_variant<Variant2<Ts...>> : std::true_type
+{};
+} // namespace detail
+
+template<typename... Ts>
 class Variant
 {
+    friend struct Access;
+
 private:
     using union_type = ely::Union<Ts...>;
 
@@ -376,8 +464,8 @@ public:
 
     template<
         typename F,
-             typename R = std::invoke_result_t<
-                 F,
+        typename R = std::invoke_result_t<
+            F,
             decltype(get_unchecked<0>(std::declval<const Variant&>().union_))>>
     constexpr R visit(F&& fn) const&
     {
@@ -391,8 +479,8 @@ public:
 
     template<
         typename F,
-             typename R = std::invoke_result_t<
-                 F,
+        typename R = std::invoke_result_t<
+            F,
             decltype(get_unchecked<0>((std::declval<Variant&&>().union_)))>>
     constexpr R visit(F&& fn) &&
     {
