@@ -182,7 +182,7 @@ using variant_index_t = std::conditional_t<
 
 } // namespace detail
 template<typename... Ts>
-class Variant2;
+class Variant;
 
 namespace detail
 {
@@ -482,9 +482,9 @@ VARIANT_IMPL(ely::detail::Availability::Unavailable,
 
 } // namespace detail
 template<typename... Ts>
-class Variant2 : public detail::VariantMoveAssign<
-                     ely::detail::CommonAvailability<Ts...>::move_assignable,
-                     Ts...>
+class Variant : public detail::VariantMoveAssign<
+                    ely::detail::CommonAvailability<Ts...>::move_assignable,
+                    Ts...>
 {
     using base_ = detail::VariantMoveAssign<
         ely::detail::CommonAvailability<Ts...>::move_assignable,
@@ -494,7 +494,7 @@ public:
     using base_::base_;
 
     template<std::size_t I, typename... Args>
-    explicit constexpr Variant2(std::in_place_index_t<I>, Args&&... args)
+    explicit constexpr Variant(std::in_place_index_t<I>, Args&&... args)
     {
         this->index_ = I;
 
@@ -503,17 +503,17 @@ public:
     }
 
     template<typename T, typename... Args>
-    explicit constexpr Variant2(std::in_place_type_t<T>, Args&&... args)
-        : Variant2(std::in_place_index<detail::FindElementIndex<T, Ts...>>,
-                   static_cast<Args&&>(args)...)
+    explicit constexpr Variant(std::in_place_type_t<T>, Args&&... args)
+        : Variant(std::in_place_index<detail::FindElementIndex<T, Ts...>>,
+                  static_cast<Args&&>(args)...)
     {}
 
     template<typename U,
              typename = std::enable_if_t<
-                 !std::is_same_v<Variant2<Ts...>, ely::remove_cvref_t<U>>>>
-    constexpr Variant2(U&& u)
-        : Variant2(std::in_place_index<detail::ResolveOverloadIndex<U, Ts...>>,
-                   static_cast<U&&>(u))
+                 !std::is_same_v<Variant<Ts...>, ely::remove_cvref_t<U>>>>
+    constexpr Variant(U&& u)
+        : Variant(std::in_place_index<detail::ResolveOverloadIndex<U, Ts...>>,
+                  static_cast<U&&>(u))
     {}
 
     using base_::index;
@@ -525,7 +525,7 @@ public:
 
         using R = std::invoke_result_t<F,
                                        decltype(get_unchecked<0>(
-                                           std::declval<Variant2&>()))>;
+                                           std::declval<Variant&>()))>;
 
         return ely::detail::dispatch_index<sizeof...(Ts)>(
             [&](auto i) -> R {
@@ -543,7 +543,7 @@ public:
 
         using R = std::invoke_result_t<F,
                                        decltype(get_unchecked<0>(
-                                           std::declval<const Variant2&>()))>;
+                                           std::declval<const Variant&>()))>;
 
         return ely::detail::dispatch_index<sizeof...(Ts)>(
             [&](auto i) -> R {
@@ -561,7 +561,7 @@ public:
 
         using R = std::invoke_result_t<F,
                                        decltype(get_unchecked<0>(
-                                           std::declval<Variant2&&>()))>;
+                                           std::declval<Variant&&>()))>;
 
         return ely::detail::dispatch_index<sizeof...(Ts)>(
             [&](auto i) -> R {
@@ -579,7 +579,7 @@ public:
 
         using R = std::invoke_result_t<F,
                                        decltype(get_unchecked<0>(
-                                           std::declval<const Variant2&&>()))>;
+                                           std::declval<const Variant&&>()))>;
 
         return ely::detail::dispatch_index<sizeof...(Ts)>(
             [&](auto i) -> R {
@@ -592,7 +592,7 @@ public:
 };
 
 template<std::size_t I, typename... Ts>
-constexpr bool holds_alternative(const Variant2<Ts...>& v) noexcept
+constexpr bool holds_alternative(const Variant<Ts...>& v) noexcept
 {
     return ely::detail::dispatch_index<sizeof...(Ts)>(
         [&](auto j) {
@@ -603,14 +603,14 @@ constexpr bool holds_alternative(const Variant2<Ts...>& v) noexcept
 }
 
 template<std::size_t I, typename... Ts>
-constexpr bool holds(const Variant2<Ts...>& v) noexcept
+constexpr bool holds(const Variant<Ts...>& v) noexcept
 {
     using ely::holds_alternative;
     return holds_alternative<I>(v);
 }
 
 template<typename T, typename... Ts>
-constexpr bool holds_alternative(const Variant2<Ts...>& v) noexcept
+constexpr bool holds_alternative(const Variant<Ts...>& v) noexcept
 {
     return ely::detail::dispatch_index<sizeof...(Ts)>(
         [&](auto i) {
@@ -622,7 +622,7 @@ constexpr bool holds_alternative(const Variant2<Ts...>& v) noexcept
 }
 
 template<typename T, typename... Ts>
-constexpr bool holds(const Variant2<Ts...>& v) noexcept
+constexpr bool holds(const Variant<Ts...>& v) noexcept
 {
     return ely::holds_alternative<T>(v);
 }
@@ -632,7 +632,7 @@ template<typename V,
          typename R = std::invoke_result_t<
              F,
              decltype(ely::get_unchecked<0>(std::declval<V>()))>>
-constexpr std::enable_if_t<
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<
     ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
     R>
 visit(V&& v, F&& fn)
@@ -645,15 +645,12 @@ visit(V&& v, F&& fn)
         },
         v.index());
 }
-
-template<typename... Ts>
-using Variant = Variant2<Ts...>;
 } // namespace ely
 
 namespace std
 {
 template<typename... Ts>
-struct variant_size<ely::Variant2<Ts...>>
+struct variant_size<ely::Variant<Ts...>>
     : std::integral_constant<std::size_t, sizeof...(Ts)>
 {};
 } // namespace std
