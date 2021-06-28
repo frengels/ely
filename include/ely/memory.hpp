@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "ely/utility.hpp"
+
 namespace ely
 {
 namespace memory
@@ -70,7 +72,7 @@ public:
               try
               {
                   block_alloc_traits::construct(balloc,
-                                                std::to_address(ptr),
+                                                ely::to_address(ptr),
                                                 balloc,
                                                 static_cast<Args&&>(args)...);
               }
@@ -135,7 +137,7 @@ public:
             {
                 block_alloc alloc{std::move(p_->alloc)};
 
-                block_alloc_traits::destroy(alloc, std::to_address(p_));
+                block_alloc_traits::destroy(alloc, ely::to_address(p_));
                 block_alloc_traits::deallocate(alloc, p_, 1);
             }
 
