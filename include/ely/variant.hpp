@@ -26,9 +26,6 @@ constexpr bool check_any_false(std::initializer_list<bool> blist) noexcept
     return true;
 }
 
-template<std::size_t I, typename... Ts>
-using nth_element_t = std::tuple_element_t<I, std::tuple<Ts...>>;
-
 template<typename T, typename... Ts>
 static constexpr std::size_t FindElementIndex = [] {
     constexpr bool v[] = {std::is_same_v<T, Ts>...};
@@ -233,7 +230,7 @@ public:
         : union_(dispatch_index<sizeof...(Ts)>(
               [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
                   return union_type(std::in_place_index<I>,
-                                    get_unchecked<I>(other));
+                                    get_unchecked<I>(other.union_));
               },
               other.index())),
           index_(other.index_)
@@ -250,8 +247,9 @@ public:
                         !(std::is_trivially_move_constructible_v<Ts> && ...))
         : union_(dispatch_index<sizeof...(Ts)>(
               [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                  return union_type(std::in_place_index<I>,
-                                    get_unchecked<I>(std::move(other)));
+                  return union_type(
+                      std::in_place_index<I>,
+                      get_unchecked<I>((std::move(other).union_)));
               },
               other.index())),
           index_(other.index_)
@@ -269,14 +267,14 @@ public:
     {
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template destroy<I>();
+                destroy<I>(union_);
             },
             index());
 
         index_ = other.index_;
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template emplace<I>(get_unchecked<I>(other));
+                emplace<I>(union_, get_unchecked<I>(other.union_));
             },
             index());
 
@@ -295,7 +293,7 @@ public:
     {
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template destroy<I>();
+                destroy<I>(union_);
             },
             index());
 
@@ -303,7 +301,7 @@ public:
 
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template emplace<I>(get_unchecked<I>(std::move(other)));
+                emplace<I>(union_, get_unchecked<I>((std::move(other).union_)));
             },
             index());
 
@@ -319,40 +317,16 @@ public:
     {
         dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) {
-                union_.template destroy<I>();
+                destroy<I>(union_);
             },
             index());
     }
 
     constexpr std::size_t index() const noexcept
     {
-        return index_;
+        return static_cast<std::size_t>(index_);
     }
 
-    template<std::size_t I>
-    friend constexpr decltype(auto) get_unchecked(Variant& v) noexcept
-    {
-        return v.union_.template get_unchecked<I>();
-    }
-
-    template<std::size_t I>
-    friend constexpr decltype(auto) get_unchecked(const Variant& v) noexcept
-    {
-        return v.union_.template get_unchecked<I>();
-    }
-
-    template<std::size_t I>
-    friend constexpr decltype(auto) get_unchecked(Variant&& v) noexcept
-    {
-        return static_cast<union_type&&>(v.union_).template get_unchecked<I>();
-    }
-
-    template<std::size_t I>
-    friend constexpr decltype(auto) get_unchecked(const Variant&& v) noexcept
-    {
-        return static_cast<const union_type&&>(v.union_)
-            .template get_unchecked<I>();
-    }
 
     template<typename T>
     friend constexpr bool holds_alternative(const Variant& v) noexcept
@@ -389,41 +363,43 @@ public:
     template<typename F,
              typename R = std::invoke_result_t<
                  F,
-                 decltype(get_unchecked<0>(std::declval<Variant&>()))>>
+                 decltype(get_unchecked<0>((std::declval<Variant&>().union_)))>>
     constexpr R visit(F&& fn) &
     {
         return dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
                 return std::invoke(static_cast<F&&>(fn),
-                                   get_unchecked<I>(*this));
+                                   get_unchecked<I>(this->union_));
             },
             index());
     }
 
-    template<typename F,
+    template<
+        typename F,
              typename R = std::invoke_result_t<
                  F,
-                 decltype(get_unchecked<0>(std::declval<const Variant&>()))>>
+            decltype(get_unchecked<0>(std::declval<const Variant&>().union_))>>
     constexpr R visit(F&& fn) const&
     {
         return dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
                 return std::invoke(static_cast<F&&>(fn),
-                                   get_unchecked<I>(*this));
+                                   get_unchecked<I>(this->union_));
             },
             index());
     }
 
-    template<typename F,
+    template<
+        typename F,
              typename R = std::invoke_result_t<
                  F,
-                 decltype(get_unchecked<0>(std::declval<Variant&&>()))>>
+            decltype(get_unchecked<0>((std::declval<Variant&&>().union_)))>>
     constexpr R visit(F&& fn) &&
     {
         return dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
                 return std::invoke(static_cast<F&&>(fn),
-                                   get_unchecked<I>(std::move(*this)));
+                                   get_unchecked<I>((std::move(*this).union_)));
             },
             index());
     }
@@ -431,32 +407,36 @@ public:
     template<typename F,
              typename R = std::invoke_result_t<
                  F,
-                 decltype(get_unchecked<0>(std::declval<const Variant&&>()))>>
+                 decltype(get_unchecked<0>(
+                     (std::declval<const Variant&&>().union_)))>>
     constexpr R visit(F&& fn) const&&
     {
         return dispatch_index<sizeof...(Ts)>(
             [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
                 return std::invoke(static_cast<F&&>(fn),
-                                   get_unchecked<I>(std::move(*this)));
+                                   get_unchecked<I>((std::move(*this).union_)));
             },
             index());
     }
 };
 
-// this is required to get gcc to see the get_unchecked friend functions
-template<std::size_t, typename... Ts>
-void get_unchecked(Variant<Ts...>);
-
-namespace detail
+struct Access
 {
-template<typename T>
-struct is_variant : std::false_type
-{};
+    template<std::size_t I, typename V>
+    static constexpr auto&& get_unchecked(V&& v) noexcept
+    {
+        return ely::get_unchecked<I>((static_cast<V&&>(v).union_));
+    }
+};
 
-template<typename... Ts>
-struct is_variant<ely::variant::Variant<Ts...>> : std::true_type
-{};
-} // namespace detail
+template<std::size_t I,
+         typename V,
+         typename = std::enable_if_t<
+             detail::is_variant<std::remove_cvref_t<V>>::value>>
+constexpr auto&& get_unchecked(V&& v) noexcept
+{
+    return Access::get_unchecked<I>(static_cast<V&&>(v));
+}
 
 template<
     typename V,
@@ -476,7 +456,7 @@ visit(V&& v, F&& fn) requires(detail::is_variant<std::remove_cvref_t<V>>::value)
 } // namespace variant
 
 template<typename... Ts>
-using Variant = variant::Variant<Ts...>;
+using Variant = variant::Variant2<Ts...>;
 
 template<typename V, typename F>
 constexpr decltype(auto) visit(V&& v, F&& fn)
