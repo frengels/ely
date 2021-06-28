@@ -296,13 +296,13 @@ VARIANT_IMPL(ely::detail::Availability::Unavailable,
 #undef VARIANT_IMPL
 
 template<typename... Ts>
-class Variant2 : public VariantDestructor<
-                     ely::detail::CommonAvailability<Ts...>::destructible,
+class Variant2 : public VariantCopyConstruct<
+                     ely::detail::CommonAvailability<Ts...>::copy_constructible,
                      Ts...>
 {
-    using base_ =
-        VariantDestructor<ely::detail::CommonAvailability<Ts...>::destructible,
-                          Ts...>;
+    using base_ = VariantCopyConstruct<
+        ely::detail::CommonAvailability<Ts...>::copy_constructible,
+        Ts...>;
 
 public:
     using base_::base_;
