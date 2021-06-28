@@ -50,7 +50,7 @@ TEST_CASE("Variant")
 
     SUBCASE("construct in_place_type")
     {
-        auto v = ely::variant::Variant<int, float, bool>(
+        auto v = ely::Variant<int, float, bool>(
             std::in_place_type<float>, 5);
         REQUIRE_EQ(v.index(), 1);
 
