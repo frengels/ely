@@ -3,6 +3,8 @@
 #include <memory>
 #include <type_traits>
 
+#include "ely/utility.hpp"
+
 namespace ely
 {
 template<std::size_t I, typename... Ts>
@@ -86,73 +88,6 @@ class UnionDestructor;
 
 template<typename... Ts>
 class Union;
-
-struct Access
-{
-    template<typename U>
-    static constexpr auto&& get_unchecked(U&& u,
-                                          std::in_place_index_t<0>) noexcept
-    {
-        return static_cast<U&&>(u).first_;
-    }
-
-    template<typename U, std::size_t I>
-    static constexpr auto&& get_unchecked(U&& u,
-                                          std::in_place_index_t<I>) noexcept
-    {
-        return get_unchecked((static_cast<U&&>(u).rest_),
-                             std::in_place_index<I - 1>);
-    }
-};
-
-namespace detail
-{
-template<typename T>
-struct is_union : std::false_type
-{};
-
-template<typename... Ts>
-struct is_union<::ely::union2::Union<Ts...>> : std::true_type
-{};
-} // namespace detail
-
-template<std::size_t I,
-         typename U,
-         typename =
-             std::enable_if_t<detail::is_union<std::remove_cvref_t<U>>::value>>
-constexpr auto&& get_unchecked(U&& u) noexcept
-{
-    return Access::get_unchecked(static_cast<U&&>(u), std::in_place_index<I>);
-}
-
-template<std::size_t I, typename... Ts>
-constexpr void destroy(::ely::union2::Union<Ts...>& u) noexcept
-{
-    using ty = ely::nth_element_t<I, Ts...>;
-    static_assert(std::is_destructible_v<ty>,
-                  "selected union variant is not destructible");
-
-    if constexpr (!std::is_trivially_destructible<ty>::value)
-    {
-        std::destroy_at<ty>(std::addressof(get_unchecked<I>(u)));
-    }
-}
-
-template<std::size_t I, typename... Ts, typename... Args>
-constexpr void emplace(::ely::union2::Union<Ts...>& u, Args&&... args)
-{
-    std::construct_at<ely::nth_element_t<I, Ts...>>(
-        std::addressof(get_unchecked<I>(u)), static_cast<Args&&>(args)...);
-}
-
-template<std::size_t I, typename... Ts, typename U, typename... Args>
-constexpr void emplace(::ely::union2::Union<Ts...>& u,
-                       std::initializer_list<U>     il,
-                       Args&&... args)
-{
-    std::construct_at<ely::nth_element_t<I, Ts...>>(
-        std::addressof(get_unchecked<I>(u)), il, static_cast<Args&&>(args)...);
-}
 
 template<ely::detail::Availability A, typename... Ts>
 class UnionDestructor;
@@ -239,6 +174,73 @@ class Union : public UnionDestructor<
 public:
     using base_::base_;
 };
+
+struct Access
+{
+    template<typename U>
+    static constexpr auto&& get_unchecked(U&& u,
+                                          std::in_place_index_t<0>) noexcept
+    {
+        return static_cast<U&&>(u).first_;
+    }
+
+    template<typename U, std::size_t I>
+    static constexpr auto&& get_unchecked(U&& u,
+                                          std::in_place_index_t<I>) noexcept
+    {
+        return get_unchecked((static_cast<U&&>(u).rest_),
+                             std::in_place_index<I - 1>);
+    }
+};
+
+namespace detail
+{
+template<typename T>
+struct is_union : std::false_type
+{};
+
+template<typename... Ts>
+struct is_union<::ely::union2::Union<Ts...>> : std::true_type
+{};
+} // namespace detail
+
+template<std::size_t I,
+         typename U,
+         typename =
+             std::enable_if_t<detail::is_union<ely::remove_cvref_t<U>>::value>>
+constexpr auto&& get_unchecked(U&& u) noexcept
+{
+    return Access::get_unchecked(static_cast<U&&>(u), std::in_place_index<I>);
+}
+
+template<std::size_t I, typename... Ts>
+constexpr void destroy(::ely::union2::Union<Ts...>& u) noexcept
+{
+    using ty = ely::nth_element_t<I, Ts...>;
+    static_assert(std::is_destructible_v<ty>,
+                  "selected union variant is not destructible");
+
+    if constexpr (!std::is_trivially_destructible<ty>::value)
+    {
+        get_unchecked<I>(u).ty::~ty();
+    }
+}
+
+template<std::size_t I, typename... Ts, typename... Args>
+constexpr void emplace(::ely::union2::Union<Ts...>& u, Args&&... args)
+{
+    ::new (static_cast<void*>(std::addressof(get_unchecked<I>(u))))
+        ely::nth_element_t<I, Ts...>(static_cast<Args&&>(args)...);
+}
+
+template<std::size_t I, typename... Ts, typename U, typename... Args>
+constexpr void emplace(::ely::union2::Union<Ts...>& u,
+                       std::initializer_list<U>     il,
+                       Args&&... args)
+{
+    ::new (static_cast<void*>(std::addressof(get_unchecked<I>(u))))
+        ely::nth_element_t<I, Ts...>(il, static_cast<Args&&>(args)...);
+}
 } // namespace union2
 
 template<typename... Ts>
