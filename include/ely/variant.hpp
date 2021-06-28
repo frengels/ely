@@ -639,7 +639,8 @@ visit(V&& v, F&& fn)
 {
     return ely::detail::dispatch_index<
         std::variant_size_v<ely::remove_cvref_t<V>>>(
-        [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
+        [&](auto i) -> R {
+            constexpr auto I = decltype(i)::value;
             return std::invoke(static_cast<F&&>(fn),
                                ely::get_unchecked<I>(static_cast<V&&>(v)));
         },
