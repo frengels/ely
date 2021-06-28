@@ -195,15 +195,45 @@ using variant_index_t = std::conditional_t<
 template<typename... Ts>
 class Variant2;
 
+namespace detail
+{
+// this special base should only be inherited by the variant implementation in
+// this file
 struct VariantBase
 {};
+} // namespace detail
+
+struct Access
+{
+    template<std::size_t I, typename V>
+    static constexpr auto&& get_unchecked(V&& v) noexcept
+    {
+        return ely::get_unchecked<I + 1>((static_cast<V&&>(v).union_));
+    }
+};
+
+namespace detail
+{
+template<typename T>
+struct is_derived_from_variant : std::is_base_of<detail::VariantBase, T>
+{};
+} // namespace detail
+
+template<std::size_t I,
+         typename V,
+         typename = std::enable_if_t<
+             detail::is_derived_from_variant<std::remove_cvref_t<V>>::value>>
+constexpr auto&& get_unchecked(V&& v) noexcept
+{
+    return Access::get_unchecked<I>(static_cast<V&&>(v));
+}
 
 template<ely::detail::Availability A, typename... Ts>
 class VariantDestructor;
 
 #define VARIANT_IMPL(availability, destructor)                                 \
     template<typename... Ts>                                                   \
-    class VariantDestructor<availability, Ts...> : public VariantBase          \
+    class VariantDestructor<availability, Ts...> : public detail::VariantBase  \
     {                                                                          \
         friend struct Access;                                                  \
                                                                                \
@@ -287,8 +317,7 @@ VARIANT_IMPL(
                 constexpr auto I = decltype(i)::value;
                 using ely::emplace;
                 using ely::get_unchecked;
-                emplace<I + 1>(this->union_,
-                               get_unchecked<I + 1>(other.union_));
+                emplace<I + 1>(this->union_, get_unchecked<I>(other));
             },
             this->index());
     });
@@ -337,7 +366,7 @@ VARIANT_IMPL(
                 using ely::emplace;
                 using ely::get_unchecked;
                 emplace<I + 1>(this->union_,
-                               get_unchecked<I + 1>((std::move(other).union_)));
+                               get_unchecked<I>(std::move(other)));
             },
             this->index());
     });
@@ -396,10 +425,11 @@ VARIANT_IMPL(
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                emplace<I + 1>(this->union_,
-                               get_unchecked<I + 1>(other.union_));
+                emplace<I + 1>(this->union_, get_unchecked<I>(other));
             },
             this->index());
+
+        return *this;
     });
 VARIANT_IMPL(ely::detail::Availability::Unavailable,
              VariantCopyAssign& operator=(const VariantCopyAssign&) = delete;);
@@ -455,9 +485,11 @@ VARIANT_IMPL(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
                 emplace<I + 1>(this->union_,
-                               get_unchecked<I + 1>((std::move(other).union_)));
+                               get_unchecked<I>(std::move(other)));
             },
             this->index());
+
+        return *this;
     });
 VARIANT_IMPL(ely::detail::Availability::Unavailable,
              VariantMoveAssign& operator=(VariantMoveAssign&&) = delete;);
@@ -495,24 +527,6 @@ public:
 
     using base_::index;
 };
-
-template<typename... Ts>
-class Variant;
-
-namespace detail
-{
-template<typename T>
-struct is_variant : std::false_type
-{};
-
-template<typename... Ts>
-struct is_variant<Variant<Ts...>> : std::true_type
-{};
-
-template<typename... Ts>
-struct is_variant<Variant2<Ts...>> : std::true_type
-{};
-} // namespace detail
 
 template<typename... Ts>
 class Variant
@@ -753,31 +767,13 @@ public:
     }
 };
 
-struct Access
-{
-    template<std::size_t I, typename V>
-    static constexpr auto&& get_unchecked(V&& v) noexcept
-    {
-        return ely::get_unchecked<I>((static_cast<V&&>(v).union_));
-    }
-};
-
-template<std::size_t I,
-         typename V,
-         typename = std::enable_if_t<
-             detail::is_variant<std::remove_cvref_t<V>>::value>>
-constexpr auto&& get_unchecked(V&& v) noexcept
-{
-    return Access::get_unchecked<I>(static_cast<V&&>(v));
-}
-
 template<
     typename V,
     typename F,
     typename R =
         std::invoke_result_t<F, decltype(get_unchecked<0>(std::declval<V>()))>>
-constexpr R
-visit(V&& v, F&& fn) requires(detail::is_variant<std::remove_cvref_t<V>>::value)
+constexpr R visit(V&& v, F&& fn) requires(
+    detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value)
 {
     return dispatch_index<std::variant_size_v<std::remove_cvref_t<V>>>(
         [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> R {
