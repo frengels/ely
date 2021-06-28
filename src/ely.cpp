@@ -6,14 +6,14 @@
 #include <ely/scanner.hpp>
 #include <ely/tokenstream.hpp>
 
-void scan_stream(
-    std::string_view                                   src,
-    std::span<ely::Lexeme<std::string_view::iterator>> lexeme_buffer)
+void scan_stream(std::string_view                         src,
+                 std::size_t                              buffer_len,
+                 ely::Lexeme<std::string_view::iterator>* lexeme_buffer)
 {
     auto scanner = ely::ScannerStream{src.begin(), src.end()};
 
     auto lexeme = scanner.next();
-    auto out    = lexeme_buffer.begin();
+    auto out    = lexeme_buffer;
 
     while (lexeme)
     {
@@ -23,7 +23,7 @@ void scan_stream(
         ++out;
     }
 
-    for (auto it = lexeme_buffer.begin(); it != out; ++it)
+    for (auto it = lexeme_buffer; it != out; ++it)
     {
         auto lexeme = *it;
 
@@ -40,10 +40,10 @@ void tokenize_stream(std::string_view src)
 
     auto tok = tokenizer.next();
 
-    while (!holds<ely::token::Eof>(tok))
+    while (!ely::holds<ely::token::Eof>(tok))
     {
         tok.visit([](const auto& x) {
-            using ty = std::remove_cvref_t<decltype(x)>;
+            using ty = ely::remove_cvref_t<decltype(x)>;
             if constexpr (std::is_same_v<ty, ely::token::Identifier>)
             {
                 std::cout << "identifier\n";
@@ -83,6 +83,6 @@ int main(int argc, char** argv)
     std::cout << "source:\n" << src << '\n';
     std::array<ely::Lexeme<std::string_view::iterator>, 32> lexeme_buffer{};
 
-    scan_stream(src, lexeme_buffer);
+    scan_stream(src, lexeme_buffer.size(), lexeme_buffer.data());
     tokenize_stream(src);
 }

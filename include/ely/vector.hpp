@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ely/defines.h"
+#include "ely/utility.hpp"
 
 #include <iterator>
 #include <memory>
@@ -133,7 +134,7 @@ public:
         for (; it != end_it; ++it, ++new_it)
         {
             alloc_traits::construct(
-                alloc_, std::to_address(new_it), std::move_if_noexcept(*it));
+                alloc_, ely::to_address(new_it), std::move_if_noexcept(*it));
         }
 
         // TODO provide strong exception guarantee
@@ -241,7 +242,7 @@ public:
         }
 
         alloc_traits::construct(alloc_,
-                                std::to_address(data() + size()),
+                                ely::to_address(data() + size()),
                                 static_cast<Args&&>(args)...);
         reference res = *(begin() + size());
         ++size_;

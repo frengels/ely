@@ -1,6 +1,7 @@
 #pragma once
 
 #include <numeric>
+#include <optional>
 #include <span>
 #include <type_traits>
 #include <utility>

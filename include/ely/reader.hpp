@@ -3,6 +3,7 @@
 #include "ely/stx.hpp"
 #include "ely/token.hpp"
 #include "ely/tokenstream.hpp"
+#include "ely/utility.hpp"
 
 namespace ely
 {
@@ -50,7 +51,7 @@ private:
                                                    auto&& tok_trailing)
                                                    -> std::optional<
                                                        stx::Syntax> {
-                using tok_ty = std::remove_cvref_t<decltype(tok)>;
+                using tok_ty = ely::remove_cvref_t<decltype(tok)>;
 
                 if constexpr (std::is_same_v<tok_ty, ely::token::RParen>)
                 {
@@ -148,7 +149,7 @@ private:
              ely::AtmosphereList<AtmospherePosition::Leading>&&  leading,
              ely::AtmosphereList<AtmospherePosition::Trailing>&& trailing)
     {
-        using lit_ty = std::remove_cvref_t<decltype(lit)>;
+        using lit_ty = ely::remove_cvref_t<decltype(lit)>;
         return stx::Syntax{std::in_place_type<stx::Literal>,
                            std::move(leading),
                            std::move(trailing),

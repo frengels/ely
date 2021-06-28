@@ -283,9 +283,9 @@ public:
         return false;
     }
 
-    constexpr std::span<const Atmosphere> elements() const
+    constexpr const ely::Vector<Atmosphere>& elements() const
     {
-        return {list_.begin(), list_.end()};
+        return list_;
     }
 
     constexpr std::size_t size() const

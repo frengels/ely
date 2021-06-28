@@ -11,413 +11,414 @@
 #include "ely/assert.h"
 #include "ely/atmosphere.hpp"
 #include "ely/defines.h"
+#include "ely/utility.hpp"
 #include "ely/variant.hpp"
 
 namespace ely
 {
 
+template<typename T, typename = void>
+struct is_poison : std::false_type
+{};
+
 template<typename T>
-concept Poison = requires
-{
-    typename T::poison_tag;
-};
+struct is_poison<T, std::void_t<typename T::poison_tag>> : std::true_type
+{};
+
+template<typename T>
+inline constexpr bool is_poison_v = is_poison<T>::value;
 
 namespace token
 {
 
-    class LParen
+class LParen
+{
+public:
+    LParen() = default;
+
+    template<typename I>
+    explicit constexpr LParen([[maybe_unused]] Lexeme<I> lex)
     {
-    public:
-        LParen() = default;
+        ELY_ASSERT(lex.kind == LexemeKind::LParen, "expected LParen");
+    }
 
-        template<typename I>
-        explicit constexpr LParen([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::LParen, "expected LParen");
-        }
-
-        static constexpr std::size_t size()
-        {
-            return 1;
-        }
-    };
-
-    class RParen
+    static constexpr std::size_t size()
     {
-    public:
-        RParen() = default;
+        return 1;
+    }
+};
 
-        template<typename I>
-        explicit constexpr RParen([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::RParen, "expected RParen");
-        }
+class RParen
+{
+public:
+    RParen() = default;
 
-        static constexpr std::size_t size()
-        {
-            return 1;
-        }
-    };
-
-    class LBracket
+    template<typename I>
+    explicit constexpr RParen([[maybe_unused]] Lexeme<I> lex)
     {
-    public:
-        LBracket() = default;
+        ELY_ASSERT(lex.kind == LexemeKind::RParen, "expected RParen");
+    }
 
-        template<typename I>
-        explicit constexpr LBracket([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::LBracket, "expected LBracket");
-        }
-
-        static constexpr std::size_t size()
-        {
-            return 1;
-        }
-    };
-
-    class RBracket
+    static constexpr std::size_t size()
     {
-    public:
-        RBracket() = default;
+        return 1;
+    }
+};
 
-        template<typename I>
-        explicit constexpr RBracket([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::RBracket, "expected RBracket");
-        }
+class LBracket
+{
+public:
+    LBracket() = default;
 
-        static constexpr std::size_t size()
-        {
-            return 1;
-        }
-    };
-
-    class LBrace
+    template<typename I>
+    explicit constexpr LBracket([[maybe_unused]] Lexeme<I> lex)
     {
-    public:
-        LBrace() = default;
+        ELY_ASSERT(lex.kind == LexemeKind::LBracket, "expected LBracket");
+    }
 
-        template<typename I>
-        explicit constexpr LBrace([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::LBrace, "expected LBrace");
-        }
-
-        static constexpr std::size_t size()
-        {
-            return 1;
-        }
-    };
-
-    class RBrace
+    static constexpr std::size_t size()
     {
-    public:
-        RBrace() = default;
+        return 1;
+    }
+};
 
-        template<typename I>
-        explicit constexpr RBrace([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::RBrace, "expected RBrace");
-        }
+class RBracket
+{
+public:
+    RBracket() = default;
 
-        static constexpr std::size_t size()
-        {
-            return 1;
-        }
-    };
-
-    class Identifier
+    template<typename I>
+    explicit constexpr RBracket([[maybe_unused]] Lexeme<I> lex)
     {
-    private:
-        std::string name_;
+        ELY_ASSERT(lex.kind == LexemeKind::RBracket, "expected RBracket");
+    }
 
-    public:
-        Identifier() = default;
-
-        template<typename I>
-        explicit constexpr Identifier(Lexeme<I> lex)
-            : name_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::Identifier,
-                       "expected Identifier");
-        }
-
-        template<typename... Args>
-        constexpr Identifier(std::in_place_t, Args&&... args)
-            : name_(static_cast<Args&&>(args)...)
-        {}
-
-        ELY_CONSTEXPR_STRING std::string_view name() const noexcept
-        {
-            return static_cast<std::string_view>(name_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const
-        {
-            return name_.size();
-        }
-    };
-
-    class IntLit
+    static constexpr std::size_t size()
     {
-    private:
-        std::string str_;
+        return 1;
+    }
+};
 
-    public:
-        IntLit() = default;
+class LBrace
+{
+public:
+    LBrace() = default;
 
-        template<typename I>
-        explicit constexpr IntLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::IntLit, "expected IntLit");
-        }
-
-        template<typename... Args>
-        constexpr IntLit(std::in_place_t, Args&&... args)
-            : str_(static_cast<Args&&>(args)...)
-        {}
-
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const
-        {
-            return str_.size();
-        }
-    };
-
-    class FloatLit
+    template<typename I>
+    explicit constexpr LBrace([[maybe_unused]] Lexeme<I> lex)
     {
-    private:
-        std::string str_;
+        ELY_ASSERT(lex.kind == LexemeKind::LBrace, "expected LBrace");
+    }
 
-    public:
-        FloatLit() = default;
-
-        template<typename I>
-        explicit constexpr FloatLit(Lexeme<I> lex)
-            : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::FloatLit, "expected FloatLit");
-        }
-
-        template<typename... Args>
-        constexpr FloatLit(std::in_place_t, Args&&... args)
-            : str_(static_cast<Args&&>(args)...)
-        {}
-
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const
-        {
-            return str_.size();
-        }
-    };
-
-    class CharLit
+    static constexpr std::size_t size()
     {
-    private:
-        std::string str_;
+        return 1;
+    }
+};
 
-    public:
-        CharLit() = default;
+class RBrace
+{
+public:
+    RBrace() = default;
 
-        template<typename I>
-        explicit constexpr CharLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::CharLit, "expected CharLit");
-        }
-
-        template<typename... Args>
-        constexpr CharLit(std::in_place_t, Args&&... args)
-            : str_(static_cast<Args&&>(args)...)
-        {}
-
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const
-        {
-            return str_.size();
-        }
-    };
-
-    class StringLit
+    template<typename I>
+    explicit constexpr RBrace([[maybe_unused]] Lexeme<I> lex)
     {
-    private:
-        std::string str_;
+        ELY_ASSERT(lex.kind == LexemeKind::RBrace, "expected RBrace");
+    }
 
-    public:
-        StringLit() = default;
-
-        template<typename I>
-        constexpr StringLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
-        }
-
-        template<typename... Args>
-        constexpr StringLit(std::in_place_t, Args&&... args)
-            : str_(static_cast<Args&&>(args)...)
-        {}
-
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const
-        {
-            return str_.size();
-        }
-    };
-
-    class KeywordLit
+    static constexpr std::size_t size()
     {
-    private:
-        std::string str_;
+        return 1;
+    }
+};
 
-    public:
-        KeywordLit() = default;
+class Identifier
+{
+private:
+    std::string name_;
 
-        template<typename I>
-        explicit constexpr KeywordLit(Lexeme<I> lex)
-            : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::KeywordLit,
-                       "expected KeywordLit");
-        }
+public:
+    Identifier() = default;
 
-        template<typename... Args>
-        constexpr KeywordLit(std::in_place_t, Args&&... args)
-            : str_(static_cast<Args&&>(args)...)
-        {}
-
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const
-        {
-            return str_.size();
-        }
-    };
-
-    class BoolLit
+    template<typename I>
+    explicit constexpr Identifier(Lexeme<I> lex) : name_(lex.begin(), lex.end())
     {
-    private:
-        bool b{false};
+        ELY_ASSERT(lex.kind == LexemeKind::Identifier, "expected Identifier");
+    }
 
-    public:
-        BoolLit() = default;
+    template<typename... Args>
+    constexpr Identifier(std::in_place_t, Args&&... args)
+        : name_(static_cast<Args&&>(args)...)
+    {}
 
-        // assuming the contents are either '#t' or '#f'
-        template<typename I>
-        explicit constexpr BoolLit(Lexeme<I> lex)
-            : b(*std::next(lex.begin()) == 't')
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::BoolLit, "expected BoolLit");
-        }
-
-        explicit constexpr BoolLit(bool b) : b(b)
-        {}
-
-        constexpr bool value() const
-        {
-            return b;
-        }
-
-        constexpr std::string_view str() const
-        {
-            return b ? std::string_view{"#t"} : std::string_view{"#f"};
-        }
-
-        static constexpr std::size_t size()
-        {
-            return 2;
-        }
-    };
-
-    class UnterminatedStringLit
+    ELY_CONSTEXPR_STRING std::string_view name() const noexcept
     {
-    public:
-        using poison_tag = void;
+        return static_cast<std::string_view>(name_);
+    }
 
-    private:
-        std::string str_;
-
-    public:
-        template<typename I>
-        explicit constexpr UnterminatedStringLit(Lexeme<I> lex)
-            : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
-        }
-
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const noexcept
-        {
-            return str_.size();
-        }
-    };
-
-    class InvalidNumberSign
+    ELY_CONSTEXPR_STRING std::size_t size() const
     {
-    public:
-        using poison_tag = void;
+        return name_.size();
+    }
+};
 
-    private:
-        std::string str_;
+class IntLit
+{
+private:
+    std::string str_;
 
-    public:
-        template<typename I>
-        explicit constexpr InvalidNumberSign(Lexeme<I> lex)
-            : str_(lex.begin(), lex.end())
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::InvalidNumberSign,
-                       "expected InvalidNumberSign");
-        }
+public:
+    IntLit() = default;
 
-        ELY_CONSTEXPR_STRING std::string_view str() const noexcept
-        {
-            return static_cast<std::string_view>(str_);
-        }
-
-        ELY_CONSTEXPR_STRING std::size_t size() const noexcept
-        {
-            return str_.size();
-        }
-    };
-
-    class Eof
+    template<typename I>
+    explicit constexpr IntLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-    public:
-        Eof() = default;
+        ELY_ASSERT(lex.kind == LexemeKind::IntLit, "expected IntLit");
+    }
 
-        template<typename I>
-        explicit constexpr Eof([[maybe_unused]] Lexeme<I> lex)
-        {
-            ELY_ASSERT(lex.kind == LexemeKind::Eof, "expected Eof");
-        }
+    template<typename... Args>
+    constexpr IntLit(std::in_place_t, Args&&... args)
+        : str_(static_cast<Args&&>(args)...)
+    {}
 
-        static constexpr std::size_t size()
-        {
-            return 0;
-        }
-    };
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const
+    {
+        return str_.size();
+    }
+};
+
+class FloatLit
+{
+private:
+    std::string str_;
+
+public:
+    FloatLit() = default;
+
+    template<typename I>
+    explicit constexpr FloatLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::FloatLit, "expected FloatLit");
+    }
+
+    template<typename... Args>
+    constexpr FloatLit(std::in_place_t, Args&&... args)
+        : str_(static_cast<Args&&>(args)...)
+    {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const
+    {
+        return str_.size();
+    }
+};
+
+class CharLit
+{
+private:
+    std::string str_;
+
+public:
+    CharLit() = default;
+
+    template<typename I>
+    explicit constexpr CharLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::CharLit, "expected CharLit");
+    }
+
+    template<typename... Args>
+    constexpr CharLit(std::in_place_t, Args&&... args)
+        : str_(static_cast<Args&&>(args)...)
+    {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const
+    {
+        return str_.size();
+    }
+};
+
+class StringLit
+{
+private:
+    std::string str_;
+
+public:
+    StringLit() = default;
+
+    template<typename I>
+    constexpr StringLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
+    }
+
+    template<typename... Args>
+    constexpr StringLit(std::in_place_t, Args&&... args)
+        : str_(static_cast<Args&&>(args)...)
+    {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const
+    {
+        return str_.size();
+    }
+};
+
+class KeywordLit
+{
+private:
+    std::string str_;
+
+public:
+    KeywordLit() = default;
+
+    template<typename I>
+    explicit constexpr KeywordLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::KeywordLit, "expected KeywordLit");
+    }
+
+    template<typename... Args>
+    constexpr KeywordLit(std::in_place_t, Args&&... args)
+        : str_(static_cast<Args&&>(args)...)
+    {}
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const
+    {
+        return str_.size();
+    }
+};
+
+class BoolLit
+{
+private:
+    bool b{false};
+
+public:
+    BoolLit() = default;
+
+    // assuming the contents are either '#t' or '#f'
+    template<typename I>
+    explicit constexpr BoolLit(Lexeme<I> lex)
+        : b(*std::next(lex.begin()) == 't')
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::BoolLit, "expected BoolLit");
+    }
+
+    explicit constexpr BoolLit(bool b) : b(b)
+    {}
+
+    constexpr bool value() const
+    {
+        return b;
+    }
+
+    constexpr std::string_view str() const
+    {
+        return b ? std::string_view{"#t"} : std::string_view{"#f"};
+    }
+
+    static constexpr std::size_t size()
+    {
+        return 2;
+    }
+};
+
+class UnterminatedStringLit
+{
+public:
+    using poison_tag = void;
+
+private:
+    std::string str_;
+
+public:
+    template<typename I>
+    explicit constexpr UnterminatedStringLit(Lexeme<I> lex)
+        : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
+    }
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const noexcept
+    {
+        return str_.size();
+    }
+};
+
+class InvalidNumberSign
+{
+public:
+    using poison_tag = void;
+
+private:
+    std::string str_;
+
+public:
+    template<typename I>
+    explicit constexpr InvalidNumberSign(Lexeme<I> lex)
+        : str_(lex.begin(), lex.end())
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::InvalidNumberSign,
+                   "expected InvalidNumberSign");
+    }
+
+    ELY_CONSTEXPR_STRING std::string_view str() const noexcept
+    {
+        return static_cast<std::string_view>(str_);
+    }
+
+    ELY_CONSTEXPR_STRING std::size_t size() const noexcept
+    {
+        return str_.size();
+    }
+};
+
+class Eof
+{
+public:
+    Eof() = default;
+
+    template<typename I>
+    explicit constexpr Eof([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(lex.kind == LexemeKind::Eof, "expected Eof");
+    }
+
+    static constexpr std::size_t size()
+    {
+        return 0;
+    }
+};
 } // namespace token
 
 template<typename... Toks>
@@ -491,8 +492,8 @@ public:
     constexpr bool is_poison() const noexcept
     {
         return visit([](const auto& tok) {
-            using tok_ty = std::remove_cvref_t<decltype(tok)>;
-            return ely::Poison<tok_ty>;
+            using tok_ty = ely::remove_cvref_t<decltype(tok)>;
+            return ely::is_poison_v<tok_ty>;
         });
     }
 
@@ -500,21 +501,9 @@ public:
     friend constexpr bool holds(const TokenVariant& self) noexcept
     {
         return self.visit([](const auto& x) {
-            using ty = std::remove_cvref_t<decltype(x)>;
+            using ty = ely::remove_cvref_t<decltype(x)>;
             return std::is_same_v<T, ty>;
         });
-    }
-
-    template<typename T>
-    friend constexpr T& unsafe_get(TokenVariant& self) noexcept
-    {
-        return *get_if<T>(&self.variant_);
-    }
-
-    template<typename T>
-    friend constexpr T&& unsafe_get(TokenVariant&& self) noexcept
-    {
-        return static_cast<T&&>(*get_if<T>(&self.variant_));
     }
 
     constexpr const AtmosphereList<AtmospherePosition::Leading>&
