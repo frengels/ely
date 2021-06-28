@@ -286,7 +286,9 @@ VARIANT_IMPL(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
                 using ely::emplace;
-                emplace<I>(this->union_, get_unchecked<I + 1>(other.union_));
+                using ely::get_unchecked;
+                emplace<I + 1>(this->union_,
+                               get_unchecked<I + 1>(other.union_));
             },
             this->index());
     });
@@ -295,13 +297,180 @@ VARIANT_IMPL(ely::detail::Availability::Unavailable,
 
 #undef VARIANT_IMPL
 
+template<ely::detail::Availability A, typename... Ts>
+class VariantMoveConstruct;
+
+#define VARIANT_IMPL(availability, move_construct)                              \
+    template<typename... Ts>                                                    \
+    class VariantMoveConstruct<availability, Ts...>                             \
+        : public VariantCopyConstruct<                                          \
+              ely::detail::CommonAvailability<Ts...>::copy_constructible,       \
+              Ts...>                                                            \
+    {                                                                           \
+        using base_ = VariantCopyConstruct<                                     \
+            ely::detail::CommonAvailability<Ts...>::copy_constructible,         \
+            Ts...>;                                                             \
+                                                                                \
+    public:                                                                     \
+        using base_::base_;                                                     \
+                                                                                \
+        VariantMoveConstruct(const VariantMoveConstruct&) = default;            \
+                                                                                \
+        move_construct                                                          \
+                                                                                \
+            ~VariantMoveConstruct() = default;                                  \
+        VariantMoveConstruct&                                                   \
+                              operator=(const VariantMoveConstruct&) = default; \
+        VariantMoveConstruct& operator=(VariantMoveConstruct&&) = default;      \
+    }
+
+VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
+             VariantMoveConstruct(VariantMoveConstruct&&) = default;);
+VARIANT_IMPL(
+    ely::detail::Availability::Available,
+    constexpr VariantMoveConstruct(VariantMoveConstruct&& other) noexcept(
+        (std::is_nothrow_move_constructible_v<Ts> && ...)) {
+        this->index_ = other.index_;
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+                using ely::emplace;
+                using ely::get_unchecked;
+                emplace<I + 1>(this->union_,
+                               get_unchecked<I + 1>((std::move(other).union_)));
+            },
+            this->index());
+    });
+VARIANT_IMPL(ely::detail::Availability::Unavailable,
+             VariantMoveConstruct(VariantMoveConstruct&&) = delete;);
+
+#undef VARIANT_IMPL
+
+template<ely::detail::Availability A, typename... Ts>
+class VariantCopyAssign;
+
+#define VARIANT_IMPL(availability, copy_assign)                                \
+    template<typename... Ts>                                                   \
+    class VariantCopyAssign<availability, Ts...>                               \
+        : public VariantMoveConstruct<                                         \
+              ely::detail::CommonAvailability<Ts...>::move_constructible,      \
+              Ts...>                                                           \
+    {                                                                          \
+        using base_ = VariantMoveConstruct<                                    \
+            ely::detail::CommonAvailability<Ts...>::move_constructible,        \
+            Ts...>;                                                            \
+                                                                               \
+    public:                                                                    \
+        using base_::base_;                                                    \
+                                                                               \
+        VariantCopyAssign(const VariantCopyAssign&) = default;                 \
+        VariantCopyAssign(VariantCopyAssign&&)      = default;                 \
+        ~VariantCopyAssign()                        = default;                 \
+                                                                               \
+        copy_assign                                                            \
+                                                                               \
+            VariantCopyAssign&                                                 \
+            operator=(VariantCopyAssign&&) = default;                          \
+    }
+
+VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
+             VariantCopyAssign& operator=(const VariantCopyAssign&) = default;);
+VARIANT_IMPL(
+    ely::detail::Availability::Available,
+    constexpr VariantCopyAssign&
+    operator=(const VariantCopyAssign& other) noexcept(
+        (std::is_nothrow_copy_constructible_v<Ts> && ...)) {
+        using ely::destroy;
+        using ely::emplace;
+        using ely::get_unchecked;
+
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+                destroy<I + 1>(this->union_);
+            },
+            this->index());
+
+        this->index_ = other.index_;
+
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+                emplace<I + 1>(this->union_,
+                               get_unchecked<I + 1>(other.union_));
+            },
+            this->index());
+    });
+VARIANT_IMPL(ely::detail::Availability::Unavailable,
+             VariantCopyAssign& operator=(const VariantCopyAssign&) = delete;);
+
+#undef VARIANT_IMPL
+
+template<ely::detail::Availability A, typename... Ts>
+class VariantMoveAssign;
+
+#define VARIANT_IMPL(availability, move_assign)                                \
+    template<typename... Ts>                                                   \
+    class VariantMoveAssign<availability, Ts...>                               \
+        : public VariantCopyAssign<                                            \
+              ely::detail::CommonAvailability<Ts...>::copy_assignable,         \
+              Ts...>                                                           \
+    {                                                                          \
+        using base_ = VariantCopyAssign<                                       \
+            ely::detail::CommonAvailability<Ts...>::copy_assignable,           \
+            Ts...>;                                                            \
+                                                                               \
+    public:                                                                    \
+        using base_::base_;                                                    \
+                                                                               \
+        VariantMoveAssign(const VariantMoveAssign&) = default;                 \
+        VariantMoveAssign(VariantMoveAssign&&)      = default;                 \
+        ~VariantMoveAssign()                        = default;                 \
+        VariantMoveAssign& operator=(const VariantMoveAssign&) = default;      \
+                                                                               \
+        move_assign                                                            \
+    }
+
+VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
+             VariantMoveAssign& operator=(VariantMoveAssign&&) = default;);
+VARIANT_IMPL(
+    ely::detail::Availability::Available,
+    constexpr VariantMoveAssign&
+    operator=(VariantMoveAssign&& other) noexcept(
+        (std::is_nothrow_move_constructible_v<Ts> && ...)) {
+        using ely::destroy;
+        using ely::emplace;
+        using ely::get_unchecked;
+
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+                destroy<I + 1>(this->union_);
+            },
+            this->index());
+
+        this->index_ = other.index_;
+
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+                emplace<I + 1>(this->union_,
+                               get_unchecked<I + 1>((std::move(other).union_)));
+            },
+            this->index());
+    });
+VARIANT_IMPL(ely::detail::Availability::Unavailable,
+             VariantMoveAssign& operator=(VariantMoveAssign&&) = delete;);
+
+#undef VARIANT_IMPL
+
 template<typename... Ts>
-class Variant2 : public VariantCopyConstruct<
-                     ely::detail::CommonAvailability<Ts...>::copy_constructible,
+class Variant2 : public VariantMoveAssign<
+                     ely::detail::CommonAvailability<Ts...>::move_assignable,
                      Ts...>
 {
-    using base_ = VariantCopyConstruct<
-        ely::detail::CommonAvailability<Ts...>::copy_constructible,
+    using base_ = VariantMoveAssign<
+        ely::detail::CommonAvailability<Ts...>::move_assignable,
         Ts...>;
 
 public:
