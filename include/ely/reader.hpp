@@ -25,7 +25,7 @@ public:
         : tok_stream_(std::move(stream))
     {}
 
-    constexpr reference next()
+    reference next()
     {
         return tok_stream_.next().visit_all(
             [&](auto&& tok, auto&& leading, auto&& trailing) {
