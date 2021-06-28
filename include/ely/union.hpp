@@ -91,6 +91,8 @@ class Union;
 
 namespace detail
 {
+struct UnionAccess;
+
 template<ely::detail::Availability A, typename... Ts>
 class UnionDestructor;
 
@@ -107,7 +109,7 @@ public:
     template<typename T, typename... Ts>                                       \
     class UnionDestructor<available, T, Ts...>                                 \
     {                                                                          \
-        friend struct Access;                                                  \
+        friend struct ::ely::detail::UnionAccess;                              \
                                                                                \
         union                                                                  \
         {                                                                      \
@@ -179,18 +181,20 @@ public:
 
 namespace detail
 {
-struct Access
+struct UnionAccess
 {
     template<typename U>
-    static constexpr auto&& get_unchecked(U&& u,
-                                          std::in_place_index_t<0>) noexcept
+    static constexpr auto get_unchecked(U&& u,
+                                        std::in_place_index_t<0>) noexcept
+        -> decltype(auto)
     {
-        return static_cast<U&&>(u).first_;
+        return (static_cast<U&&>(u).first_);
     }
 
     template<typename U, std::size_t I>
-    static constexpr auto&& get_unchecked(U&& u,
-                                          std::in_place_index_t<I>) noexcept
+    static constexpr auto get_unchecked(U&& u,
+                                        std::in_place_index_t<I>) noexcept
+        -> decltype(auto)
     {
         return get_unchecked((static_cast<U&&>(u).rest_),
                              std::in_place_index<I - 1>);
@@ -206,14 +210,30 @@ struct is_union<ely::Union<Ts...>> : std::true_type
 {};
 } // namespace detail
 
-template<std::size_t I,
-         typename U,
-         typename =
-             std::enable_if_t<detail::is_union<ely::remove_cvref_t<U>>::value>>
-constexpr auto&& get_unchecked(U&& u) noexcept
+template<std::size_t I, typename... Ts>
+constexpr auto get_unchecked(Union<Ts...>& u) noexcept -> decltype(auto)
 {
-    return detail::Access::get_unchecked(static_cast<U&&>(u),
-                                         std::in_place_index<I>);
+    return ely::detail::UnionAccess::get_unchecked(u, std::in_place_index<I>);
+}
+
+template<std::size_t I, typename... Ts>
+constexpr auto get_unchecked(const Union<Ts...>& u) noexcept -> decltype(auto)
+{
+    return ely::detail::UnionAccess::get_unchecked(u, std::in_place_index<I>);
+}
+
+template<std::size_t I, typename... Ts>
+constexpr auto get_unchecked(Union<Ts...>&& u) noexcept -> decltype(auto)
+{
+    return ely::detail::UnionAccess::get_unchecked(std::move(u),
+                                                   std::in_place_index<I>);
+}
+
+template<std::size_t I, typename... Ts>
+constexpr auto get_unchecked(const Union<Ts...>&& u) noexcept -> decltype(auto)
+{
+    return ely::detail::UnionAccess::get_unchecked(std::move(u),
+                                                   std::in_place_index<I>);
 }
 
 template<std::size_t I, typename... Ts>
@@ -225,14 +245,14 @@ constexpr void destroy(ely::Union<Ts...>& u) noexcept
 
     if constexpr (!std::is_trivially_destructible<ty>::value)
     {
-        get_unchecked<I>(u).ty::~ty();
+        ely::get_unchecked<I>(u).ty::~ty();
     }
 }
 
 template<std::size_t I, typename... Ts, typename... Args>
 constexpr void emplace(ely::Union<Ts...>& u, Args&&... args)
 {
-    ::new (static_cast<void*>(std::addressof(get_unchecked<I>(u))))
+    ::new (static_cast<void*>(std::addressof(ely::get_unchecked<I>(u))))
         ely::nth_element_t<I, Ts...>(static_cast<Args&&>(args)...);
 }
 
@@ -240,7 +260,7 @@ template<std::size_t I, typename... Ts, typename U, typename... Args>
 constexpr void
 emplace(ely::Union<Ts...>& u, std::initializer_list<U> il, Args&&... args)
 {
-    ::new (static_cast<void*>(std::addressof(get_unchecked<I>(u))))
+    ::new (static_cast<void*>(std::addressof(ely::get_unchecked<I>(u))))
         ely::nth_element_t<I, Ts...>(il, static_cast<Args&&>(args)...);
 }
 } // namespace ely
