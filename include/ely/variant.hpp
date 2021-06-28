@@ -269,7 +269,7 @@ VARIANT_IMPL(
             [&](auto i) noexcept {
                 constexpr auto I = decltype(i)::value;
                 using ely::destroy;
-                destroy<I>(this->union_);
+                destroy<I + 1>(this->union_);
             },
             index());
     });
@@ -517,6 +517,12 @@ public:
         ely::emplace<I + 1>(this->union_, static_cast<Args&&>(args)...);
     }
 
+    template<typename T, typename... Args>
+    explicit constexpr Variant2(std::in_place_type_t<T>, Args&&... args)
+        : Variant2(std::in_place_index<FindElementIndex<T, Ts...>>,
+                   static_cast<Args&&>(args)...)
+    {}
+
     template<typename U,
              typename = std::enable_if_t<
                  !std::is_same_v<Variant2<Ts...>, ely::remove_cvref_t<U>>>>
@@ -526,6 +532,113 @@ public:
     {}
 
     using base_::index;
+
+    template<std::size_t I>
+    friend constexpr bool holds_alternative(const Variant2& v) noexcept
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            [&](auto j) {
+                constexpr auto J = decltype(j)::value;
+                return I == J;
+            },
+            v.index());
+    }
+
+    template<std::size_t I>
+    friend constexpr bool holds(const Variant2& v) noexcept
+    {
+        return holds_alternative<I>(v);
+    }
+
+    template<typename T>
+    friend constexpr bool holds_alternative(const Variant2& v) noexcept
+    {
+        return dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+
+                return std::is_same_v<ely::nth_element_t<I, Ts...>, T>;
+            },
+            v.index());
+    }
+
+    template<typename T>
+    friend constexpr bool holds(const Variant2& v) noexcept
+    {
+        return holds_alternative<T>(v);
+    }
+
+    template<typename F>
+    constexpr decltype(auto) visit(F&& fn) &
+    {
+        using ely::get_unchecked;
+
+        using R = std::invoke_result_t<F,
+                                       decltype(get_unchecked<0>(
+                                           std::declval<Variant2&>()))>;
+
+        return dispatch_index<sizeof...(Ts)>(
+            [&](auto i) -> R {
+                constexpr auto I = decltype(i)::value;
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(*this));
+            },
+            index());
+    }
+
+    template<typename F>
+    constexpr decltype(auto) visit(F&& fn) const&
+    {
+        using ely::get_unchecked;
+
+        using R = std::invoke_result_t<F,
+                                       decltype(get_unchecked<0>(
+                                           std::declval<const Variant2&>()))>;
+
+        return dispatch_index<sizeof...(Ts)>(
+            [&](auto i) -> R {
+                constexpr auto I = decltype(i)::value;
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(*this));
+            },
+            index());
+    }
+
+    template<typename F>
+    constexpr decltype(auto) visit(F&& fn) &&
+    {
+        using ely::get_unchecked;
+
+        using R = std::invoke_result_t<F,
+                                       decltype(get_unchecked<0>(
+                                           std::declval<Variant2&&>()))>;
+
+        return dispatch_index<sizeof...(Ts)>(
+            [&](auto i) -> R {
+                constexpr auto I = decltype(i)::value;
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(std::move(*this)));
+            },
+            index());
+    }
+
+    template<typename F>
+    constexpr decltype(auto) visit(F&& fn) const&&
+    {
+        using ely::get_unchecked;
+
+        using R = std::invoke_result_t<F,
+                                       decltype(get_unchecked<0>(
+                                           std::declval<const Variant2&&>()))>;
+
+        return dispatch_index<sizeof...(Ts)>(
+            [&](auto i) -> R {
+                constexpr auto I = decltype(i)::value;
+                return std::invoke(static_cast<F&&>(fn),
+                                   get_unchecked<I>(std::move(*this)));
+            },
+            index());
+    }
 };
 
 template<typename... Ts>
