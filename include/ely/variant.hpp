@@ -195,28 +195,25 @@ using variant_index_t = std::conditional_t<
 template<typename... Ts>
 class Variant2;
 
+struct VariantBase
+{};
+
 template<ely::detail::Availability A, typename... Ts>
 class VariantDestructor;
 
 #define VARIANT_IMPL(availability, destructor)                                 \
     template<typename... Ts>                                                   \
-    class VariantDestructor<availability, Ts...>                               \
+    class VariantDestructor<availability, Ts...> : public VariantBase          \
     {                                                                          \
         friend struct Access;                                                  \
                                                                                \
-        [[no_unique_address]] ely::Union<Ts...> union_{                        \
+    protected:                                                                 \
+        [[no_unique_address]] ely::Union<char, Ts...> union_{                  \
             std::in_place_index<0>};                                           \
         [[no_unique_address]] variant_index_t<sizeof...(Ts)> index_{0};        \
                                                                                \
     public:                                                                    \
         VariantDestructor() = default;                                         \
-                                                                               \
-        template<std::size_t I, typename... Args>                              \
-        explicit constexpr VariantDestructor(std::in_place_index_t<I>,         \
-                                             Args&&... args)                   \
-            : union_(std::in_place_index<I>, static_cast<Args&&>(args)...),    \
-              index_(I)                                                        \
-        {}                                                                     \
                                                                                \
         VariantDestructor(const VariantDestructor&) = default;                 \
         VariantDestructor(VariantDestructor&&)      = default;                 \
@@ -251,6 +248,53 @@ VARIANT_IMPL(ely::detail::Availability::Unavailable,
 
 #undef VARIANT_IMPL
 
+template<ely::detail::Availability A, typename... Ts>
+class VariantCopyConstruct;
+
+#define VARIANT_IMPL(availability, copy_construct)                              \
+    template<typename... Ts>                                                    \
+    class VariantCopyConstruct<availability, Ts...>                             \
+        : public VariantDestructor<                                             \
+              ely::detail::CommonAvailability<Ts...>::destructible,             \
+              Ts...>                                                            \
+    {                                                                           \
+        using base_ = VariantDestructor<                                        \
+            ely::detail::CommonAvailability<Ts...>::destructible,               \
+            Ts...>;                                                             \
+                                                                                \
+    public:                                                                     \
+        using base_::base_;                                                     \
+                                                                                \
+        copy_construct                                                          \
+                                                                                \
+        VariantCopyConstruct(VariantCopyConstruct&&) = default;                 \
+        ~VariantCopyConstruct()                      = default;                 \
+        VariantCopyConstruct&                                                   \
+                              operator=(const VariantCopyConstruct&) = default; \
+        VariantCopyConstruct& operator=(VariantCopyConstruct&&) = default;      \
+    }
+
+VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
+             VariantCopyConstruct(const VariantCopyConstruct&) = default;);
+VARIANT_IMPL(
+    ely::detail::Availability::Available,
+    constexpr VariantCopyConstruct(const VariantCopyConstruct& other) noexcept(
+        (std::is_nothrow_copy_constructible_v<Ts> && ...))
+    : base_() {
+        this->index_ = other.index_;
+        dispatch_index<sizeof...(Ts)>(
+            [&](auto i) {
+                constexpr auto I = decltype(i)::value;
+                using ely::emplace;
+                emplace<I>(this->union_, get_unchecked<I + 1>(other.union_));
+            },
+            this->index());
+    });
+VARIANT_IMPL(ely::detail::Availability::Unavailable,
+             VariantCopyConstruct(const VariantCopyConstruct&) = delete;);
+
+#undef VARIANT_IMPL
+
 template<typename... Ts>
 class Variant2 : public VariantDestructor<
                      ely::detail::CommonAvailability<Ts...>::destructible,
@@ -262,6 +306,15 @@ class Variant2 : public VariantDestructor<
 
 public:
     using base_::base_;
+
+    template<std::size_t I, typename... Args>
+    explicit constexpr Variant2(std::in_place_index_t<I>, Args&&... args)
+    {
+        this->index_ = I;
+
+        using ely::emplace;
+        ely::emplace<I + 1>(this->union_, static_cast<Args&&>(args)...);
+    }
 
     template<typename U,
              typename = std::enable_if_t<
