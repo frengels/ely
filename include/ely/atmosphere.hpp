@@ -5,6 +5,7 @@
 #include <string>
 
 #include "ely/scanner.hpp"
+#include "ely/span.hpp"
 #include "ely/variant.hpp"
 #include "ely/vector.hpp"
 
@@ -283,9 +284,9 @@ public:
         return false;
     }
 
-    constexpr const ely::Vector<Atmosphere>& elements() const
+    constexpr ely::Span<const Atmosphere> elements() const
     {
-        return list_;
+        return {list_.data(), list_.size()};
     }
 
     constexpr std::size_t size() const
