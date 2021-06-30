@@ -88,7 +88,7 @@ public:
     ELY_ALWAYS_INLINE constexpr Span() noexcept : data_size_({}, {})
     {}
 
-    ELY_ALWAYS_INLINE explicit constexpr Span(pointer data, size_type sz)
+    ELY_ALWAYS_INLINE constexpr Span(pointer data, size_type sz)
         : data_size_(data, sz)
     {}
 
