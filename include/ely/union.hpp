@@ -78,6 +78,12 @@ struct CommonAvailability
     static constexpr Availability destructible = common_availability(
         {Available<Ts, std::is_trivially_destructible, std::is_destructible>::
              value...});
+
+    static constexpr Availability default_constructible =
+        sizeof...(Ts) == 0 ? Availability::TriviallyAvailable :
+        std::is_default_constructible_v<ely::nth_element_t<0, Ts...>> ?
+                             Availability::Available :
+                             Availability::Unavailable;
 };
 } // namespace detail
 
