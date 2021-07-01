@@ -23,6 +23,20 @@ TEST_CASE("Variant")
     {
         auto v = ely::Variant<int, float, std::string>{"hello world"};
 
+        SUBCASE("default")
+        {
+            SUBCASE("trivial")
+            {
+                auto v2 = ely::Variant<int, float>{};
+            }
+
+            SUBCASE("nontrivial")
+            {
+                auto v2 = ely::Variant<std::string, int>{};
+                REQUIRE_EQ(v2.index(), 0);
+            }
+        }
+
         using v_ty = decltype(v);
 
         static_assert(std::is_copy_constructible_v<v_ty>);
