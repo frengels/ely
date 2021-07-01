@@ -81,7 +81,11 @@ using LexemeKind = ely::Variant<lexeme::Whitespace,
                                 lexeme::InvalidNumberSign,
                                 lexeme::Eof>;
 
-// static_assert(std::is_trivial_v<LexemeKind>);
+static_assert(std::is_trivially_destructible_v<LexemeKind>);
+static_assert(std::is_trivially_copy_constructible_v<LexemeKind>);
+static_assert(
+    std::is_default_constructible_v<LexemeKind>); // not trivial since index
+                                                  // needs to be initialized too
 // static_assert(sizeof(LexemeKind) == 1);
 
 template<typename Lex>
