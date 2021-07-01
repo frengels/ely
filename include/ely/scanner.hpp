@@ -6,117 +6,208 @@
 
 #include "ely/assert.h"
 #include "ely/defines.h"
+#include "ely/variant.hpp"
 
 namespace ely
 {
-enum class LexemeKind : uint8_t
+namespace lexeme
 {
-    Whitespace,
-    Tab,
-    NewlineCr,
-    NewlineLf,
-    NewlineCrlf,
-    Comment,
+struct Whitespace
+{};
+struct Tab
+{};
+struct NewlineCr
+{};
+struct NewlineLf
+{};
+struct NewlineCrlf
+{};
+struct Comment
+{};
+struct LParen
+{};
+struct RParen
+{};
+struct LBracket
+{};
+struct RBracket
+{};
+struct LBrace
+{};
+struct RBrace
+{};
+struct Identifier
+{};
+struct IntLit
+{};
+struct FloatLit
+{};
+struct CharLit
+{};
+struct StringLit
+{};
+struct KeywordLit
+{};
+struct BoolLit
+{};
+struct UnterminatedStringLit
+{};
+struct InvalidNumberSign
+{};
+struct Eof
+{};
+} // namespace lexeme
 
-    LParen,
-    RParen,
-    LBracket,
-    RBracket,
-    LBrace,
-    RBrace,
+using LexemeKind = ely::Variant<lexeme::Whitespace,
+                                lexeme::Tab,
+                                lexeme::NewlineCr,
+                                lexeme::NewlineLf,
+                                lexeme::NewlineCrlf,
+                                lexeme::Comment,
+                                lexeme::LParen,
+                                lexeme::RParen,
+                                lexeme::LBracket,
+                                lexeme::RBracket,
+                                lexeme::LBrace,
+                                lexeme::RBrace,
+                                lexeme::Identifier,
+                                lexeme::IntLit,
+                                lexeme::FloatLit,
+                                lexeme::CharLit,
+                                lexeme::StringLit,
+                                lexeme::KeywordLit,
+                                lexeme::BoolLit,
+                                lexeme::UnterminatedStringLit,
+                                lexeme::InvalidNumberSign,
+                                lexeme::Eof>;
 
-    Identifier,
+// static_assert(std::is_trivial_v<LexemeKind>);
+// static_assert(sizeof(LexemeKind) == 1);
 
-    IntLit,
-    FloatLit,
-    CharLit,
-    StringLit,
-    KeywordLit,
-    BoolLit,
-
-    UnterminatedStringLit,
-    InvalidNumberSign,
-
-    Eof,
-};
-
-constexpr bool lexeme_is_newline(LexemeKind kind)
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_newline(Lex lex)
 {
-    switch (kind)
-    {
-    case LexemeKind::NewlineCr:
-    case LexemeKind::NewlineLf:
-    case LexemeKind::NewlineCrlf:
-        return true;
-    default:
-        return false;
-    }
+    return std::is_same_v<Lex, lexeme::NewlineCr> ||
+           std::is_same_v<Lex, lexeme::NewlineLf> ||
+           std::is_same_v<Lex, lexeme::NewlineCrlf>;
 }
 
-constexpr bool lexeme_is_trailing_atmosphere(LexemeKind kind)
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_newline(LexemeKind kind)
 {
-    switch (kind)
-    {
-    case LexemeKind::Whitespace:
-    case LexemeKind::Tab:
-    case LexemeKind::Comment:
-        return true;
-    default:
-        return false;
-    }
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_newline(lex); }, kind);
 }
 
-constexpr bool lexeme_is_atmosphere(LexemeKind kind)
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_trailing_atmosphere(Lex lex)
 {
-    return lexeme_is_trailing_atmosphere(kind) || lexeme_is_newline(kind);
+    return std::is_same_v<Lex, lexeme::Whitespace> ||
+           std::is_same_v<Lex, lexeme::Tab> ||
+           std::is_same_v<Lex, lexeme::Comment>;
 }
 
-constexpr bool lexeme_is_leading_atmosphere(LexemeKind kind)
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_trailing_atmosphere(LexemeKind kind)
 {
-    ELY_MUSTTAIL return lexeme_is_atmosphere(kind);
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_trailing_atmosphere(lex); },
+                 kind);
 }
 
-constexpr bool lexeme_is_literal(LexemeKind kind)
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_atmosphere(Lex lex)
 {
-    switch (kind)
-    {
-    case LexemeKind::IntLit:
-    case LexemeKind::FloatLit:
-    case LexemeKind::CharLit:
-    case LexemeKind::StringLit:
-    case LexemeKind::KeywordLit:
-    case LexemeKind::BoolLit:
-        return true;
-    default:
-        return false;
-    }
+    return lexeme_is_trailing_atmosphere(lex) || lexeme_is_newline(lex);
 }
 
-constexpr bool lexeme_is_eof(LexemeKind kind)
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_atmosphere(LexemeKind kind)
 {
-    return kind == LexemeKind::Eof;
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_atmosphere(lex); }, kind);
 }
 
-constexpr bool lexeme_is_identifier(LexemeKind kind)
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_leading_atmosphere(Lex lex)
 {
-    return kind == LexemeKind::Identifier;
+    ELY_MUSTTAIL return lexeme_is_atmosphere(lex);
+}
+
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_leading_atmosphere(LexemeKind kind)
+{
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_leading_atmosphere(lex); },
+                 kind);
+}
+
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_literal(Lex lex)
+{
+    return std::is_same_v<Lex, lexeme::IntLit> ||
+           std::is_same_v<Lex, lexeme::FloatLit> ||
+           std::is_same_v<Lex, lexeme::CharLit> ||
+           std::is_same_v<Lex, lexeme::StringLit> ||
+           std::is_same_v<Lex, lexeme::KeywordLit> ||
+           std::is_same_v<Lex, lexeme::BoolLit>;
+}
+
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_literal(LexemeKind kind)
+{
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_literal(lex); }, kind);
+}
+
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_eof(Lex lex)
+{
+    return std::is_same_v<Lex, lexeme::Eof>;
+}
+
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_eof(LexemeKind kind)
+{
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_eof(lex); }, kind);
+}
+
+template<typename Lex>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
+                                             bool>
+lexeme_is_identifier(Lex lex)
+{
+    return std::is_same_v<Lex, lexeme::Identifier>;
+}
+
+ELY_ALWAYS_INLINE constexpr bool lexeme_is_identifier(LexemeKind kind)
+{
+    using ely::visit;
+    return visit([](auto lex) { return lexeme_is_identifier(lex); }, kind);
 }
 
 template<typename I>
 struct Lexeme
 {
 public:
-    using iterator = I;
+    using iterator  = I;
     using size_type = uint32_t;
 
 public:
     I          start{};
     uint32_t   len{};
-    LexemeKind kind{LexemeKind::Eof};
+    LexemeKind kind{lexeme::Eof{}};
 
     explicit constexpr operator bool() const noexcept
     {
-        return kind != LexemeKind::Eof;
+        return !lexeme_is_eof(kind);
     }
 
     constexpr iterator begin() const
@@ -218,21 +309,21 @@ template<typename I, typename S>
 constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::Identifier};
+    return {next, lexeme::Identifier{}};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_keyword(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::KeywordLit};
+    return {next, lexeme::KeywordLit{}};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::InvalidNumberSign};
+    return {next, lexeme::InvalidNumberSign{}};
 }
 
 template<typename I, typename S>
@@ -248,7 +339,7 @@ constexpr ScanResult<I> scan_float(I it, S end)
 
     if (is_delimiter(c))
     {
-        return {it, LexemeKind::FloatLit};
+        return {it, lexeme::FloatLit{}};
     }
     else
     {
@@ -277,7 +368,7 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
     }
     else if (is_delimiter(c))
     {
-        return {it, LexemeKind::IntLit};
+        return {it, lexeme::IntLit{}};
     }
     else
     {
@@ -301,18 +392,18 @@ constexpr ScanResult<I> scan_string(I it, S end)
         }
         else if (ch == '"' && !escaping)
         {
-            return {it, LexemeKind::StringLit};
+            return {it, lexeme::StringLit{}};
         }
     }
 
-    return {it, LexemeKind::UnterminatedStringLit};
+    return {it, lexeme::UnterminatedStringLit{}};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
-    return {new_it, LexemeKind::CharLit};
+    return {new_it, lexeme::CharLit{}};
 }
 
 template<typename I, typename S>
@@ -327,7 +418,7 @@ constexpr ScanResult<I> scan_sign(I it, S end)
     }
     else if (is_delimiter(ch))
     {
-        return {it, LexemeKind::Identifier};
+        return {it, lexeme::Identifier{}};
     }
     else
     {
@@ -352,7 +443,7 @@ constexpr ScanResult<I> scan_whitespace(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Whitespace};
+    return {it, lexeme::Whitespace{}};
 }
 
 template<typename I, typename S>
@@ -371,7 +462,7 @@ constexpr ScanResult<I> scan_tab(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Tab};
+    return {it, lexeme::Tab{}};
 }
 
 template<typename I, typename S>
@@ -383,11 +474,11 @@ constexpr ScanResult<I> scan_cr(I it, S end)
         if (ch == '\n')
         {
             ++it;
-            return {it, LexemeKind::NewlineCrlf};
+            return {it, lexeme::NewlineCrlf{}};
         }
     }
 
-    return {it, LexemeKind::NewlineCr};
+    return {it, lexeme::NewlineCr{}};
 }
 
 template<typename I, typename S>
@@ -402,7 +493,7 @@ constexpr ScanResult<I> scan_line_comment(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Comment};
+    return {it, lexeme::Comment{}};
 }
 
 template<typename I, typename S>
@@ -426,7 +517,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                     ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
                 }
             }
-            return {it, LexemeKind::BoolLit};
+            return {it, lexeme::BoolLit{}};
         case ':':
             ++it;
             ELY_MUSTTAIL return scan_keyword(it, end);
@@ -439,7 +530,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         }
     }
 
-    return {it, LexemeKind::InvalidNumberSign};
+    return {it, lexeme::InvalidNumberSign{}};
 }
 
 template<typename I, typename S>
@@ -447,7 +538,7 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
 {
     if (it == end)
     {
-        return {it, LexemeKind::Eof};
+        return {it, lexeme::Eof{}};
     }
 
     char ch = *it++;
@@ -461,21 +552,21 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
     case '\r':
         ELY_MUSTTAIL return detail::scan_cr(it, end);
     case '\n':
-        return {it, LexemeKind::NewlineLf};
+        return {it, lexeme::NewlineLf{}};
     case ';':
         ELY_MUSTTAIL return detail::scan_line_comment(it, end);
     case '(':
-        return {it, LexemeKind::LParen};
+        return {it, lexeme::LParen{}};
     case ')':
-        return {it, LexemeKind::RParen};
+        return {it, lexeme::RParen{}};
     case '[':
-        return {it, LexemeKind::LBracket};
+        return {it, lexeme::LBracket{}};
     case ']':
-        return {it, LexemeKind::RBracket};
+        return {it, lexeme::RBracket{}};
     case '{':
-        return {it, LexemeKind::LBrace};
+        return {it, lexeme::LBrace{}};
     case '}':
-        return {it, LexemeKind::RBrace};
+        return {it, lexeme::RBrace{}};
     case '"':
         ELY_MUSTTAIL return detail::scan_string(it, end);
     case '+':

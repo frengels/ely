@@ -39,7 +39,8 @@ public:
     template<typename I>
     explicit constexpr LParen([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::LParen, "expected LParen");
+        ELY_ASSERT(ely::holds_alternative<lexeme::LParen>(lex.kind),
+                   "expected LParen");
     }
 
     static constexpr std::size_t size()
@@ -56,7 +57,8 @@ public:
     template<typename I>
     explicit constexpr RParen([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::RParen, "expected RParen");
+        ELY_ASSERT(ely::holds_alternative<lexeme::RParen>(lex.kind),
+                   "expected RParen");
     }
 
     static constexpr std::size_t size()
@@ -73,7 +75,8 @@ public:
     template<typename I>
     explicit constexpr LBracket([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::LBracket, "expected LBracket");
+        ELY_ASSERT(ely::holds_alternative<lexeme::LBracket>(lex.kind),
+                   "expected LBracket");
     }
 
     static constexpr std::size_t size()
@@ -90,7 +93,8 @@ public:
     template<typename I>
     explicit constexpr RBracket([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::RBracket, "expected RBracket");
+        ELY_ASSERT(ely::holds_alternative<lexeme::RBracket>(lex.kind),
+                   "expected RBracket");
     }
 
     static constexpr std::size_t size()
@@ -107,7 +111,8 @@ public:
     template<typename I>
     explicit constexpr LBrace([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::LBrace, "expected LBrace");
+        ELY_ASSERT(ely::holds_alternative<lexeme::LBrace>(lex.kind),
+                   "expected LBrace");
     }
 
     static constexpr std::size_t size()
@@ -124,7 +129,8 @@ public:
     template<typename I>
     explicit constexpr RBrace([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::RBrace, "expected RBrace");
+        ELY_ASSERT(ely::holds_alternative<lexeme::RBrace>(lex.kind),
+                   "expected RBrace");
     }
 
     static constexpr std::size_t size()
@@ -144,7 +150,8 @@ public:
     template<typename I>
     explicit constexpr Identifier(Lexeme<I> lex) : name_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::Identifier, "expected Identifier");
+        ELY_ASSERT(ely::holds_alternative<lexeme::Identifier>(lex.kind),
+                   "expected Identifier");
     }
 
     template<typename... Args>
@@ -174,7 +181,8 @@ public:
     template<typename I>
     explicit constexpr IntLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::IntLit, "expected IntLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::IntLit>(lex.kind),
+                   "expected IntLit");
     }
 
     template<typename... Args>
@@ -204,7 +212,8 @@ public:
     template<typename I>
     explicit constexpr FloatLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::FloatLit, "expected FloatLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::FloatLit>(lex.kind),
+                   "expected FloatLit");
     }
 
     template<typename... Args>
@@ -234,7 +243,8 @@ public:
     template<typename I>
     explicit constexpr CharLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::CharLit, "expected CharLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::CharLit>(lex.kind),
+                   "expected CharLit");
     }
 
     template<typename... Args>
@@ -264,7 +274,8 @@ public:
     template<typename I>
     constexpr StringLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::StringLit>(lex.kind),
+                   "expected StringLit");
     }
 
     template<typename... Args>
@@ -294,7 +305,8 @@ public:
     template<typename I>
     explicit constexpr KeywordLit(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::KeywordLit, "expected KeywordLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::KeywordLit>(lex.kind),
+                   "expected KeywordLit");
     }
 
     template<typename... Args>
@@ -326,7 +338,8 @@ public:
     explicit constexpr BoolLit(Lexeme<I> lex)
         : b(*std::next(lex.begin()) == 't')
     {
-        ELY_ASSERT(lex.kind == LexemeKind::BoolLit, "expected BoolLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::BoolLit>(lex.kind),
+                   "expected BoolLit");
     }
 
     explicit constexpr BoolLit(bool b) : b(b)
@@ -361,7 +374,8 @@ public:
     explicit constexpr UnterminatedStringLit(Lexeme<I> lex)
         : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::StringLit, "expected StringLit");
+        ELY_ASSERT(ely::holds_alternative<lexeme::StringLit>(lex.kind),
+                   "expected StringLit");
     }
 
     ELY_CONSTEXPR_STRING std::string_view str() const noexcept
@@ -388,7 +402,7 @@ public:
     explicit constexpr InvalidNumberSign(Lexeme<I> lex)
         : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::InvalidNumberSign,
+        ELY_ASSERT(ely::holds_alternative<lexeme::InvalidNumberSign>(lex.kind),
                    "expected InvalidNumberSign");
     }
 
@@ -411,7 +425,8 @@ public:
     template<typename I>
     explicit constexpr Eof([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::Eof, "expected Eof");
+        ELY_ASSERT(ely::holds_alternative<lexeme::Eof>(lex.kind),
+                   "expected Eof");
     }
 
     static constexpr std::size_t size()
@@ -562,33 +577,42 @@ Token make_token(AtmosphereList<AtmospherePosition::Leading>&&  leading,
                  Lexeme<I>                                      lex)
 {
 
+    using ely::visit;
+    return visit(
+        [&](auto l) -> Token {
+            using lex_ty = decltype(l);
+
 #define DISPATCH(tok)                                                          \
-    case LexemeKind::tok:                                                      \
+    if constexpr (std::is_same_v<lexeme::tok, lex_ty>)                         \
+    {                                                                          \
         return Token(std::move(leading),                                       \
                      std::move(trailing),                                      \
                      std::in_place_type<token::tok>,                           \
-                     lex);
-    switch (lex.kind)
-    {
-        DISPATCH(LParen);
-        DISPATCH(RParen);
-        DISPATCH(LBracket);
-        DISPATCH(RBracket);
-        DISPATCH(LBrace);
-        DISPATCH(RBrace);
-        DISPATCH(Identifier);
-        DISPATCH(IntLit);
-        DISPATCH(FloatLit);
-        DISPATCH(CharLit);
-        DISPATCH(StringLit);
-        DISPATCH(KeywordLit);
-        DISPATCH(BoolLit);
-        DISPATCH(InvalidNumberSign);
-        DISPATCH(UnterminatedStringLit);
-        DISPATCH(Eof);
-    default:
-        __builtin_unreachable();
-    }
+                     lex);                                                     \
+    }                                                                          \
+    else
+
+            DISPATCH(LParen)
+            DISPATCH(RParen)
+            DISPATCH(LBracket)
+            DISPATCH(RBracket)
+            DISPATCH(LBrace)
+            DISPATCH(RBrace)
+            DISPATCH(Identifier)
+            DISPATCH(IntLit)
+            DISPATCH(FloatLit)
+            DISPATCH(CharLit)
+            DISPATCH(StringLit)
+            DISPATCH(KeywordLit)
+            DISPATCH(BoolLit)
+            DISPATCH(InvalidNumberSign)
+            DISPATCH(UnterminatedStringLit)
+            DISPATCH(Eof)
+            {
+                __builtin_unreachable();
+            }
+        },
+        lex.kind);
 #undef DISPATCH
 }
 } // namespace ely
