@@ -627,16 +627,16 @@ constexpr bool holds(const Variant<Ts...>& v) noexcept
     return ely::holds_alternative<T>(v);
 }
 
-template<
-    typename F,
-    typename V,
-    typename R = std::invoke_result_t<F,
-                                      decltype(ely::get_unchecked<0>(
-                                          std::declval<V>()))>
-               ELY_ALWAYS_INLINE constexpr std::enable_if_t<
-            ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
-            R> visit(F&& fn, V&& v)
+template<typename F, typename V>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<
+    ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
+    std::invoke_result_t<F,
+                         decltype((ely::get_unchecked<0>(std::declval<V>())))>>
+visit(F&& fn, V&& v)
 {
+    using R = std::invoke_result_t<F,
+                                   decltype((ely::get_unchecked<0>(
+                                       std::declval<V>())))>;
     return ely::detail::dispatch_index<
         std::variant_size_v<ely::remove_cvref_t<V>>>(
         [&](auto i) -> R {
@@ -647,15 +647,11 @@ template<
         v.index());
 }
 
-template<typename V,
-         typename F,
-         typename R = std::invoke_result_t<
-             F,
-             decltype(ely::get_unchecked<0>(std::declval<V>()))>>
+template<typename R, typename F, typename V>
 ELY_ALWAYS_INLINE constexpr std::enable_if_t<
     ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
     R>
-visit(V&& v, F&& fn)
+visit(F&& fn, V&& v)
 {
     return ely::detail::dispatch_index<
         std::variant_size_v<ely::remove_cvref_t<V>>>(
