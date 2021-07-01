@@ -196,7 +196,7 @@ struct VariantAccess
     template<std::size_t I, typename V>
     static constexpr auto&& get_unchecked(V&& v) noexcept
     {
-        return ely::get_unchecked<I + 1>((static_cast<V&&>(v).union_));
+        return ely::get_unchecked<I>((static_cast<V&&>(v).union_));
     }
 };
 
@@ -215,22 +215,37 @@ constexpr auto get_unchecked(V&& v) noexcept -> std::enable_if_t<
 
 namespace detail
 {
-template<ely::detail::Availability A, typename... Ts>
+struct VariantUninit
+{};
+
+template<ely::detail::Availability Destroy,
+         ely::detail::Availability Construct,
+         typename... Ts>
 class VariantDestructor;
 
-#define VARIANT_IMPL(availability, destructor, destroy_unchecked)              \
+#define VARIANT_IMPL(destroy_availability,                                     \
+                     construct_availability,                                   \
+                     destructor,                                               \
+                     destroy_unchecked,                                        \
+                     default_construct)                                        \
     template<typename... Ts>                                                   \
-    class VariantDestructor<availability, Ts...> : public VariantBase          \
+    class VariantDestructor<destroy_availability,                              \
+                            construct_availability,                            \
+                            Ts...> : public VariantBase                        \
     {                                                                          \
         friend struct ely::detail::VariantAccess;                              \
                                                                                \
     protected:                                                                 \
-        [[no_unique_address]] ely::Union<char, Ts...> union_{                  \
-            std::in_place_index<0>};                                           \
-        [[no_unique_address]] variant_index_t<sizeof...(Ts)> index_{0};        \
+        [[no_unique_address]] ely::Union<Ts..., char>        union_{};         \
+        [[no_unique_address]] variant_index_t<sizeof...(Ts)> index_{};         \
+                                                                               \
+    protected:                                                                 \
+        constexpr VariantDestructor(VariantUninit) noexcept                    \
+            : union_{std::in_place_index<sizeof...(Ts)>}                       \
+        {}                                                                     \
                                                                                \
     public:                                                                    \
-        VariantDestructor() = default;                                         \
+        default_construct                                                      \
                                                                                \
         VariantDestructor(const VariantDestructor&) = default;                 \
         VariantDestructor(VariantDestructor&&)      = default;                 \
@@ -250,30 +265,71 @@ class VariantDestructor;
         destroy_unchecked                                                      \
     }
 
-VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
-             ~VariantDestructor() = default;
-             , constexpr void destroy_unchecked() noexcept {});
-VARIANT_IMPL(
-    ely::detail::Availability::Available,
-    ~VariantDestructor() {
-        dispatch_index<sizeof...(Ts)>(
-            [&](auto i) noexcept {
-                constexpr auto I = decltype(i)::value;
-                ely::destroy<I + 1>(this->union_);
-            },
-            index());
-    },
-    constexpr void destroy_unchecked() noexcept {
-        ely::detail::dispatch_index<sizeof...(Ts)>(
-            [&](auto i) {
-                constexpr auto I = decltype(i)::value;
-                ely::destroy<I + 1>(this->union_);
-            },
-            this->index());
-    });
-VARIANT_IMPL(ely::detail::Availability::Unavailable,
-             ~VariantDestructor() = delete;
-             , void destroy_unchecked() = delete;);
+#define VARIANT_IMPL_TRIVIAL_DESTROY(availability, default_construct)          \
+    VARIANT_IMPL(                                                              \
+        ely::detail::Availability::TriviallyAvailable,                         \
+        availability,                                                          \
+        ~VariantDestructor() = default;                                        \
+        , constexpr void destroy_unchecked() noexcept {}, default_construct)
+
+#define VARIANT_IMPL_DESTROY(availability, default_construct)                  \
+    VARIANT_IMPL(                                                              \
+        ely::detail::Availability::Available,                                  \
+        availability,                                                          \
+        ~VariantDestructor() {                                                 \
+            dispatch_index<sizeof...(Ts)>(                                     \
+                [&](auto i) noexcept {                                         \
+                    constexpr auto I = decltype(i)::value;                     \
+                    ely::destroy<I>(this->union_);                             \
+                },                                                             \
+                index());                                                      \
+        },                                                                     \
+        constexpr void destroy_unchecked() noexcept {                          \
+            ely::detail::dispatch_index<sizeof...(Ts)>(                        \
+                [&](auto i) {                                                  \
+                    constexpr auto I = decltype(i)::value;                     \
+                    ely::destroy<I>(this->union_);                             \
+                },                                                             \
+                this->index());                                                \
+        },                                                                     \
+        default_construct)
+
+#define VARIANT_IMPL_NO_DESTROY(availability, default_construct)               \
+    VARIANT_IMPL(ely::detail::Availability::Unavailable,                       \
+                 availability,                                                 \
+                 ~VariantDestructor() = delete;                                \
+                 , void destroy_unchecked() = delete;                          \
+                 , default_construct)
+
+VARIANT_IMPL_TRIVIAL_DESTROY(ely::detail::Availability::TriviallyAvailable,
+                             VariantDestructor() = default;);
+VARIANT_IMPL_TRIVIAL_DESTROY(ely::detail::Availability::Available,
+                             constexpr VariantDestructor()
+                             : union_(std::in_place_index<0>){});
+VARIANT_IMPL_TRIVIAL_DESTROY(ely::detail::Availability::Unavailable,
+                             VariantDestructor() = delete;);
+
+#undef VARIANT_IMPL_TRIVIAL_DESTROY
+
+VARIANT_IMPL_DESTROY(ely::detail::Availability::TriviallyAvailable,
+                     VariantDestructor() = default;);
+VARIANT_IMPL_DESTROY(ely::detail::Availability::Available,
+                     constexpr VariantDestructor()
+                     : union_(std::in_place_index<0>){});
+VARIANT_IMPL_DESTROY(ely::detail::Availability::Unavailable,
+                     VariantDestructor() = delete;);
+
+#undef VARIANT_IMPL_DESTROY
+
+VARIANT_IMPL_NO_DESTROY(ely::detail::Availability::TriviallyAvailable,
+                        VariantDestructor() = default;);
+VARIANT_IMPL_NO_DESTROY(ely::detail::Availability::Available,
+                        constexpr VariantDestructor()
+                        : union_(std::in_place_index<0>){});
+VARIANT_IMPL_NO_DESTROY(ely::detail::Availability::Unavailable,
+                        VariantDestructor() = delete;);
+
+#undef VARIANT_IMPL_NO_DESTROY
 
 #undef VARIANT_IMPL
 
@@ -285,10 +341,12 @@ class VariantCopyConstruct;
     class VariantCopyConstruct<availability, Ts...>                             \
         : public VariantDestructor<                                             \
               ely::detail::CommonAvailability<Ts...>::destructible,             \
+              ely::detail::CommonAvailability<Ts...>::default_constructible,    \
               Ts...>                                                            \
     {                                                                           \
         using base_ = VariantDestructor<                                        \
             ely::detail::CommonAvailability<Ts...>::destructible,               \
+            ely::detail::CommonAvailability<Ts...>::default_constructible,      \
             Ts...>;                                                             \
                                                                                 \
     public:                                                                     \
@@ -309,14 +367,14 @@ VARIANT_IMPL(
     ely::detail::Availability::Available,
     constexpr VariantCopyConstruct(const VariantCopyConstruct& other) noexcept(
         (std::is_nothrow_copy_constructible_v<Ts> && ...))
-    : base_() {
+    : base_(VariantUninit{}) {
         this->index_ = other.index_;
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
                 using ely::emplace;
                 using ely::get_unchecked;
-                ely::emplace<I + 1>(this->union_, ely::get_unchecked<I>(other));
+                ely::emplace<I>(this->union_, ely::get_unchecked<I>(other));
             },
             this->index());
     });
@@ -357,15 +415,16 @@ VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
 VARIANT_IMPL(
     ely::detail::Availability::Available,
     constexpr VariantMoveConstruct(VariantMoveConstruct&& other) noexcept(
-        (std::is_nothrow_move_constructible_v<Ts> && ...)) {
+        (std::is_nothrow_move_constructible_v<Ts> && ...))
+    : base_(VariantUninit{}) {
         this->index_ = other.index_;
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
                 using ely::emplace;
                 using ely::get_unchecked;
-                ely::emplace<I + 1>(this->union_,
-                                    ely::get_unchecked<I>(std::move(other)));
+                ely::emplace<I>(this->union_,
+                                ely::get_unchecked<I>(std::move(other)));
             },
             this->index());
     });
@@ -418,7 +477,7 @@ VARIANT_IMPL(
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                ely::emplace<I + 1>(this->union_, ely::get_unchecked<I>(other));
+                ely::emplace<I>(this->union_, ely::get_unchecked<I>(other));
             },
             this->index());
 
@@ -468,8 +527,8 @@ VARIANT_IMPL(
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                ely::emplace<I + 1>(this->union_,
-                                    ely::get_unchecked<I>(std::move(other)));
+                ely::emplace<I>(this->union_,
+                                ely::get_unchecked<I>(std::move(other)));
             },
             this->index());
 
@@ -495,11 +554,12 @@ public:
 
     template<std::size_t I, typename... Args>
     explicit constexpr Variant(std::in_place_index_t<I>, Args&&... args)
+        : base_(detail::VariantUninit{})
     {
         this->index_ = I;
 
         using ely::emplace;
-        ely::emplace<I + 1>(this->union_, static_cast<Args&&>(args)...);
+        ely::emplace<I>(this->union_, static_cast<Args&&>(args)...);
     }
 
     template<typename T, typename... Args>
