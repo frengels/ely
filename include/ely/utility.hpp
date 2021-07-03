@@ -43,6 +43,17 @@ template<typename T, typename... Ts>
 struct type_index : std::integral_constant<std::size_t, type_index_v<T, Ts...>>
 {};
 
+// there's no added template instantiation overhead since all the is_same_v
+// would get instantiated anyway
+template<typename T, typename... Ts>
+inline constexpr std::size_t type_present_v = type_index_v<T, Ts...> !=
+                                              sizeof...(Ts);
+
+template<typename T, typename... Ts>
+struct type_present
+    : std::integral_constant<std::size_t, type_present_v<T, Ts...>>
+{};
+
 namespace detail
 {
 struct type_count_helper
