@@ -73,14 +73,15 @@ public:
     PairBox() = default;
 
     template<typename... Args>
-    explicit constexpr PairBox(Args&&... args) noexcept(
+    ELY_ALWAYS_INLINE explicit constexpr PairBox(Args&&... args) noexcept(
         std::is_nothrow_constructible_v<T, Args...>)
     {
         T(static_cast<Args&&>(args)...);
     }
 
     template<typename Tuple, std::size_t... Is>
-    explicit constexpr PairBox(Tuple&& t, std::index_sequence<Is...>)
+    ELY_ALWAYS_INLINE explicit constexpr PairBox(Tuple&& t,
+                                                 std::index_sequence<Is...>)
     {
         T(std::get<Is>(static_cast<Tuple&&>(t))...);
     }
@@ -251,46 +252,49 @@ constexpr std::enable_if_t<I == 0, T1&> get(EBOPair<T1, T2>& p) noexcept
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 0, const T1&>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 0, const T1&>
 get(const EBOPair<T1, T2>& p) noexcept
 {
     return p.first();
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 0, T1&&> get(EBOPair<T1, T2>&& p) noexcept
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 0, T1&&>
+get(EBOPair<T1, T2>&& p) noexcept
 {
     return std::move(p).first();
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 0, const T1&&>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 0, const T1&&>
 get(const EBOPair<T1, T2>&& p) noexcept
 {
     return std::move(p).first();
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 1, T2&> get(EBOPair<T1, T2>& p) noexcept
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 1, T2&>
+get(EBOPair<T1, T2>& p) noexcept
 {
     return p.second();
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 1, const T2&>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 1, const T2&>
 get(const EBOPair<T1, T2>& p) noexcept
 {
     return p.second();
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 1, T2&&> get(EBOPair<T1, T2>&& p) noexcept
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 1, T2&&>
+get(EBOPair<T1, T2>&& p) noexcept
 {
     return std::move(p).second();
 }
 
 template<std::size_t I, typename T1, typename T2>
-constexpr std::enable_if_t<I == 1, const T2&&>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<I == 1, const T2&&>
 get(const EBOPair<T1, T2>&& p) noexcept
 {
     return std::move(p).second();
