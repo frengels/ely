@@ -289,13 +289,13 @@ public:
             if constexpr (position == AtmospherePosition::Leading)
             {
                 return [](LexemeKind kind) {
-                    return lexeme_is_leading_atmosphere(kind);
+                    return kind.is_leading_atmosphere();
                 };
             }
             else if constexpr (position == AtmospherePosition::Trailing)
             {
                 return [](LexemeKind kind) {
-                    return lexeme_is_trailing_atmosphere(kind);
+                    return kind.is_trailing_atmosphere();
                 };
             }
         }();

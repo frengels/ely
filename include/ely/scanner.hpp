@@ -12,74 +12,294 @@ namespace ely
 {
 namespace lexeme
 {
+template<typename T, typename = void>
+struct is_lexeme : std::false_type
+{};
+
+template<typename T>
+struct is_lexeme<T, std::void_t<typename T::lexeme_tag>> : std::true_type
+{};
+
+template<typename T>
+inline constexpr bool is_lexeme_v = is_lexeme<T>::value;
+
+template<typename L, typename = void>
+struct is_newline : std::false_type
+{};
+
+template<typename L>
+struct is_newline<L, std::void_t<typename L::newline_tag>> : is_lexeme<L>
+{};
+
+template<typename L>
+inline constexpr bool is_newline_v = is_newline<L>::value;
+
+template<typename L, typename = void>
+struct is_atmosphere : std::false_type
+{};
+
+template<typename L>
+struct is_atmosphere<L, std::void_t<typename L::atmosphere_tag>> : is_lexeme<L>
+{};
+
+template<typename L>
+inline constexpr bool is_atmosphere_v = is_atmosphere<L>::value;
+
+template<typename L, typename = void>
+struct is_trailing_atmosphere : std::false_type
+{};
+
+template<typename L>
+struct is_trailing_atmosphere<L,
+                              std::void_t<typename L::trailing_atmosphere_tag>>
+    : std::true_type
+{};
+
+template<typename L>
+inline constexpr bool is_trailing_atmosphere_v =
+    is_trailing_atmosphere<L>::value;
+
+template<typename L, typename = void>
+struct is_literal : std::false_type
+{};
+
+template<typename L>
+struct is_literal<L, std::void_t<typename L::literal_tag>> : is_lexeme<L>
+{};
+
+template<typename L>
+inline constexpr bool is_literal_v = is_literal<L>::value;
+
+template<typename L, typename = void>
+struct is_identifier : std::false_type
+{};
+
+template<typename L>
+struct is_identifier<L, std::void_t<typename L::identifier_tag>> : is_lexeme<L>
+{};
+
+template<typename L>
+inline constexpr bool is_identifier_v = is_identifier<L>::value;
+
+template<typename L, typename = void>
+struct is_eof : std::false_type
+{};
+
+template<typename L>
+struct is_eof<L, std::void_t<typename L::eof_tag>> : is_lexeme<L>
+{};
+
+template<typename L>
+inline constexpr bool is_eof_v = is_eof<L>::value;
+
 struct Whitespace
-{};
+{
+    using lexeme_tag              = void;
+    using atmosphere_tag          = void;
+    using trailing_atmosphere_tag = void;
+};
 struct Tab
-{};
+{
+    using lexeme_tag              = void;
+    using atmosphere_tag          = void;
+    using trailing_atmosphere_tag = void;
+};
 struct NewlineCr
-{};
+{
+    using lexeme_tag     = void;
+    using newline_tag    = void;
+    using atmosphere_tag = void;
+};
 struct NewlineLf
-{};
+{
+    using lexeme_tag     = void;
+    using newline_tag    = void;
+    using atmosphere_tag = void;
+};
 struct NewlineCrlf
-{};
+{
+    using lexeme_tag     = void;
+    using newline_tag    = void;
+    using atmosphere_tag = void;
+};
 struct Comment
-{};
+{
+    using lexeme_tag              = void;
+    using atmosphere_tag          = void;
+    using trailing_atmosphere_tag = void;
+};
 struct LParen
-{};
+{
+    using lexeme_tag = void;
+};
 struct RParen
-{};
+{
+    using lexeme_tag = void;
+};
 struct LBracket
-{};
+{
+    using lexeme_tag = void;
+};
 struct RBracket
-{};
+{
+    using lexeme_tag = void;
+};
 struct LBrace
-{};
+{
+    using lexeme_tag = void;
+};
 struct RBrace
-{};
+{
+    using lexeme_tag = void;
+};
 struct Identifier
-{};
+{
+    using lexeme_tag     = void;
+    using identifier_tag = void;
+};
 struct IntLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct FloatLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct CharLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct StringLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct KeywordLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct BoolLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct UnterminatedStringLit
-{};
+{
+    using lexeme_tag  = void;
+    using literal_tag = void;
+};
 struct InvalidNumberSign
-{};
+{
+    using lexeme_tag = void;
+};
 struct Eof
-{};
+{
+    using lexeme_tag = void;
+    using eof_tag    = void;
+};
 } // namespace lexeme
 
-using LexemeKind = ely::Variant<lexeme::Whitespace,
-                                lexeme::Tab,
-                                lexeme::NewlineCr,
-                                lexeme::NewlineLf,
-                                lexeme::NewlineCrlf,
-                                lexeme::Comment,
-                                lexeme::LParen,
-                                lexeme::RParen,
-                                lexeme::LBracket,
-                                lexeme::RBracket,
-                                lexeme::LBrace,
-                                lexeme::RBrace,
-                                lexeme::Identifier,
-                                lexeme::IntLit,
-                                lexeme::FloatLit,
-                                lexeme::CharLit,
-                                lexeme::StringLit,
-                                lexeme::KeywordLit,
-                                lexeme::BoolLit,
-                                lexeme::UnterminatedStringLit,
-                                lexeme::InvalidNumberSign,
-                                lexeme::Eof>;
+class LexemeKind : public ely::Variant<lexeme::Whitespace,
+                                       lexeme::Tab,
+                                       lexeme::NewlineCr,
+                                       lexeme::NewlineLf,
+                                       lexeme::NewlineCrlf,
+                                       lexeme::Comment,
+                                       lexeme::LParen,
+                                       lexeme::RParen,
+                                       lexeme::LBracket,
+                                       lexeme::RBracket,
+                                       lexeme::LBrace,
+                                       lexeme::RBrace,
+                                       lexeme::Identifier,
+                                       lexeme::IntLit,
+                                       lexeme::FloatLit,
+                                       lexeme::CharLit,
+                                       lexeme::StringLit,
+                                       lexeme::KeywordLit,
+                                       lexeme::BoolLit,
+                                       lexeme::UnterminatedStringLit,
+                                       lexeme::InvalidNumberSign,
+                                       lexeme::Eof>
+{
+    using base_ = ely::Variant<lexeme::Whitespace,
+                               lexeme::Tab,
+                               lexeme::NewlineCr,
+                               lexeme::NewlineLf,
+                               lexeme::NewlineCrlf,
+                               lexeme::Comment,
+                               lexeme::LParen,
+                               lexeme::RParen,
+                               lexeme::LBracket,
+                               lexeme::RBracket,
+                               lexeme::LBrace,
+                               lexeme::RBrace,
+                               lexeme::Identifier,
+                               lexeme::IntLit,
+                               lexeme::FloatLit,
+                               lexeme::CharLit,
+                               lexeme::StringLit,
+                               lexeme::KeywordLit,
+                               lexeme::BoolLit,
+                               lexeme::UnterminatedStringLit,
+                               lexeme::InvalidNumberSign,
+                               lexeme::Eof>;
+
+public:
+    using base_::base_;
+
+    ELY_ALWAYS_INLINE constexpr bool is_newline() const noexcept
+    {
+        return ely::visit(
+            [](auto lex) { return lexeme::is_newline_v<decltype(lex)>; },
+            *this);
+    }
+
+    ELY_ALWAYS_INLINE constexpr bool is_atmosphere() const noexcept
+    {
+        return ely::visit(
+            [](auto lex) { return lexeme::is_atmosphere_v<decltype(lex)>; },
+            *this);
+    }
+
+    ELY_ALWAYS_INLINE constexpr bool is_leading_atmosphere() const noexcept
+    {
+        return is_atmosphere();
+    }
+
+    ELY_ALWAYS_INLINE constexpr bool is_trailing_atmosphere() const noexcept
+    {
+        return ely::visit(
+            [](auto lex) {
+                return lexeme::is_trailing_atmosphere_v<decltype(lex)>;
+            },
+            *this);
+    }
+
+    ELY_ALWAYS_INLINE constexpr bool is_literal() const noexcept
+    {
+        return ely::visit(
+            [](auto lex) { return lexeme::is_literal_v<decltype(lex)>; },
+            *this);
+    }
+
+    ELY_ALWAYS_INLINE constexpr bool is_eof() const noexcept
+    {
+        return ely::visit(
+            [](auto lex) { return lexeme::is_eof_v<decltype(lex)>; }, *this);
+    }
+
+    ELY_ALWAYS_INLINE constexpr bool is_identifier() const noexcept
+    {
+        return ely::visit(
+            [](auto lex) { return lexeme::is_identifier_v<decltype(lex)>; },
+            *this);
+    }
+};
 
 static_assert(std::is_trivially_destructible_v<LexemeKind>);
 static_assert(std::is_trivially_copy_constructible_v<LexemeKind>);
@@ -89,50 +309,39 @@ static_assert(
 static_assert(sizeof(LexemeKind) == 1);
 
 template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
 lexeme_is_newline(Lex lex)
 {
-    return std::is_same_v<Lex, lexeme::NewlineCr> ||
-           std::is_same_v<Lex, lexeme::NewlineLf> ||
-           std::is_same_v<Lex, lexeme::NewlineCrlf>;
+    return lexeme::is_newline_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_newline(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_newline(lex); }, kind);
+    return kind.is_newline();
 }
 
 template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
 lexeme_is_trailing_atmosphere(Lex lex)
 {
-    return std::is_same_v<Lex, lexeme::Whitespace> ||
-           std::is_same_v<Lex, lexeme::Tab> ||
-           std::is_same_v<Lex, lexeme::Comment>;
+    return lexeme::is_trailing_atmosphere_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_trailing_atmosphere(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_trailing_atmosphere(lex); },
-                 kind);
+    return kind.is_trailing_atmosphere();
 }
 
 template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
 lexeme_is_atmosphere(Lex lex)
 {
-    return lexeme_is_trailing_atmosphere(lex) || lexeme_is_newline(lex);
+    return lexeme::is_atmosphere_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_atmosphere(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_atmosphere(lex); }, kind);
+    return kind.is_atmosphere();
 }
 
 template<typename Lex>
@@ -140,47 +349,36 @@ ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
                                              bool>
 lexeme_is_leading_atmosphere(Lex lex)
 {
-    ELY_MUSTTAIL return lexeme_is_atmosphere(lex);
+    return lexeme::is_atmosphere_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_leading_atmosphere(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_leading_atmosphere(lex); },
-                 kind);
+    return kind.is_leading_atmosphere();
 }
 
 template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
 lexeme_is_literal(Lex lex)
 {
-    return std::is_same_v<Lex, lexeme::IntLit> ||
-           std::is_same_v<Lex, lexeme::FloatLit> ||
-           std::is_same_v<Lex, lexeme::CharLit> ||
-           std::is_same_v<Lex, lexeme::StringLit> ||
-           std::is_same_v<Lex, lexeme::KeywordLit> ||
-           std::is_same_v<Lex, lexeme::BoolLit>;
+    return lexeme::is_literal_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_literal(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_literal(lex); }, kind);
+    return kind.is_literal();
 }
 
 template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
 lexeme_is_eof(Lex lex)
 {
-    return std::is_same_v<Lex, lexeme::Eof>;
+    return lexeme::is_eof_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_eof(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_eof(lex); }, kind);
+    return kind.is_eof();
 }
 
 template<typename Lex>
@@ -188,13 +386,12 @@ ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
                                              bool>
 lexeme_is_identifier(Lex lex)
 {
-    return std::is_same_v<Lex, lexeme::Identifier>;
+    return lexeme::is_identifier_v<Lex>;
 }
 
 ELY_ALWAYS_INLINE constexpr bool lexeme_is_identifier(LexemeKind kind)
 {
-    using ely::visit;
-    return visit([](auto lex) { return lexeme_is_identifier(lex); }, kind);
+    return kind.is_identifier();
 }
 
 template<typename I>
@@ -211,7 +408,7 @@ public:
 
     explicit constexpr operator bool() const noexcept
     {
-        return !lexeme_is_eof(kind);
+        return !kind.is_eof();
     }
 
     constexpr iterator begin() const
