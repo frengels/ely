@@ -14,12 +14,14 @@ using ely::get_unchecked;
 
 TEST_CASE("Union")
 {
-    // auto empty = ely::Union<>{};
-
-    // static_assert(std::is_empty_v<decltype(empty)>);
-
     SUBCASE("empty optimization")
     {
+        // this should be trivially contructible
+        auto empty = ely::Union<>{};
+
+        // checking whether a union without members takes up any space
+        static_assert(std::is_empty_v<decltype(empty)>);
+
         // testing for EBO
         static_assert(std::is_empty_v<ely::Union<NoData>>);
         // testing for EBO with multiple same types
@@ -79,7 +81,7 @@ TEST_CASE("Union")
         REQUIRE_EQ(get_unchecked<1>(u), 10);
 
         // can emplace without destroy since int is trivially destructible
-        emplace<3>(u, {1, 2, 3, 4, 5});
+        emplace<3>(u, {1, 2, 3, 4, 5}); // initializer list constructor
 
         REQUIRE_EQ(get_unchecked<3>(u).size(), 5);
         destroy<3>(u);
