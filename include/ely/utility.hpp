@@ -11,6 +11,9 @@ namespace ely
 template<typename T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
+template<std::size_t I, typename... Ts>
+using nth_element_t = std::tuple_element_t<I, std::tuple<Ts...>>;
+
 namespace detail
 {
 struct type_index_helper
