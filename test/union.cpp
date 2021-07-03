@@ -18,6 +18,7 @@ TEST_CASE("Union")
     {
         // this should be trivially contructible
         auto empty = ely::Union<>{};
+        static_assert(std::is_trivial_v<decltype(empty)>);
 
         // checking whether a union without members takes up any space
         static_assert(std::is_empty_v<decltype(empty)>);
