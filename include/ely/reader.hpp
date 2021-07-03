@@ -28,7 +28,7 @@ public:
     reference next()
     {
         return tok_stream_.next().visit_all(
-            [&](auto&& tok, auto&& leading, auto&& trailing) {
+            [&](auto&& tok, auto&& leading, auto&& trailing) -> reference {
                 return read(
                     std::move(tok), std::move(leading), std::move(trailing));
             });

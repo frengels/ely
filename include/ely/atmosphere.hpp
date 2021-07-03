@@ -31,7 +31,8 @@ public:
     constexpr Whitespace([[maybe_unused]] Lexeme<I> lex)
         : Whitespace(lex.size())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::Whitespace, "expected Whitespace");
+        ELY_ASSERT(ely::holds_alternative<lexeme::Whitespace>(lex.kind),
+                   "expected Whitespace");
     }
 
     constexpr std::size_t size() const
@@ -56,7 +57,8 @@ public:
     template<typename I>
     explicit constexpr Tab(Lexeme<I> lex) : len(lex.size())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::Tab, "expected Tab");
+        ELY_ASSERT(ely::holds_alternative<lexeme::Tab>(lex.kind),
+                   "expected Tab");
     }
 
     constexpr std::size_t size() const
@@ -73,7 +75,8 @@ public:
     template<typename I>
     explicit constexpr NewlineCr([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::NewlineCr, "expected NewlineCr");
+        ELY_ASSERT(ely::holds_alternative<lexeme::NewlineCr>(lex.kind),
+                   "expected NewlineCr");
     }
 
     static constexpr std::string_view str() noexcept
@@ -95,7 +98,8 @@ public:
     template<typename I>
     explicit constexpr NewlineLf([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::NewlineLf, "expected NewlineLf");
+        ELY_ASSERT(ely::holds_alternative<lexeme::NewlineLf>(lex.kind),
+                   "expected NewlineLf");
     }
 
     static constexpr std::string_view str() noexcept
@@ -117,7 +121,8 @@ public:
     template<typename I>
     explicit constexpr NewlineCrlf([[maybe_unused]] Lexeme<I> lex)
     {
-        ELY_ASSERT(lex.kind == LexemeKind::NewlineCrlf, "expected NewlineCrlf");
+        ELY_ASSERT(ely::holds_alternative<lexeme::NewlineCrlf>(lex.kind),
+                   "expected NewlineCrlf");
     }
 
     static constexpr std::string_view str() noexcept
@@ -142,7 +147,8 @@ public:
     template<typename I>
     explicit constexpr Comment(Lexeme<I> lex) : str_(lex.begin(), lex.end())
     {
-        ELY_ASSERT(lex.kind == LexemeKind::Comment, "expected Comment");
+        ELY_ASSERT(ely::holds_alternative<lexeme::Comment>(lex.kind),
+                   "expected Comment");
     }
 
     template<typename... Args>
@@ -186,49 +192,69 @@ public:
               ELY_ASSERT(ely::lexeme_is_atmosphere(lex.kind),
                          "Atmosphere must be made from atmosphere");
 
-              switch (lex.kind)
-              {
-              case LexemeKind::Whitespace:
-                  return atmosphere::Whitespace(lex);
-              case LexemeKind::Tab:
-                  return atmosphere::Tab(lex);
-              case LexemeKind::NewlineCr:
-                  return atmosphere::NewlineCr(lex);
-              case LexemeKind::NewlineLf:
-                  return atmosphere::NewlineLf(lex);
-              case LexemeKind::NewlineCrlf:
-                  return atmosphere::NewlineCrlf(lex);
-              case LexemeKind::Comment:
-                  return atmosphere::Comment(lex);
-              default:
-                  // this condition has been checked by the assert above
-                  __builtin_unreachable();
-              }
+              using ely::visit;
+              return visit(
+                  [&](auto l) -> VariantType {
+                      using lex_ty = decltype(l);
+                      if constexpr (std::is_same_v<lexeme::Whitespace, lex_ty>)
+                      {
+                          return atmosphere::Whitespace(lex);
+                      }
+                      else if constexpr (std::is_same_v<lexeme::Tab, lex_ty>)
+                      {
+                          return atmosphere::Tab(lex);
+                      }
+                      else if constexpr (std::is_same_v<lexeme::NewlineCr,
+                                                        lex_ty>)
+                      {
+                          return atmosphere::NewlineCr(lex);
+                      }
+                      else if constexpr (std::is_same_v<lexeme::NewlineLf,
+                                                        lex_ty>)
+                      {
+                          return atmosphere::NewlineLf(lex);
+                      }
+                      else if constexpr (std::is_same_v<lexeme::NewlineCrlf,
+                                                        lex_ty>)
+                      {
+                          return atmosphere::NewlineCrlf(lex);
+                      }
+                      else if constexpr (std::is_same_v<lexeme::Comment,
+                                                        lex_ty>)
+                      {
+                          return atmosphere::Comment(lex);
+                      }
+                      else
+                      {
+                          __builtin_unreachable();
+                      }
+                  },
+                  lex.kind);
           }(lexeme))
     {}
 
     template<typename F>
     constexpr auto visit(F&& fn) const& -> decltype(auto)
     {
-        return ely::visit(variant_, static_cast<F&&>(fn));
+        return ely::visit(static_cast<F&&>(fn), variant_);
     }
 
     template<typename F>
     constexpr auto visit(F&& fn) & -> decltype(auto)
     {
-        return ely::visit(variant_, static_cast<F&&>(fn));
+        return ely::visit(static_cast<F&&>(fn), variant_);
     }
 
     template<typename F>
     constexpr auto visit(F&& fn) && -> decltype(auto)
     {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
+        return ely::visit(static_cast<F&&>(fn), std::move(variant_));
     }
 
     template<typename F>
     constexpr auto visit(F&& fn) const&& -> decltype(auto)
     {
-        return ely::visit(std::move(variant_), static_cast<F&&>(fn));
+        return ely::visit(static_cast<F&&>(fn), std::move(variant_));
     }
 
     constexpr std::size_t size() const
@@ -263,13 +289,13 @@ public:
             if constexpr (position == AtmospherePosition::Leading)
             {
                 return [](LexemeKind kind) {
-                    return lexeme_is_leading_atmosphere(kind);
+                    return kind.is_leading_atmosphere();
                 };
             }
             else if constexpr (position == AtmospherePosition::Trailing)
             {
                 return [](LexemeKind kind) {
-                    return lexeme_is_trailing_atmosphere(kind);
+                    return kind.is_trailing_atmosphere();
                 };
             }
         }();

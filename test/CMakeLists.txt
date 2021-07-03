@@ -4,7 +4,8 @@ set(ELY_TESTS
 
 set(TESTS
     union
-    variant)
+    variant
+    pair)
 
 find_package(doctest REQUIRED)
 

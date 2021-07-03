@@ -7,6 +7,7 @@
 #include <variant>
 
 #include "ely/defines.h"
+#include "ely/pair.hpp"
 #include "ely/union.hpp"
 
 namespace ely
@@ -161,7 +162,7 @@ public:
     constexpr NoIndex(std::size_t)
     {}
 
-    constexpr operator std::size_t() const noexcept
+    ELY_ALWAYS_INLINE constexpr operator std::size_t() const noexcept
     {
         return 0;
     }
@@ -194,20 +195,35 @@ struct VariantBase
 struct VariantAccess
 {
     template<std::size_t I, typename V>
-    static constexpr auto&& get_unchecked(V&& v) noexcept
+    ELY_ALWAYS_INLINE static constexpr auto&& get_unchecked(V&& v) noexcept
     {
-        return ely::get_unchecked<I + 1>((static_cast<V&&>(v).union_));
+        return ely::get_unchecked<I>((static_cast<V&&>(v).get_union()));
+    }
+
+    template<typename V>
+    inline static constexpr std::size_t variant_size =
+        ely::remove_cvref_t<V>::variant_size_;
+
+    template<typename V>
+    inline static constexpr bool is_derived_from_variant =
+        std::is_base_of_v<VariantBase, ely::remove_cvref_t<V>>;
+
+    template<typename V>
+    ELY_ALWAYS_INLINE static constexpr std::size_t index(const V& v) noexcept
+    {
+        return v.index();
     }
 };
 
 template<typename T>
-struct is_derived_from_variant : std::is_base_of<ely::detail::VariantBase, T>
-{};
+inline constexpr bool is_derived_from_variant_v =
+    VariantAccess::is_derived_from_variant<T>;
 } // namespace detail
 
 template<std::size_t I, typename V>
-constexpr auto get_unchecked(V&& v) noexcept -> std::enable_if_t<
-    detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
+ELY_ALWAYS_INLINE constexpr auto
+get_unchecked(V&& v) noexcept -> std::enable_if_t<
+    detail::is_derived_from_variant_v<ely::remove_cvref_t<V>>,
     decltype(ely::detail::VariantAccess::get_unchecked<I>(static_cast<V&&>(v)))>
 {
     return ely::detail::VariantAccess::get_unchecked<I>(static_cast<V&&>(v));
@@ -215,23 +231,86 @@ constexpr auto get_unchecked(V&& v) noexcept -> std::enable_if_t<
 
 namespace detail
 {
+struct VariantUninit
+{};
+
+template<typename... Ts>
+class VariantStorage : private EBOPair<ely::Union<Ts..., VariantUninit>,
+                                       variant_index_t<sizeof...(Ts)>>,
+                       public VariantBase
+{
+    static_assert((!std::is_same_v<Ts, VariantBase> && ...),
+                  "Cannot store VariantBase in a Variant");
+    static_assert((!std::is_same_v<Ts, VariantUninit> && ...),
+                  "Cannot store VariantUninit in a Variant");
+
+    using base_ = EBOPair<ely::Union<Ts..., VariantUninit>,
+                          variant_index_t<sizeof...(Ts)>>;
+
+protected:
+    ELY_ALWAYS_INLINE constexpr VariantStorage(VariantUninit) noexcept
+        : base_(std::piecewise_construct,
+                std::forward_as_tuple(std::in_place_index<sizeof...(Ts)>),
+                std::forward_as_tuple())
+    {}
+
+public:
+    ELY_ALWAYS_INLINE constexpr VariantStorage()
+        : base_(std::piecewise_construct,
+                std::forward_as_tuple(std::in_place_index<0>),
+                std::forward_as_tuple(variant_index_t<sizeof...(Ts)>{}))
+    {}
+
+    ELY_ALWAYS_INLINE constexpr ely::Union<Ts..., VariantUninit>&
+    get_union() & noexcept
+    {
+        return this->first();
+    }
+
+    ELY_ALWAYS_INLINE constexpr const ely::Union<Ts..., VariantUninit>&
+    get_union() const& noexcept
+    {
+        return this->first();
+    }
+
+    ELY_ALWAYS_INLINE constexpr ely::Union<Ts..., VariantUninit>&&
+    get_union() && noexcept
+    {
+        return std::move(*this).first();
+    }
+
+    ELY_ALWAYS_INLINE constexpr const ely::Union<Ts..., VariantUninit>&&
+    get_union() const&& noexcept
+    {
+        return std::move(*this).first();
+    }
+
+    ELY_ALWAYS_INLINE constexpr std::size_t index() const noexcept
+    {
+        return static_cast<std::size_t>(this->second());
+    }
+
+protected:
+    ELY_ALWAYS_INLINE constexpr void set_index(std::size_t new_idx) noexcept
+    {
+        base_::second() = static_cast<variant_index_t<sizeof...(Ts)>>(new_idx);
+    }
+};
+
 template<ely::detail::Availability A, typename... Ts>
 class VariantDestructor;
 
 #define VARIANT_IMPL(availability, destructor, destroy_unchecked)              \
     template<typename... Ts>                                                   \
-    class VariantDestructor<availability, Ts...> : public VariantBase          \
+    class VariantDestructor<availability, Ts...>                               \
+        : public VariantStorage<Ts...>                                         \
     {                                                                          \
         friend struct ely::detail::VariantAccess;                              \
                                                                                \
-    protected:                                                                 \
-        [[no_unique_address]] ely::Union<char, Ts...> union_{                  \
-            std::in_place_index<0>};                                           \
-        [[no_unique_address]] variant_index_t<sizeof...(Ts)> index_{0};        \
+        using base_ = VariantStorage<Ts...>;                                   \
                                                                                \
     public:                                                                    \
-        VariantDestructor() = default;                                         \
-                                                                               \
+        using base_::base_;                                                    \
         VariantDestructor(const VariantDestructor&) = default;                 \
         VariantDestructor(VariantDestructor&&)      = default;                 \
                                                                                \
@@ -241,10 +320,7 @@ class VariantDestructor;
                            operator=(const VariantDestructor&) = default;      \
         VariantDestructor& operator=(VariantDestructor&&) = default;           \
                                                                                \
-        constexpr std::size_t index() const noexcept                           \
-        {                                                                      \
-            return static_cast<std::size_t>(index_);                           \
-        }                                                                      \
+        using base_::index;                                                    \
                                                                                \
     protected:                                                                 \
         destroy_unchecked                                                      \
@@ -252,14 +328,16 @@ class VariantDestructor;
 
 VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
              ~VariantDestructor() = default;
-             , constexpr void destroy_unchecked() noexcept {});
+             ,
+             ELY_ALWAYS_INLINE constexpr void destroy_unchecked() noexcept {});
+
 VARIANT_IMPL(
     ely::detail::Availability::Available,
     ~VariantDestructor() {
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) noexcept {
                 constexpr auto I = decltype(i)::value;
-                ely::destroy<I + 1>(this->union_);
+                ely::destroy<I>(this->get_union());
             },
             index());
     },
@@ -267,10 +345,11 @@ VARIANT_IMPL(
         ely::detail::dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                ely::destroy<I + 1>(this->union_);
+                ely::destroy<I>(this->get_union());
             },
             this->index());
     });
+
 VARIANT_IMPL(ely::detail::Availability::Unavailable,
              ~VariantDestructor() = delete;
              , void destroy_unchecked() = delete;);
@@ -297,7 +376,8 @@ class VariantCopyConstruct;
         copy_construct                                                          \
                                                                                 \
         VariantCopyConstruct(VariantCopyConstruct&&) = default;                 \
-        ~VariantCopyConstruct()                      = default;                 \
+                                                                                \
+        ~VariantCopyConstruct() = default;                                      \
         VariantCopyConstruct&                                                   \
                               operator=(const VariantCopyConstruct&) = default; \
         VariantCopyConstruct& operator=(VariantCopyConstruct&&) = default;      \
@@ -307,16 +387,18 @@ VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
              VariantCopyConstruct(const VariantCopyConstruct&) = default;);
 VARIANT_IMPL(
     ely::detail::Availability::Available,
-    constexpr VariantCopyConstruct(const VariantCopyConstruct& other) noexcept(
-        (std::is_nothrow_copy_constructible_v<Ts> && ...))
-    : base_() {
-        this->index_ = other.index_;
+    ELY_ALWAYS_INLINE constexpr VariantCopyConstruct(
+        const VariantCopyConstruct&
+            other) noexcept((std::is_nothrow_copy_constructible_v<Ts> && ...))
+    : base_(VariantUninit{}) {
+        this->set_index(other.index());
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
                 using ely::emplace;
                 using ely::get_unchecked;
-                ely::emplace<I + 1>(this->union_, ely::get_unchecked<I>(other));
+                ely::emplace<I>(this->get_union(),
+                                ely::get_unchecked<I>(other));
             },
             this->index());
     });
@@ -341,7 +423,6 @@ class VariantMoveConstruct;
                                                                                 \
     public:                                                                     \
         using base_::base_;                                                     \
-                                                                                \
         VariantMoveConstruct(const VariantMoveConstruct&) = default;            \
                                                                                 \
         move_construct                                                          \
@@ -356,16 +437,18 @@ VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
              VariantMoveConstruct(VariantMoveConstruct&&) = default;);
 VARIANT_IMPL(
     ely::detail::Availability::Available,
-    constexpr VariantMoveConstruct(VariantMoveConstruct&& other) noexcept(
-        (std::is_nothrow_move_constructible_v<Ts> && ...)) {
-        this->index_ = other.index_;
+    ELY_ALWAYS_INLINE constexpr VariantMoveConstruct(
+        VariantMoveConstruct&&
+            other) noexcept((std::is_nothrow_move_constructible_v<Ts> && ...))
+    : base_(VariantUninit{}) {
+        this->set_index(other.index());
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
                 using ely::emplace;
                 using ely::get_unchecked;
-                ely::emplace<I + 1>(this->union_,
-                                    ely::get_unchecked<I>(std::move(other)));
+                ely::emplace<I>(this->get_union(),
+                                ely::get_unchecked<I>(std::move(other)));
             },
             this->index());
     });
@@ -390,10 +473,10 @@ class VariantCopyAssign;
                                                                                \
     public:                                                                    \
         using base_::base_;                                                    \
-                                                                               \
         VariantCopyAssign(const VariantCopyAssign&) = default;                 \
         VariantCopyAssign(VariantCopyAssign&&)      = default;                 \
-        ~VariantCopyAssign()                        = default;                 \
+                                                                               \
+        ~VariantCopyAssign() = default;                                        \
                                                                                \
         copy_assign                                                            \
                                                                                \
@@ -405,20 +488,18 @@ VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
              VariantCopyAssign& operator=(const VariantCopyAssign&) = default;);
 VARIANT_IMPL(
     ely::detail::Availability::Available,
-    constexpr VariantCopyAssign&
+    ELY_ALWAYS_INLINE constexpr VariantCopyAssign&
     operator=(const VariantCopyAssign& other) noexcept(
         (std::is_nothrow_copy_constructible_v<Ts> && ...)) {
-        using ely::emplace;
-        using ely::get_unchecked;
-
         this->destroy_unchecked();
 
-        this->index_ = other.index_;
+        this->set_index(other.index());
 
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                ely::emplace<I + 1>(this->union_, ely::get_unchecked<I>(other));
+                ely::emplace<I>(this->get_union(),
+                                ely::get_unchecked<I>(other));
             },
             this->index());
 
@@ -445,10 +526,11 @@ class VariantMoveAssign;
                                                                                \
     public:                                                                    \
         using base_::base_;                                                    \
-                                                                               \
         VariantMoveAssign(const VariantMoveAssign&) = default;                 \
         VariantMoveAssign(VariantMoveAssign&&)      = default;                 \
-        ~VariantMoveAssign()                        = default;                 \
+                                                                               \
+        ~VariantMoveAssign() = default;                                        \
+                                                                               \
         VariantMoveAssign& operator=(const VariantMoveAssign&) = default;      \
                                                                                \
         move_assign                                                            \
@@ -458,18 +540,18 @@ VARIANT_IMPL(ely::detail::Availability::TriviallyAvailable,
              VariantMoveAssign& operator=(VariantMoveAssign&&) = default;);
 VARIANT_IMPL(
     ely::detail::Availability::Available,
-    constexpr VariantMoveAssign&
+    ELY_ALWAYS_INLINE constexpr VariantMoveAssign&
     operator=(VariantMoveAssign&& other) noexcept(
         (std::is_nothrow_move_constructible_v<Ts> && ...)) {
         this->destroy_unchecked();
 
-        this->index_ = other.index_;
+        this->set_index(other.index());
 
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                ely::emplace<I + 1>(this->union_,
-                                    ely::get_unchecked<I>(std::move(other)));
+                ely::emplace<I>(this->get_union(),
+                                ely::get_unchecked<I>(std::move(other)));
             },
             this->index());
 
@@ -486,6 +568,10 @@ class Variant : public detail::VariantMoveAssign<
                     ely::detail::CommonAvailability<Ts...>::move_assignable,
                     Ts...>
 {
+    friend ::ely::detail::VariantAccess;
+
+    static constexpr std::size_t variant_size_ = sizeof...(Ts);
+
     using base_ = detail::VariantMoveAssign<
         ely::detail::CommonAvailability<Ts...>::move_assignable,
         Ts...>;
@@ -493,17 +579,27 @@ class Variant : public detail::VariantMoveAssign<
 public:
     using base_::base_;
 
-    template<std::size_t I, typename... Args>
-    explicit constexpr Variant(std::in_place_index_t<I>, Args&&... args)
-    {
-        this->index_ = I;
+    Variant()               = default;
+    Variant(const Variant&) = default;
+    Variant(Variant&&)      = default;
 
-        using ely::emplace;
-        ely::emplace<I + 1>(this->union_, static_cast<Args&&>(args)...);
+    ~Variant() = default;
+
+    Variant& operator=(const Variant&) = default;
+    Variant& operator=(Variant&&) = default;
+
+    template<std::size_t I, typename... Args>
+    ELY_ALWAYS_INLINE explicit constexpr Variant(std::in_place_index_t<I>,
+                                                 Args&&... args)
+        : base_(detail::VariantUninit{})
+    {
+        this->set_index(I);
+        ely::emplace<I>(this->get_union(), static_cast<Args&&>(args)...);
     }
 
     template<typename T, typename... Args>
-    explicit constexpr Variant(std::in_place_type_t<T>, Args&&... args)
+    ELY_ALWAYS_INLINE explicit constexpr Variant(std::in_place_type_t<T>,
+                                                 Args&&... args)
         : Variant(std::in_place_index<detail::FindElementIndex<T, Ts...>>,
                   static_cast<Args&&>(args)...)
     {}
@@ -511,15 +607,16 @@ public:
     template<typename U,
              typename = std::enable_if_t<
                  !std::is_same_v<Variant<Ts...>, ely::remove_cvref_t<U>>>>
-    constexpr Variant(U&& u)
+    ELY_ALWAYS_INLINE constexpr Variant(U&& u)
         : Variant(std::in_place_index<detail::ResolveOverloadIndex<U, Ts...>>,
                   static_cast<U&&>(u))
     {}
 
+    using base_::get_union;
     using base_::index;
 
     template<typename F>
-    constexpr decltype(auto) visit(F&& fn) &
+    ELY_ALWAYS_INLINE constexpr decltype(auto) visit(F&& fn) &
     {
         using ely::get_unchecked;
 
@@ -537,7 +634,7 @@ public:
     }
 
     template<typename F>
-    constexpr decltype(auto) visit(F&& fn) const&
+    ELY_ALWAYS_INLINE constexpr decltype(auto) visit(F&& fn) const&
     {
         using ely::get_unchecked;
 
@@ -555,7 +652,7 @@ public:
     }
 
     template<typename F>
-    constexpr decltype(auto) visit(F&& fn) &&
+    ELY_ALWAYS_INLINE constexpr decltype(auto) visit(F&& fn) &&
     {
         using ely::get_unchecked;
 
@@ -573,7 +670,7 @@ public:
     }
 
     template<typename F>
-    constexpr decltype(auto) visit(F&& fn) const&&
+    ELY_ALWAYS_INLINE constexpr decltype(auto) visit(F&& fn) const&&
     {
         using ely::get_unchecked;
 
@@ -592,7 +689,8 @@ public:
 };
 
 template<std::size_t I, typename... Ts>
-constexpr bool holds_alternative(const Variant<Ts...>& v) noexcept
+ELY_ALWAYS_INLINE constexpr bool
+holds_alternative(const Variant<Ts...>& v) noexcept
 {
     return ely::detail::dispatch_index<sizeof...(Ts)>(
         [&](auto j) {
@@ -603,14 +701,15 @@ constexpr bool holds_alternative(const Variant<Ts...>& v) noexcept
 }
 
 template<std::size_t I, typename... Ts>
-constexpr bool holds(const Variant<Ts...>& v) noexcept
+ELY_ALWAYS_INLINE constexpr bool holds(const Variant<Ts...>& v) noexcept
 {
     using ely::holds_alternative;
     return holds_alternative<I>(v);
 }
 
 template<typename T, typename... Ts>
-constexpr bool holds_alternative(const Variant<Ts...>& v) noexcept
+ELY_ALWAYS_INLINE constexpr bool
+holds_alternative(const Variant<Ts...>& v) noexcept
 {
     return ely::detail::dispatch_index<sizeof...(Ts)>(
         [&](auto i) {
@@ -622,29 +721,45 @@ constexpr bool holds_alternative(const Variant<Ts...>& v) noexcept
 }
 
 template<typename T, typename... Ts>
-constexpr bool holds(const Variant<Ts...>& v) noexcept
+ELY_ALWAYS_INLINE constexpr bool holds(const Variant<Ts...>& v) noexcept
 {
     return ely::holds_alternative<T>(v);
 }
 
-template<typename V,
-         typename F,
-         typename R = std::invoke_result_t<
-             F,
-             decltype(ely::get_unchecked<0>(std::declval<V>()))>>
+template<typename F, typename V>
 ELY_ALWAYS_INLINE constexpr std::enable_if_t<
-    ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
-    R>
-visit(V&& v, F&& fn)
+    ely::detail::is_derived_from_variant_v<ely::remove_cvref_t<V>>,
+    std::invoke_result_t<F,
+                         decltype((ely::get_unchecked<0>(std::declval<V>())))>>
+visit(F&& fn, V&& v)
 {
+    using R = std::invoke_result_t<F,
+                                   decltype((ely::get_unchecked<0>(
+                                       std::declval<V>())))>;
     return ely::detail::dispatch_index<
-        std::variant_size_v<ely::remove_cvref_t<V>>>(
+        ely::detail::VariantAccess::variant_size<V>>(
         [&](auto i) -> R {
             constexpr auto I = decltype(i)::value;
             return std::invoke(static_cast<F&&>(fn),
                                ely::get_unchecked<I>(static_cast<V&&>(v)));
         },
-        v.index());
+        ely::detail::VariantAccess::index(v));
+}
+
+template<typename R, typename F, typename V>
+ELY_ALWAYS_INLINE constexpr std::enable_if_t<
+    ely::detail::is_derived_from_variant_v<ely::remove_cvref_t<V>>,
+    R>
+visit(F&& fn, V&& v)
+{
+    return ely::detail::dispatch_index<
+        ely::detail::VariantAccess::variant_size<V>>(
+        [&](auto i) -> R {
+            constexpr auto I = decltype(i)::value;
+            return std::invoke(static_cast<F&&>(fn),
+                               ely::get_unchecked<I>(static_cast<V&&>(v)));
+        },
+        ely::detail::VariantAccess::index(v));
 }
 } // namespace ely
 

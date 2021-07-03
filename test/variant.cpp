@@ -23,6 +23,20 @@ TEST_CASE("Variant")
     {
         auto v = ely::Variant<int, float, std::string>{"hello world"};
 
+        SUBCASE("default")
+        {
+            SUBCASE("trivial")
+            {
+                auto v2 = ely::Variant<int, float>{};
+            }
+
+            SUBCASE("nontrivial")
+            {
+                auto v2 = ely::Variant<std::string, int>{};
+                REQUIRE_EQ(v2.index(), 0);
+            }
+        }
+
         using v_ty = decltype(v);
 
         static_assert(std::is_copy_constructible_v<v_ty>);
@@ -32,16 +46,18 @@ TEST_CASE("Variant")
 
         REQUIRE_EQ(v.index(), 2); // require std::string
 
-        REQUIRE(visit(v, [](auto x) {
-            if constexpr (std::is_same_v<std::string, decltype(x)>)
-            {
-                return x == "hello world";
-            }
-            else
-            {
-                return false;
-            }
-        }));
+        REQUIRE(visit(
+            [](auto x) {
+                if constexpr (std::is_same_v<std::string, decltype(x)>)
+                {
+                    return x == "hello world";
+                }
+                else
+                {
+                    return false;
+                }
+            },
+            v));
 
         auto v2 = v;
 
@@ -50,8 +66,7 @@ TEST_CASE("Variant")
 
     SUBCASE("construct in_place_type")
     {
-        auto v = ely::Variant<int, float, bool>(
-            std::in_place_type<float>, 5);
+        auto v = ely::Variant<int, float, bool>(std::in_place_type<float>, 5);
         REQUIRE_EQ(v.index(), 1);
 
         SUBCASE("copy")

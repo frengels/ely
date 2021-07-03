@@ -27,7 +27,7 @@ void scan_stream(std::string_view                         src,
     {
         auto lexeme = *it;
 
-        if (!ely::lexeme_is_atmosphere(lexeme.kind))
+        if (!lexeme.kind.is_atmosphere())
         {
             std::cout << std::string_view{lexeme.start, lexeme.size()} << '\n';
         }
