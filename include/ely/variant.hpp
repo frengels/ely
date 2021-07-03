@@ -199,17 +199,31 @@ struct VariantAccess
     {
         return ely::get_unchecked<I>((static_cast<V&&>(v).get_union()));
     }
+
+    template<typename V>
+    inline static constexpr std::size_t variant_size =
+        ely::remove_cvref_t<V>::variant_size_;
+
+    template<typename V>
+    inline static constexpr bool is_derived_from_variant =
+        std::is_base_of_v<VariantBase, ely::remove_cvref_t<V>>;
+
+    template<typename V>
+    ELY_ALWAYS_INLINE static constexpr std::size_t index(const V& v) noexcept
+    {
+        return v.index();
+    }
 };
 
 template<typename T>
-struct is_derived_from_variant : std::is_base_of<ely::detail::VariantBase, T>
-{};
+inline constexpr bool is_derived_from_variant_v =
+    VariantAccess::is_derived_from_variant<T>;
 } // namespace detail
 
 template<std::size_t I, typename V>
 ELY_ALWAYS_INLINE constexpr auto
 get_unchecked(V&& v) noexcept -> std::enable_if_t<
-    detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
+    detail::is_derived_from_variant_v<ely::remove_cvref_t<V>>,
     decltype(ely::detail::VariantAccess::get_unchecked<I>(static_cast<V&&>(v)))>
 {
     return ely::detail::VariantAccess::get_unchecked<I>(static_cast<V&&>(v));
@@ -554,6 +568,10 @@ class Variant : public detail::VariantMoveAssign<
                     ely::detail::CommonAvailability<Ts...>::move_assignable,
                     Ts...>
 {
+    friend ::ely::detail::VariantAccess;
+
+    static constexpr std::size_t variant_size_ = sizeof...(Ts);
+
     using base_ = detail::VariantMoveAssign<
         ely::detail::CommonAvailability<Ts...>::move_assignable,
         Ts...>;
@@ -710,7 +728,7 @@ ELY_ALWAYS_INLINE constexpr bool holds(const Variant<Ts...>& v) noexcept
 
 template<typename F, typename V>
 ELY_ALWAYS_INLINE constexpr std::enable_if_t<
-    ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
+    ely::detail::is_derived_from_variant_v<ely::remove_cvref_t<V>>,
     std::invoke_result_t<F,
                          decltype((ely::get_unchecked<0>(std::declval<V>())))>>
 visit(F&& fn, V&& v)
@@ -719,29 +737,29 @@ visit(F&& fn, V&& v)
                                    decltype((ely::get_unchecked<0>(
                                        std::declval<V>())))>;
     return ely::detail::dispatch_index<
-        std::variant_size_v<ely::remove_cvref_t<V>>>(
+        ely::detail::VariantAccess::variant_size<V>>(
         [&](auto i) -> R {
             constexpr auto I = decltype(i)::value;
             return std::invoke(static_cast<F&&>(fn),
                                ely::get_unchecked<I>(static_cast<V&&>(v)));
         },
-        v.index());
+        ely::detail::VariantAccess::index(v));
 }
 
 template<typename R, typename F, typename V>
 ELY_ALWAYS_INLINE constexpr std::enable_if_t<
-    ely::detail::is_derived_from_variant<ely::remove_cvref_t<V>>::value,
+    ely::detail::is_derived_from_variant_v<ely::remove_cvref_t<V>>,
     R>
 visit(F&& fn, V&& v)
 {
     return ely::detail::dispatch_index<
-        std::variant_size_v<ely::remove_cvref_t<V>>>(
+        ely::detail::VariantAccess::variant_size<V>>(
         [&](auto i) -> R {
             constexpr auto I = decltype(i)::value;
             return std::invoke(static_cast<F&&>(fn),
                                ely::get_unchecked<I>(static_cast<V&&>(v)));
         },
-        v.index());
+        ely::detail::VariantAccess::index(v));
 }
 } // namespace ely
 
