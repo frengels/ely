@@ -8,9 +8,9 @@
 class NoData
 {};
 
-using ely::get_unchecked;
 using ely::destroy;
 using ely::emplace;
+using ely::get_unchecked;
 
 TEST_CASE("Union")
 {
@@ -20,8 +20,11 @@ TEST_CASE("Union")
 
     SUBCASE("empty optimization")
     {
-        // not yet implemented
-        // static_assert(std::is_empty_v<ely::Union<NoData>>);
+        // testing for EBO
+        static_assert(std::is_empty_v<ely::Union<NoData>>);
+        // testing for EBO with multiple same types
+        static_assert(
+            std::is_empty_v<ely::Union<NoData, NoData, NoData, NoData>>);
     }
 
     SUBCASE("default construct")

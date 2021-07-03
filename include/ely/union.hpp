@@ -316,9 +316,9 @@ public:
     // this should enable trivial construction
     UnionStorage() = default;
 
-    using UnionBox<Is, Ts, ely::type_index_v<Ts, Ts...> == Is>::UnionBox...;
+    using UnionBox<Is, Ts, ely::type_index_v<Ts, Ts...> != Is>::UnionBox...;
 
-private:
+public:
     template<std::size_t I>
     constexpr ely::nth_element_t<I, Ts...>&
     get_unchecked(std::in_place_index_t<I>) & noexcept
