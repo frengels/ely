@@ -145,28 +145,32 @@ public:
         UnionDestructor() = default;                                           \
                                                                                \
         template<typename... Args>                                             \
-        explicit constexpr UnionDestructor(std::in_place_index_t<0>,           \
-                                           Args&&... args)                     \
+        ELY_ALWAYS_INLINE explicit constexpr UnionDestructor(                  \
+            std::in_place_index_t<0>,                                          \
+            Args&&... args)                                                    \
             : first_(static_cast<Args&&>(args)...)                             \
         {}                                                                     \
         template<typename U, typename... Args>                                 \
-        explicit constexpr UnionDestructor(std::in_place_index_t<0>,           \
-                                           std::initializer_list<U> il,        \
-                                           Args&&... args)                     \
+        ELY_ALWAYS_INLINE explicit constexpr UnionDestructor(                  \
+            std::in_place_index_t<0>,                                          \
+            std::initializer_list<U> il,                                       \
+            Args&&... args)                                                    \
             : first_(il, static_cast<Args&&>(args)...)                         \
         {}                                                                     \
                                                                                \
         template<std::size_t Idx, typename... Args>                            \
-        explicit constexpr UnionDestructor(std::in_place_index_t<Idx>,         \
-                                           Args&&... args)                     \
+        ELY_ALWAYS_INLINE explicit constexpr UnionDestructor(                  \
+            std::in_place_index_t<Idx>,                                        \
+            Args&&... args)                                                    \
             : rest_(std::in_place_index<Idx - 1>,                              \
                     static_cast<Args&&>(args)...)                              \
         {}                                                                     \
                                                                                \
         template<std::size_t I, typename U, typename... Args>                  \
-        explicit constexpr UnionDestructor(std::in_place_index_t<I>,           \
-                                           std::initializer_list<U> il,        \
-                                           Args&&... args)                     \
+        ELY_ALWAYS_INLINE explicit constexpr UnionDestructor(                  \
+            std::in_place_index_t<I>,                                          \
+            std::initializer_list<U> il,                                       \
+            Args&&... args)                                                    \
             : rest_(std::in_place_index<I - 1>,                                \
                     il,                                                        \
                     static_cast<Args&&>(args)...)                              \
@@ -183,7 +187,8 @@ public:
                                                                                \
     public:                                                                    \
         template<std::size_t I>                                                \
-        constexpr auto&& get_unchecked(std::in_place_index_t<I>) & noexcept    \
+        ELY_ALWAYS_INLINE constexpr auto&&                                     \
+        get_unchecked(std::in_place_index_t<I>) & noexcept                     \
         {                                                                      \
             if constexpr (I == 0)                                              \
             {                                                                  \
@@ -196,7 +201,7 @@ public:
         }                                                                      \
                                                                                \
         template<std::size_t I>                                                \
-        constexpr auto&&                                                       \
+        ELY_ALWAYS_INLINE constexpr auto&&                                     \
             get_unchecked(std::in_place_index_t<I>) const& noexcept            \
         {                                                                      \
             if constexpr (I == 0)                                              \
@@ -210,7 +215,8 @@ public:
         }                                                                      \
                                                                                \
         template<std::size_t I>                                                \
-        constexpr auto&& get_unchecked(std::in_place_index_t<I>) && noexcept   \
+        ELY_ALWAYS_INLINE constexpr auto&&                                     \
+        get_unchecked(std::in_place_index_t<I>) && noexcept                    \
         {                                                                      \
             if constexpr (I == 0)                                              \
             {                                                                  \
@@ -224,7 +230,7 @@ public:
         }                                                                      \
                                                                                \
         template<std::size_t I>                                                \
-        constexpr auto&&                                                       \
+        ELY_ALWAYS_INLINE constexpr auto&&                                     \
             get_unchecked(std::in_place_index_t<I>) const&& noexcept           \
         {                                                                      \
             if constexpr (I == 0)                                              \
@@ -282,7 +288,8 @@ struct UnionBox<I, T, true>
     UnionBox() = default;
 
     template<std::size_t J, typename... Args>
-    explicit constexpr UnionBox(std::in_place_index_t<J>, Args&&...)
+    ELY_ALWAYS_INLINE explicit constexpr UnionBox(std::in_place_index_t<J>,
+                                                  Args&&...)
     {}
 };
 
@@ -296,12 +303,14 @@ struct UnionBox<I, T, false> : protected T
 
     /// ignore if our index wasn't passed
     template<std::size_t J, typename... Args>
-    explicit constexpr UnionBox(std::in_place_index_t<J>, Args&&...)
+    ELY_ALWAYS_INLINE explicit constexpr UnionBox(std::in_place_index_t<J>,
+                                                  Args&&...)
         : UnionBox()
     {}
 
     template<typename... Args>
-    explicit constexpr UnionBox(std::in_place_index_t<I>, Args&&... args)
+    ELY_ALWAYS_INLINE explicit constexpr UnionBox(std::in_place_index_t<I>,
+                                                  Args&&... args)
         : T(static_cast<Args&&>(args)...)
     {}
 };
@@ -320,26 +329,26 @@ public:
 
 public:
     template<std::size_t I>
-    constexpr ely::nth_element_t<I, Ts...>&
+    ELY_ALWAYS_INLINE constexpr ely::nth_element_t<I, Ts...>&
     get_unchecked(std::in_place_index_t<I>) & noexcept
     {
         return static_cast<ely::nth_element_t<I, Ts...>&>(*this);
     }
 
     template<std::size_t I>
-    constexpr const ely::nth_element_t<I, Ts...>&
+    ELY_ALWAYS_INLINE constexpr const ely::nth_element_t<I, Ts...>&
         get_unchecked(std::in_place_index_t<I>) const& noexcept
     {
         return static_cast<const ely::nth_element_t<I, Ts...>&>(*this);
     }
     template<std::size_t I>
-    constexpr ely::nth_element_t<I, Ts...>&&
+    ELY_ALWAYS_INLINE constexpr ely::nth_element_t<I, Ts...>&&
     get_unchecked(std::in_place_index_t<I>) && noexcept
     {
         return static_cast<ely::nth_element_t<I, Ts...>&&>(*this);
     }
     template<std::size_t I>
-    constexpr const ely::nth_element_t<I, Ts...>&&
+    ELY_ALWAYS_INLINE constexpr const ely::nth_element_t<I, Ts...>&&
         get_unchecked(std::in_place_index_t<I>) const&& noexcept
     {
         return static_cast<const ely::nth_element_t<I, Ts...>&&>(*this);
@@ -435,8 +444,8 @@ namespace detail
 struct UnionAccess
 {
     template<typename U, std::size_t I>
-    static constexpr auto get_unchecked(U&&                      u,
-                                        std::in_place_index_t<I> idx) noexcept
+    ELY_ALWAYS_INLINE static constexpr auto
+    get_unchecked(U&& u, std::in_place_index_t<I> idx) noexcept
         -> decltype(auto)
     {
         return static_cast<U&&>(u).get_unchecked(idx);
@@ -453,33 +462,37 @@ struct is_union<ely::Union<Ts...>> : std::true_type
 } // namespace detail
 
 template<std::size_t I, typename... Ts>
-constexpr auto get_unchecked(Union<Ts...>& u) noexcept -> decltype(auto)
+ELY_ALWAYS_INLINE constexpr auto get_unchecked(Union<Ts...>& u) noexcept
+    -> decltype(auto)
 {
     return ely::detail::UnionAccess::get_unchecked(u, std::in_place_index<I>);
 }
 
 template<std::size_t I, typename... Ts>
-constexpr auto get_unchecked(const Union<Ts...>& u) noexcept -> decltype(auto)
+ELY_ALWAYS_INLINE constexpr auto get_unchecked(const Union<Ts...>& u) noexcept
+    -> decltype(auto)
 {
     return ely::detail::UnionAccess::get_unchecked(u, std::in_place_index<I>);
 }
 
 template<std::size_t I, typename... Ts>
-constexpr auto get_unchecked(Union<Ts...>&& u) noexcept -> decltype(auto)
+ELY_ALWAYS_INLINE constexpr auto get_unchecked(Union<Ts...>&& u) noexcept
+    -> decltype(auto)
 {
     return ely::detail::UnionAccess::get_unchecked(std::move(u),
                                                    std::in_place_index<I>);
 }
 
 template<std::size_t I, typename... Ts>
-constexpr auto get_unchecked(const Union<Ts...>&& u) noexcept -> decltype(auto)
+ELY_ALWAYS_INLINE constexpr auto get_unchecked(const Union<Ts...>&& u) noexcept
+    -> decltype(auto)
 {
     return ely::detail::UnionAccess::get_unchecked(std::move(u),
                                                    std::in_place_index<I>);
 }
 
 template<std::size_t I, typename... Ts>
-constexpr void destroy(ely::Union<Ts...>& u) noexcept
+ELY_ALWAYS_INLINE constexpr void destroy(ely::Union<Ts...>& u) noexcept
 {
     using ty = ely::nth_element_t<I, Ts...>;
     static_assert(std::is_destructible_v<ty>,
@@ -492,14 +505,14 @@ constexpr void destroy(ely::Union<Ts...>& u) noexcept
 }
 
 template<std::size_t I, typename... Ts, typename... Args>
-constexpr void emplace(ely::Union<Ts...>& u, Args&&... args)
+ELY_ALWAYS_INLINE constexpr void emplace(ely::Union<Ts...>& u, Args&&... args)
 {
     ::new (static_cast<void*>(std::addressof(ely::get_unchecked<I>(u))))
         ely::nth_element_t<I, Ts...>(static_cast<Args&&>(args)...);
 }
 
 template<std::size_t I, typename... Ts, typename U, typename... Args>
-constexpr void
+ELY_ALWAYS_INLINE constexpr void
 emplace(ely::Union<Ts...>& u, std::initializer_list<U> il, Args&&... args)
 {
     ::new (static_cast<void*>(std::addressof(ely::get_unchecked<I>(u))))
