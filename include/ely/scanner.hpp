@@ -86,7 +86,7 @@ static_assert(std::is_trivially_copy_constructible_v<LexemeKind>);
 static_assert(
     std::is_default_constructible_v<LexemeKind>); // not trivial since index
                                                   // needs to be initialized too
-// static_assert(sizeof(LexemeKind) == 1);
+static_assert(sizeof(LexemeKind) == 1);
 
 template<typename Lex>
 ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
