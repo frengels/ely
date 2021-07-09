@@ -187,6 +187,12 @@ struct BoolLit
     using lexeme_tag  = void;
     using literal_tag = void;
 };
+
+struct Colon
+{
+    using lexeme_tag = void;
+};
+
 struct UnterminatedStringLit
 {
     using lexeme_tag  = void;
@@ -222,6 +228,7 @@ class LexemeKind : public ely::Variant<lexeme::Whitespace,
                                        lexeme::StringLit,
                                        lexeme::KeywordLit,
                                        lexeme::BoolLit,
+                                       lexeme::Colon,
                                        lexeme::UnterminatedStringLit,
                                        lexeme::InvalidNumberSign,
                                        lexeme::Eof>
@@ -245,6 +252,7 @@ class LexemeKind : public ely::Variant<lexeme::Whitespace,
                                lexeme::StringLit,
                                lexeme::KeywordLit,
                                lexeme::BoolLit,
+                               lexeme::Colon,
                                lexeme::UnterminatedStringLit,
                                lexeme::InvalidNumberSign,
                                lexeme::Eof>;
@@ -473,6 +481,7 @@ constexpr bool is_delimiter(char c)
     case '[':
     case ']':
     case '"':
+    case ':':
         return true;
     default:
         ELY_MUSTTAIL return is_atmosphere_start(c);
@@ -768,6 +777,8 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
         return {it, lexeme::LBrace{}};
     case '}':
         return {it, lexeme::RBrace{}};
+    case ':':
+        return {it, lexeme::Colon{}};
     case '"':
         ELY_MUSTTAIL return detail::scan_string(it, end);
     case '+':
