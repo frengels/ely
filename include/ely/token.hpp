@@ -361,6 +361,24 @@ public:
     }
 };
 
+class Colon
+{
+public:
+    Colon() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE explicit constexpr Colon([[maybe_unused]] Lexeme<I> lex)
+    {
+        ELY_ASSERT(ely::holds_alternative<lexeme::Colon>(lex.kind),
+                   "expected Colon");
+    }
+
+    ELY_ALWAYS_INLINE static constexpr std::size_t size() noexcept
+    {
+        return 1;
+    }
+};
+
 class UnterminatedStringLit
 {
 public:
@@ -439,69 +457,70 @@ public:
 template<typename... Toks>
 class TokenVariant : public ely::Variant<Toks...>
 {
-    using base = ely::Variant<Toks...>;
+    using base_ = ely::Variant<Toks...>;
 
 private:
     AtmosphereList<AtmospherePosition::Leading>  leading_;
     AtmosphereList<AtmospherePosition::Trailing> trailing_;
 
 public:
-    template<typename T, typename... Args>
+    template<typename... Args>
     constexpr TokenVariant(
         AtmosphereList<AtmospherePosition::Leading>&&  leading,
         AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-        std::in_place_type_t<T>                        t,
         Args&&... args)
         : leading_(std::move(leading)), trailing_(std::move(trailing)),
-          base(t, static_cast<Args&&>(args)...)
+          base_(static_cast<Args&&>(args)...)
     {}
 
-    constexpr TokenVariant(
-        AtmosphereList<AtmospherePosition::Leading>&&  leading,
-        AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-        base&&                                         tok)
-        : leading_(std::move(leading)), trailing_(std::move(trailing)),
-          base(std::move(tok))
-    {}
-
-    using base::visit;
+    using base_::visit;
 
     template<typename F>
     constexpr auto visit_all(F&& fn) & -> decltype(auto)
     {
-        return visit([&](auto& tok) -> decltype(auto) {
-            return std::invoke(static_cast<F&&>(fn), tok, leading_, trailing_);
-        });
+        return ely::visit(
+            [&](auto&& tok) -> decltype(auto) {
+                return std::invoke(
+                    static_cast<F&&>(fn), tok, leading_, trailing_);
+            },
+            *this);
     }
 
     template<typename F>
     constexpr auto visit_all(F&& fn) const& -> decltype(auto)
     {
-        return visit([&](const auto& tok) -> decltype(auto) {
-            return std::invoke(static_cast<F&&>(fn), tok, leading_, trailing_);
-        });
+        return ely::visit(
+            [&](auto&& tok) -> decltype(auto) {
+                return std::invoke(
+                    static_cast<F&&>(fn), tok, leading_, trailing_);
+            },
+            *this);
     }
 
     template<typename F>
     constexpr auto visit_all(F&& fn) && -> decltype(auto)
     {
-        return std::move(*this).visit([&](auto&& tok) -> decltype(auto) {
-            return std::invoke(static_cast<F&&>(fn),
-                               std::move(tok),
-                               std::move(leading_),
-                               std::move(trailing_));
-        });
+        return ely::visit(
+            [&](auto&& tok) -> decltype(auto) {
+                return std::invoke(static_cast<F&&>(fn),
+                                   std::move(tok),
+                                   std::move(leading_),
+                                   std::move(trailing_));
+            },
+            std::move(*this));
     }
 
     template<typename F>
     constexpr auto visit_all(F&& fn) const&& -> decltype(auto)
     {
-        return std::move(*this).visit([&](const auto&& tok) -> decltype(auto) {
-            return std::invoke(static_cast<F&&>(fn),
-                               std::move(tok),
-                               std::move(leading_),
-                               std::move(trailing_));
-        });
+        return ely::visit(
+            [&](auto&& tok) -> decltype(auto) {
+                return std::invoke(static_cast<F&&>(fn),
+                                   std::move(tok),
+                                   std::move(leading_),
+                                   std::move(trailing_));
+            },
+            std::move(*this));
     }
 
     constexpr bool is_poison() const noexcept
@@ -567,6 +586,7 @@ using Token = TokenVariant<token::LParen,
                            token::StringLit,
                            token::KeywordLit,
                            token::BoolLit,
+                           token::Colon,
                            token::UnterminatedStringLit,
                            token::InvalidNumberSign,
                            token::Eof>;
@@ -605,6 +625,7 @@ Token make_token(AtmosphereList<AtmospherePosition::Leading>&&  leading,
             DISPATCH(StringLit)
             DISPATCH(KeywordLit)
             DISPATCH(BoolLit)
+            DISPATCH(Colon)
             DISPATCH(InvalidNumberSign)
             DISPATCH(UnterminatedStringLit)
             DISPATCH(Eof)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <tuple>
 #include <type_traits>
 
@@ -11,6 +12,7 @@ namespace ely
 {
 namespace stx
 {
+class Sexpr;
 class Syntax;
 class List;
 class Literal;
@@ -62,18 +64,18 @@ private:
     ely::TokenVariant<ely::token::RParen, MissingRParen>
         rparen_; // owns atmosphere before and after
 
-    ely::Vector<stx::Syntax> values_{};
+    ely::Vector<stx::Sexpr> values_{};
     // summed size of the inner part of the stx node (  |__|__|__)
     std::size_t values_size_{0};
     bool        value_poisoned_{false};
 
 public:
     template<typename... LArgs, typename... RArgs>
-    constexpr List(std::tuple<LArgs...>       lparen_args,
-                   std::tuple<RArgs...>       rparen_args,
-                   ely::Vector<stx::Syntax>&& values,
-                   std::size_t                values_size,
-                   bool                       value_poisoned)
+    constexpr List(std::tuple<LArgs...>      lparen_args,
+                   std::tuple<RArgs...>      rparen_args,
+                   ely::Vector<stx::Sexpr>&& values,
+                   std::size_t               values_size,
+                   bool                      value_poisoned)
         : lparen_(std::apply(
               [](auto&&... args) {
                   return decltype(lparen_){
@@ -86,6 +88,17 @@ public:
                       static_cast<decltype(args)&&>(args)...};
               },
               std::move(rparen_args))),
+          values_(std::move(values)), values_size_(values_size),
+          value_poisoned_(value_poisoned)
+    {}
+
+    constexpr List(
+        ely::TokenVariant<ely::token::LParen>&&                lparen,
+        ely::TokenVariant<ely::token::RParen, MissingRParen>&& rparen,
+        ely::Vector<stx::Sexpr>&&                              values,
+        std::size_t                                            values_size,
+        bool                                                   value_poisoned)
+        : lparen_(std::move(lparen)), rparen_(std::move(rparen)),
           values_(std::move(values)), values_size_(values_size),
           value_poisoned_(value_poisoned)
     {}
@@ -179,51 +192,161 @@ public:
     using base_::visit_all;
 };
 
-class Eof : public ely::TokenVariant<token::Eof>
+class Var
+{
+private:
+    // can be null
+    std::unique_ptr<Sexpr> id_;
+    // can be null
+    std::unique_ptr<Sexpr>          ty_;
+    ely::TokenVariant<token::Colon> colon_;
+
+public:
+    Var(ely::TokenVariant<token::Colon>&& colon,
+        std::unique_ptr<Sexpr>&&          id,
+        std::unique_ptr<Sexpr>&&          ty)
+        : id_(std::move(id)), ty_(std::move(ty)), colon_(std::move(colon))
+    {}
+
+    bool is_poison() const noexcept
+    {
+        return !id_ || !ty_;
+    }
+
+    std::size_t leading_size() const noexcept;
+    std::size_t trailing_size() const noexcept;
+    std::size_t size() const noexcept;
+    std::size_t inner_size() const noexcept;
+};
+
+class Eof final : public ely::TokenVariant<token::Eof>
 {
 private:
     using base_ = ely::TokenVariant<token::Eof>;
 
 public:
-    constexpr Eof(AtmosphereList<AtmospherePosition::Leading>&&  leading,
-                  AtmosphereList<AtmospherePosition::Trailing>&& trailing,
-                  token::Eof&&                                   eof)
-        : base_(std::move(leading),
-                std::move(trailing),
-                std::in_place_type<token::Eof>,
-                std::move(eof))
-    {}
+    using base_::base_;
 
-    constexpr bool is_poison() const
+    constexpr bool is_poison() const noexcept
     {
         return false;
     }
 };
 
-class Syntax : public ely::Variant<List, Literal, Identifier, Eof>
+// sexpr is the final syntax node without eof
+class Sexpr final : public ely::Variant<List, Literal, Identifier, Var>
 {
 private:
-    using base_ = ely::Variant<List, Literal, Identifier, Eof>;
+    using base_ = ely::Variant<List, Literal, Identifier, Var>;
 
 public:
-    template<typename T, typename... Args>
-    explicit constexpr Syntax(std::in_place_type_t<T> t, Args&&... args)
-        : base_(t, static_cast<Args&&>(args)...)
-    {}
+    using base_::base_;
 
     constexpr bool is_list() const
     {
-        return holds_alternative<List>(*this);
+        return ely::holds_alternative<List>(*this);
     }
 
     constexpr bool is_literal() const
     {
-        return holds_alternative<Literal>(*this);
+        return ely::holds_alternative<Literal>(*this);
     }
 
     constexpr bool is_identifier() const
     {
-        return holds_alternative<Identifier>(*this);
+        return ely::holds_alternative<Identifier>(*this);
+    }
+
+    constexpr bool is_poison() const
+    {
+        return ely::visit([](const auto& sexp) { return sexp.is_poison(); },
+                          *this);
+    }
+
+    constexpr std::size_t size() const noexcept
+    {
+        return ely::visit([](const auto& stx) { return stx.size(); }, *this);
+    }
+
+    constexpr std::size_t leading_size() const noexcept
+    {
+        return ely::visit([](const auto& stx) { return stx.leading_size(); },
+                          *this);
+    }
+
+    constexpr std::size_t trailing_size() const noexcept
+    {
+        return ely::visit([](const auto& stx) { return stx.trailing_size(); },
+                          *this);
+    }
+
+    constexpr std::size_t inner_size() const noexcept
+    {
+        return ely::visit([](const auto& stx) { return stx.inner_size(); },
+                          *this);
+    }
+};
+
+class Syntax final : public ely::Variant<Sexpr, Eof>
+{
+private:
+    using base_ = ely::Variant<Sexpr, Eof>;
+
+public:
+    using base_::base_;
+
+    constexpr bool is_list() const
+    {
+        return ely::visit(
+            [](const auto& x) {
+                using ty = ely::remove_cvref_t<decltype(x)>;
+
+                if constexpr (std::is_same_v<ty, Eof>)
+                {
+                    return false;
+                }
+                else
+                {
+                    return x.is_list();
+                }
+            },
+            *this);
+    }
+
+    constexpr bool is_literal() const
+    {
+        return ely::visit(
+            [](const auto& x) {
+                using ty = ely::remove_cvref_t<decltype(x)>;
+
+                if constexpr (std::is_same_v<ty, Eof>)
+                {
+                    return false;
+                }
+                else
+                {
+                    return x.is_literal();
+                }
+            },
+            *this);
+    }
+
+    constexpr bool is_identifier() const
+    {
+        return ely::visit(
+            [](const auto& x) {
+                using ty = ely::remove_cvref_t<decltype(x)>;
+
+                if constexpr (std::is_same_v<ty, Eof>)
+                {
+                    return false;
+                }
+                else
+                {
+                    return x.is_identifier();
+                }
+            },
+            *this);
     }
 
     constexpr bool is_eof() const
@@ -240,35 +363,115 @@ public:
 
     constexpr bool is_poison() const noexcept
     {
-        return visit([](const auto& stx) { return stx.is_poison(); });
+        return ely::visit(
+            [](const auto& x) {
+                using ty = ely::remove_cvref_t<decltype(x)>;
+
+                if constexpr (std::is_same_v<ty, Eof>)
+                {
+                    return false;
+                }
+                else
+                {
+                    return x.is_poison();
+                }
+            },
+            *this);
     }
 
     constexpr std::size_t size() const noexcept
     {
-        return visit([](const auto& stx) { return stx.size(); });
+        return ely::visit([](const auto& stx) { return stx.size(); }, *this);
     }
 
-    constexpr std::size_t leading_size()
+    constexpr std::size_t leading_size() const noexcept
     {
-        return visit([](const auto& stx) { return stx.leading_size(); });
+        return ely::visit([](const auto& stx) { return stx.leading_size(); },
+                          *this);
     }
 
-    constexpr std::size_t trailing_size()
+    constexpr std::size_t trailing_size() const noexcept
     {
-        return visit([](const auto& stx) { return stx.trailing_size(); });
+        return ely::visit([](const auto& stx) { return stx.trailing_size(); },
+                          *this);
     }
 
     constexpr std::size_t inner_size() const noexcept
     {
-        return visit([](const auto& stx) { return stx.inner_size(); });
+        return ely::visit([](const auto& stx) { return stx.inner_size(); },
+                          *this);
     }
 };
 
 template<typename... Args>
 constexpr void List::emplace_back(Args&&... args)
 {
-    stx::Syntax& stx = values_.emplace_back(static_cast<Args&&>(args)...);
-    values_size_ += stx.size();
+    stx::Sexpr& sexp = values_.emplace_back(static_cast<Args&&>(args)...);
+    values_size_ += sexp.size();
+}
+
+std::size_t Var::leading_size() const noexcept
+{
+    if (id_)
+    {
+        return id_->leading_size();
+    }
+
+    return colon_.leading_size();
+}
+
+std::size_t Var::trailing_size() const noexcept
+{
+    if (ty_)
+    {
+        return ty_->trailing_size();
+    }
+
+    return colon_.trailing_size();
+}
+
+std::size_t Var::size() const noexcept
+{
+    std::size_t sz{};
+
+    if (id_)
+    {
+        sz += id_->size();
+    }
+
+    sz += colon_.size();
+
+    if (ty_)
+    {
+        sz += ty_->size();
+    }
+
+    return sz;
+}
+
+std::size_t Var::inner_size() const noexcept
+{
+    std::size_t sz{};
+
+    if (id_)
+    {
+        sz += id_->inner_size();
+        sz += id_->trailing_size();
+
+        sz += colon_.leading_size();
+    }
+
+    sz += colon_.inner_size();
+
+    if (ty_)
+    {
+        sz += ty_->leading_size();
+        sz += ty_->inner_size();
+
+        sz += colon_.trailing_size();
+    }
+
+    return sz;
 }
 } // namespace stx
 } // namespace ely
