@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ely/defines.h"
+#include "ely/maybe_uninit.hpp"
 #include "ely/utility.hpp"
 
 #include <iterator>
@@ -264,9 +265,207 @@ public:
         size_ = size_type{};
     }
 };
+
+template<std::size_t N>
+using smallest_size_t = std::conditional_t<
+    N <= std::numeric_limits<uint8_t>::max(),
+    uint8_t,
+    std::conditional_t<
+        N <= std::numeric_limits<uint16_t>::max(),
+        uint16_t,
+        std::conditional_t<N <= std::numeric_limits<uint32_t>::max(),
+                           uint32_t,
+                           uint64_t>>>;
+
+template<typename T, std::size_t N>
+class StaticVectorStorage
+{
+protected:
+    ely::MaybeUninit<T[N]> data_;
+    smallest_size_t<N>     size_;
+
+public:
+    StaticVectorStorage() = default;
+
+    constexpr std::size_t size() const noexcept
+    {
+        return static_cast<std::size_t>(size_);
+    }
+
+    constexpr T* data() noexcept
+    {
+        return data_.get_unchecked();
+    }
+
+    constexpr const T* data() const noexcept
+    {
+        return data_.get_unchecked();
+    }
+};
+
+template<typename T,
+         std::size_t N,
+         bool        TrivialDestroy = std::is_trivially_destructible_v<T>>
+class StaticVectorDestructible;
+
+#define STATIC_VEC_IMPL(trivial_destruct, destructor, clear_fn)                \
+    template<typename T, std::size_t N>                                        \
+    class StaticVectorDestructible<T, N, trivial_destruct>                     \
+        : public StaticVectorStorage<T, N>                                     \
+    {                                                                          \
+        using base_ = StaticVectorStorage<T, N>;                               \
+                                                                               \
+    public:                                                                    \
+        using base_::base_;                                                    \
+                                                                               \
+        StaticVectorDestructible(const StaticVectorDestructible&) = default;   \
+        StaticVectorDestructible(StaticVectorDestructible&&)      = default;   \
+                                                                               \
+        StaticVectorDestructible&                                              \
+        operator=(const StaticVectorDestructible&) = default;                  \
+        StaticVectorDestructible&                                              \
+        operator=(StaticVectorDestructible&&) = default;                       \
+                                                                               \
+        destructor                                                             \
+                                                                               \
+            clear_fn                                                           \
+    }
+
+STATIC_VEC_IMPL(true, ~StaticVectorDestructible() = default;
+                , constexpr void clear() noexcept {});
+STATIC_VEC_IMPL(
+    false,
+    ~StaticVectorDestructible() { clear(); },
+    constexpr void clear() noexcept { this->data_.destroy_unchecked(); });
+
+#undef STATIC_VEC_IMPL
+
+template<typename T, std::size_t N>
+class StaticVector : public StaticVectorDestructible<T, N>
+{
+    using base_ = StaticVectorDestructible<T, N>;
+
+public:
+    using value_type      = T;
+    using reference       = value_type&;
+    using const_reference = const value_type&;
+    using pointer         = value_type*;
+    using const_pointer   = const value_type*;
+    using size_type       = std::size_t;
+
+    using iterator               = pointer;
+    using const_iterator         = const_pointer;
+    using reverse_iterator       = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+public:
+    StaticVector() = default;
+
+    using base_::data;
+    using base_::size;
+
+    constexpr size_type capacity() const noexcept
+    {
+        return N;
+    }
+
+    constexpr reference operator[](size_type idx) noexcept
+    {
+        return data()[idx];
+    }
+
+    constexpr const_reference operator[](size_type idx) const noexcept
+    {
+        return data()[idx];
+    }
+
+    constexpr iterator begin() noexcept
+    {
+        return data();
+    }
+
+    constexpr iterator end() noexcept
+    {
+        return data() + size();
+    }
+
+    constexpr const_iterator cbegin() const noexcept
+    {
+        return data();
+    }
+
+    constexpr const_iterator cend() const noexcept
+    {
+        return data();
+    }
+
+    constexpr const_iterator begin() const noexcept
+    {
+        return cbegin();
+    }
+
+    constexpr const_iterator end() const noexcept
+    {
+        return cend();
+    }
+
+    constexpr reverse_iterator rbegin() noexcept
+    {
+        return reverse_iterator{end()};
+    }
+
+    constexpr reverse_iterator rend() noexcept
+    {
+        return reverse_iterator{begin()};
+    }
+
+    constexpr const_reverse_iterator crbegin() const noexcept
+    {
+        return const_reverse_iterator{cend()};
+    }
+
+    constexpr const_reverse_iterator crend() const noexcept
+    {
+        return const_reverse_iterator{cbegin()};
+    }
+
+    constexpr const_reverse_iterator rbegin() const noexcept
+    {
+        return crbegin();
+    }
+
+    constexpr const_reverse_iterator rend() const noexcept
+    {
+        return crend();
+    }
+
+    template<typename... Args>
+    T& emplace_back(Args&&... args) noexcept(
+        std::is_nothrow_constructible_v<T, Args...>)
+    {
+        auto old_sz = size();
+        new (static_cast<void*>(data() + size()))
+            T(static_cast<Args&&>(args)...);
+
+        ++this->size_;
+        return data()[old_sz];
+    }
+
+    void pop_back() noexcept
+    {
+        --this->size_;
+        if constexpr (!std::is_trivially_destructible_v<T>)
+        {
+            data()[size()].~T();
+        }
+    }
+};
 } // namespace vector
 
 template<typename T>
 using Vector = vector::Vector<T, std::allocator<T>>;
+
+template<typename T, std::size_t N>
+using StaticVector = vector::StaticVector<T, N>;
 
 } // namespace ely

@@ -3,6 +3,7 @@ set(ELY_TESTS
     memory)
 
 set(TESTS
+    vector
     union
     variant
     pair)
