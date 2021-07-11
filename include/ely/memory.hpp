@@ -40,7 +40,9 @@ public:
 };
 } // namespace detail
 
-template<typename T, typename RefCountT, typename Allocator>
+template<typename T,
+         typename RefCountT = std::atomic<std::size_t>,
+         typename Allocator = std::allocator<T>>
 class SharedPtr
 {
     using alloc_traits = std::allocator_traits<Allocator>;
@@ -174,6 +176,8 @@ public:
 };
 } // namespace memory
 
-template<typename T, typename RefCountT, typename Allocator = std::allocator<T>>
+template<typename T,
+         typename RefCountT = std::atomic<std::size_t>,
+         typename Allocator = std::allocator<T>>
 using SharedPtr = ely::memory::SharedPtr<T, RefCountT, Allocator>;
 } // namespace ely
