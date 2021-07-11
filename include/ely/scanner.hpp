@@ -807,8 +807,8 @@ public:
     using reference  = value_type;
 
 private:
-    [[no_unique_address]] I it_;
-    [[no_unique_address]] S end_;
+    I it_;
+    S end_;
 
 public:
     ScannerStream() = default;
