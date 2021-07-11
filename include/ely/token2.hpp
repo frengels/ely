@@ -656,5 +656,49 @@ public:
         return str().size();
     }
 };
+
+using variant_type = ely::Variant<token2::Whitespace,
+                                  token2::Tab,
+                                  token2::NewlineCr,
+                                  token2::NewlineLf,
+                                  token2::NewlineCrlf,
+                                  token2::Comment,
+                                  token2::LParen,
+                                  token2::RParen,
+                                  token2::LBracket,
+                                  token2::RBracket,
+                                  token2::LBrace,
+                                  token2::RBrace,
+                                  token2::Identifier,
+                                  token2::IntLit,
+                                  token2::FloatLit,
+                                  token2::CharLit,
+                                  token2::StringLit,
+                                  token2::KeywordLit,
+                                  token2::BoolLit,
+                                  token2::Colon,
+                                  token2::Quote,
+                                  token2::SyntaxQuote,
+                                  token2::At,
+                                  token2::Unquote,
+                                  token2::SyntaxUnquote,
+                                  token2::UnquoteSplicing,
+                                  token2::SyntaxUnquoteSplicing,
+                                  token2::Exclamation,
+                                  token2::Question,
+                                  token2::Asterisk,
+                                  token2::QuasiQuote,
+                                  token2::QuasiSyntax,
+                                  token2::UnterminatedStringLit,
+                                  token2::InvalidNumberSign,
+                                  token2::Eof>
 } // namespace token2
+
+class Token2 : public token2::variant_type
+{
+    using base_ = token2::variant_type;
+
+public:
+    using base_::base_;
+};
 } // namespace ely
