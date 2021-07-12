@@ -8,6 +8,7 @@
 
 #include "ely/assert.h"
 #include "ely/defines.h"
+#include "ely/lex/span.hpp"
 #include "ely/token2.hpp"
 #include "ely/variant.hpp"
 
@@ -26,6 +27,11 @@ class LexemeKind : public lexeme::variant_type
 
 public:
     using base_::base_;
+
+    constexpr bool is_eof() const noexcept
+    {
+        return !ely::holds_alternative<std::in_place_type_t<token2::Eof>>(*this);
+    }
 };
 
 static_assert(std::is_trivially_destructible_v<LexemeKind>);
@@ -43,8 +49,8 @@ public:
     using size_type = uint32_t;
 
 public:
-    LexemeSpan span;
-    LexemeKind kind{std::in_place_type<token2::Eof>};
+    LexemeSpan<I> span;
+    LexemeKind    kind{std::in_place_type<token2::Eof>};
 
     explicit constexpr operator bool() const noexcept
     {
@@ -445,7 +451,8 @@ public:
     {
         detail::ScanResult<I> scan_res = detail::scan_lexeme(it_, end_);
         value_type            res{
-            it_, static_cast<uint32_t>(scan_res.end - it_), scan_res.kind};
+            {it_, scan_res.end, static_cast<uint32_t>(scan_res.end - it_)},
+            scan_res.kind};
         it_ = scan_res.end;
         return res;
     }
