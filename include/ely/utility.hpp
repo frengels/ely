@@ -11,6 +11,16 @@ namespace ely
 template<typename T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
+template<typename... Ts>
+struct type_list
+{
+    template<template<typename...> class T>
+    using apply_all = T<Ts...>;
+
+    template<template<typename> class T>
+    using apply_each = type_list<T<Ts>...>;
+};
+
 template<std::size_t I, typename... Ts>
 using nth_element_t = std::tuple_element_t<I, std::tuple<Ts...>>;
 

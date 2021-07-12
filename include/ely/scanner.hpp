@@ -8,6 +8,7 @@
 
 #include "ely/assert.h"
 #include "ely/defines.h"
+#include "ely/token2.hpp"
 #include "ely/variant.hpp"
 
 namespace ely
@@ -17,574 +18,9 @@ class LexemeSpan;
 
 namespace lexeme
 {
-using size_type = std::size_t;
+using variant_type = token2::token_types::template apply_each<
+    std::in_place_type_t>::template apply_all<ely::Variant>;
 
-struct Whitespace
-{};
-
-struct Tab
-{};
-
-struct NewlineCr
-{
-    NewlineCr() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr NewlineCr(NewlineCr,
-                                          const LexemeSpan<I>&) noexcept
-        : NewlineCr{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'\r'};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct NewlineLf
-{
-    NewlineLf() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr NewlineLf(NewlineLf,
-                                          const LexemeSpan<I>&) noexcept
-        : NewlineLf{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'\n'};
-
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct NewlineCrlf
-{
-    NewlineCrlf() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr NewlineCrlf(NewlineCrlf,
-                                            const LexemeSpan<I>&) noexcept
-        : NewlineCrlf{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 2>{'\r', '\n'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Comment
-{};
-
-struct LParen
-{
-    LParen() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr LParen(LParen, const LexemeSpan<I>&) noexcept
-        : LParen{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'('};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct RParen
-{
-    RParen() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr RParen(RParen, const LexemeSpan<I>&) noexcept
-        : RParen{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{')'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct LBracket
-{
-    LBracket() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr LBracket(LBracket,
-                                         const LexemeSpan<I>&) noexcept
-        : LBracket{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'['};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct RBracket
-{
-    RBracket() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr RBracket(LBracket,
-                                         const LexemeSpan<I>&) noexcept
-        : RBracket{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{']'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct LBrace
-{
-    LBrace() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr LBrace(LBrace, const LexemeSpan<I>&) noexcept
-        : LBrace{}
-    {}
-
-    static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'{'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct RBrace
-{
-    RBrace() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr RBrace(RBrace, const LexemeSpan<I>&) noexcept
-        : RBrace{}
-    {}
-
-    static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'}'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Identifier
-{};
-
-struct IntLit
-{};
-
-struct FloatLit
-{};
-
-struct CharLit
-{};
-
-struct StringLit
-{};
-
-struct KeywordLit
-{};
-
-struct BoolLit
-{};
-
-struct Colon
-{
-    Colon() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Colon(Colon, const LexemeSpan<I>&) noexcept
-        : Colon{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{':'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Quote
-{
-    Quote() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Quote(Quote, const LexemeSpan<I>&) noexcept
-        : Quote{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'\''};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-}
-
-struct SyntaxQuote
-{
-    SyntaxQuote() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr SyntaxQuote(SyntaxQuote,
-                                            const LexemeSpan<I>&) noexcept
-        : SyntaxQuote{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 2>{'#', '\''};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct At
-{
-    At() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr At(At, const LexemeSpan<I>&) noexcept : At{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'@'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Unquote
-{
-    Unquote() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Unquote(Unquote, const LexemeSpan<I>&) noexcept
-        : Unquote{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{','};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct SyntaxUnquote
-{
-    SyntaxUnquote() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr SyntaxUnquote(SyntaxUnquote,
-                                              const LexemeSpan<I>&) noexcept
-        : SyntaxUnquote{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 2>{'#', ','};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct UnquoteSplicing
-{
-    UnquoteSplicing() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr UnquoteSplicing(UnquoteSplicing,
-                                                const LexemeSpan<I>&) noexcept
-        : UnquoteSplicing{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 2>{',', '@'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct SyntaxUnquoteSplicing
-{
-    SyntaxUnquoteSplicing() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr SyntaxUnquoteSplicing(
-        SyntaxUnquoteSplicing,
-        const LexemeSpan<I>&) noexcept
-        : SyntaxUnquoteSplicing{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 3>{'#', ',', '@'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Exclamation
-{
-    Exclamation() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Exclamation(Exclamation,
-                                            const LexemeSpan<I>&) noexcept
-        : Exclamation{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'!'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Question
-{
-    Question() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Question(Question,
-                                         const LexemeSpan<I>&) noexcept
-        : Question{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'?'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct Asterisk
-{
-    Asterisk() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Asterisk(Asterisk,
-                                         const LexemeSpan<I>&) noexcept
-        : Asterisk{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'*'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct QuasiQuote
-{
-    QuasiQuote() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr QuasiQuote(QuasiQuote,
-                                           const LexemeSpan<I>&) noexcept
-        : QuasiQuote{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 1>{'`'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct QuasiSyntax
-{
-    QuasiSyntax() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr QuasiSyntax(QuasiSyntax,
-                                            const LexemeSpan<I>&) noexcept
-        : QuasiSyntax{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        static constexpr auto str_ = std::array<char, 2>{'#', '`'};
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-struct UnterminatedStringLit
-{};
-
-struct InvalidNumberSign
-{};
-
-struct Eof
-{
-    Eof() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr Eof(Eof, const LexemeSpan<I>&) noexcept : Eof{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        return std::string_view{};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-using variant_type = ely::Variant<lexeme::Whitespace,
-                                  lexeme::Tab,
-                                  lexeme::NewlineCr,
-                                  lexeme::NewlineLf,
-                                  lexeme::NewlineCrlf,
-                                  lexeme::Comment,
-                                  lexeme::LParen,
-                                  lexeme::RParen,
-                                  lexeme::LBracket,
-                                  lexeme::RBracket,
-                                  lexeme::LBrace,
-                                  lexeme::RBrace,
-                                  lexeme::Identifier,
-                                  lexeme::IntLit,
-                                  lexeme::FloatLit,
-                                  lexeme::CharLit,
-                                  lexeme::StringLit,
-                                  lexeme::KeywordLit,
-                                  lexeme::BoolLit,
-                                  lexeme::Colon,
-                                  lexeme::Quote,
-                                  lexeme::SyntaxQuote,
-                                  lexeme::At,
-                                  lexeme::Unquote,
-                                  lexeme::SyntaxUnquote,
-                                  lexeme::UnquoteSplicing,
-                                  lexeme::SyntaxUnquoteSplicing,
-                                  lexeme::Exclamation,
-                                  lexeme::Question,
-                                  lexeme::Asterisk,
-                                  lexeme::QuasiQuote,
-                                  lexeme::QuasiSyntax,
-                                  lexeme::UnterminatedStringLit,
-                                  lexeme::InvalidNumberSign,
-                                  lexeme::Eof>;
 } // namespace lexeme
 
 class LexemeKind : public lexeme::variant_type
@@ -722,7 +158,7 @@ public:
 
 public:
     LexemeSpan span;
-    LexemeKind kind{lexeme::Eof{}};
+    LexemeKind kind{std::in_place_type<token2::Eof>};
 
     explicit constexpr operator bool() const noexcept
     {
@@ -811,21 +247,21 @@ template<typename I, typename S>
 constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, lexeme::Identifier{}};
+    return {next, std::in_place_type<token2::Identifier>};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_keyword(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, lexeme::KeywordLit{}};
+    return {next, std::in_place_type<token2::KeywordLit>};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, lexeme::InvalidNumberSign{}};
+    return {next, std::in_place_type<token2::InvalidNumberSign>};
 }
 
 template<typename I, typename S>
@@ -841,7 +277,7 @@ constexpr ScanResult<I> scan_float(I it, S end)
 
     if (is_delimiter(c))
     {
-        return {it, lexeme::FloatLit{}};
+        return {it, std::in_place_type<token2::FloatLit>};
     }
     else
     {
@@ -870,7 +306,7 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
     }
     else if (is_delimiter(c))
     {
-        return {it, lexeme::IntLit{}};
+        return {it, std::in_place_type<token2::IntLit>};
     }
     else
     {
@@ -894,18 +330,18 @@ constexpr ScanResult<I> scan_string(I it, S end)
         }
         else if (ch == '"' && !escaping)
         {
-            return {it, lexeme::StringLit{}};
+            return {it, std::in_place_type<token2::StringLit>};
         }
     }
 
-    return {it, lexeme::UnterminatedStringLit{}};
+    return {it, std::in_place_type<token2::UnterminatedStringLit>};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
-    return {new_it, lexeme::CharLit{}};
+    return {new_it, std::in_place_type<token2::CharLit>};
 }
 
 template<typename I, typename S>
@@ -920,7 +356,7 @@ constexpr ScanResult<I> scan_sign(I it, S end)
     }
     else if (is_delimiter(ch))
     {
-        return {it, lexeme::Identifier{}};
+        return {it, std::in_place_type<token2::Identifier>};
     }
     else
     {
@@ -945,7 +381,7 @@ constexpr ScanResult<I> scan_whitespace(I it, S end)
         }
     }
 
-    return {it, lexeme::Whitespace{}};
+    return {it, std::in_place_type<token2::Whitespace>};
 }
 
 template<typename I, typename S>
@@ -964,7 +400,7 @@ constexpr ScanResult<I> scan_tab(I it, S end)
         }
     }
 
-    return {it, lexeme::Tab{}};
+    return {it, std::in_place_type<token2::Tab>};
 }
 
 template<typename I, typename S>
@@ -976,11 +412,11 @@ constexpr ScanResult<I> scan_cr(I it, S end)
         if (ch == '\n')
         {
             ++it;
-            return {it, lexeme::NewlineCrlf{}};
+            return {it, std::in_place_type<token2::NewlineCrlf>};
         }
     }
 
-    return {it, lexeme::NewlineCr{}};
+    return {it, std::in_place_type<token2::NewlineCr>};
 }
 
 template<typename I, typename S>
@@ -995,7 +431,7 @@ constexpr ScanResult<I> scan_line_comment(I it, S end)
         }
     }
 
-    return {it, lexeme::Comment{}};
+    return {it, std::in_place_type<token2::Comment>};
 }
 
 template<typename I, typename S>
@@ -1019,7 +455,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                     ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
                 }
             }
-            return {it, lexeme::BoolLit{}};
+            return {it, std::in_place_type<token2::BoolLit>};
         case ':':
             ++it;
             ELY_MUSTTAIL return scan_keyword(it, end);
@@ -1032,7 +468,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         }
     }
 
-    return {it, lexeme::InvalidNumberSign{}};
+    return {it, std::in_place_type<token2::InvalidNumberSign>};
 }
 
 template<typename I, typename S>
@@ -1040,7 +476,7 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
 {
     if (it == end)
     {
-        return {it, lexeme::Eof{}};
+        return {it, std::in_place_type<token2::Eof>};
     }
 
     char ch = *it++;
@@ -1054,23 +490,23 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
     case '\r':
         ELY_MUSTTAIL return detail::scan_cr(it, end);
     case '\n':
-        return {it, lexeme::NewlineLf{}};
+        return {it, std::in_place_type<token2::NewlineLf>};
     case ';':
         ELY_MUSTTAIL return detail::scan_line_comment(it, end);
     case '(':
-        return {it, lexeme::LParen{}};
+        return {it, std::in_place_type<token2::LParen>};
     case ')':
-        return {it, lexeme::RParen{}};
+        return {it, std::in_place_type<token2::RParen>};
     case '[':
-        return {it, lexeme::LBracket{}};
+        return {it, std::in_place_type<token2::LBracket>};
     case ']':
-        return {it, lexeme::RBracket{}};
+        return {it, std::in_place_type<token2::RBracket>};
     case '{':
-        return {it, lexeme::LBrace{}};
+        return {it, std::in_place_type<token2::LBrace>};
     case '}':
-        return {it, lexeme::RBrace{}};
+        return {it, std::in_place_type<token2::RBrace>};
     case ':':
-        return {it, lexeme::Colon{}};
+        return {it, std::in_place_type<token2::Colon>};
     case '"':
         ELY_MUSTTAIL return detail::scan_string(it, end);
     case '+':
