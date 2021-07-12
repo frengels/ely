@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include <iterator>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "ely/assert.h"
 #include "ely/defines.h"
@@ -10,202 +12,542 @@
 
 namespace ely
 {
+template<typename I>
+class LexemeSpan;
+
 namespace lexeme
 {
-template<typename T, typename = void>
-struct is_lexeme : std::false_type
-{};
-
-template<typename T>
-struct is_lexeme<T, std::void_t<typename T::lexeme_tag>> : std::true_type
-{};
-
-template<typename T>
-inline constexpr bool is_lexeme_v = is_lexeme<T>::value;
-
-template<typename L, typename = void>
-struct is_newline : std::false_type
-{};
-
-template<typename L>
-struct is_newline<L, std::void_t<typename L::newline_tag>> : is_lexeme<L>
-{};
-
-template<typename L>
-inline constexpr bool is_newline_v = is_newline<L>::value;
-
-template<typename L, typename = void>
-struct is_atmosphere : std::false_type
-{};
-
-template<typename L>
-struct is_atmosphere<L, std::void_t<typename L::atmosphere_tag>> : is_lexeme<L>
-{};
-
-template<typename L>
-inline constexpr bool is_atmosphere_v = is_atmosphere<L>::value;
-
-template<typename L, typename = void>
-struct is_trailing_atmosphere : std::false_type
-{};
-
-template<typename L>
-struct is_trailing_atmosphere<L,
-                              std::void_t<typename L::trailing_atmosphere_tag>>
-    : std::true_type
-{};
-
-template<typename L>
-inline constexpr bool is_trailing_atmosphere_v =
-    is_trailing_atmosphere<L>::value;
-
-template<typename L, typename = void>
-struct is_literal : std::false_type
-{};
-
-template<typename L>
-struct is_literal<L, std::void_t<typename L::literal_tag>> : is_lexeme<L>
-{};
-
-template<typename L>
-inline constexpr bool is_literal_v = is_literal<L>::value;
-
-template<typename L, typename = void>
-struct is_identifier : std::false_type
-{};
-
-template<typename L>
-struct is_identifier<L, std::void_t<typename L::identifier_tag>> : is_lexeme<L>
-{};
-
-template<typename L>
-inline constexpr bool is_identifier_v = is_identifier<L>::value;
-
-template<typename L, typename = void>
-struct is_eof : std::false_type
-{};
-
-template<typename L>
-struct is_eof<L, std::void_t<typename L::eof_tag>> : is_lexeme<L>
-{};
-
-template<typename L>
-inline constexpr bool is_eof_v = is_eof<L>::value;
+using size_type = std::size_t;
 
 struct Whitespace
-{
-    using lexeme_tag              = void;
-    using atmosphere_tag          = void;
-    using trailing_atmosphere_tag = void;
-};
+{};
+
 struct Tab
-{
-    using lexeme_tag              = void;
-    using atmosphere_tag          = void;
-    using trailing_atmosphere_tag = void;
-};
+{};
+
 struct NewlineCr
 {
-    using lexeme_tag     = void;
-    using newline_tag    = void;
-    using atmosphere_tag = void;
+    NewlineCr() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr NewlineCr(NewlineCr,
+                                          const LexemeSpan<I>&) noexcept
+        : NewlineCr{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'\r'};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct NewlineLf
 {
-    using lexeme_tag     = void;
-    using newline_tag    = void;
-    using atmosphere_tag = void;
+    NewlineLf() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr NewlineLf(NewlineLf,
+                                          const LexemeSpan<I>&) noexcept
+        : NewlineLf{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'\n'};
+
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct NewlineCrlf
 {
-    using lexeme_tag     = void;
-    using newline_tag    = void;
-    using atmosphere_tag = void;
+    NewlineCrlf() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr NewlineCrlf(NewlineCrlf,
+                                            const LexemeSpan<I>&) noexcept
+        : NewlineCrlf{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 2>{'\r', '\n'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct Comment
-{
-    using lexeme_tag              = void;
-    using atmosphere_tag          = void;
-    using trailing_atmosphere_tag = void;
-};
+{};
+
 struct LParen
 {
-    using lexeme_tag = void;
+    LParen() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr LParen(LParen, const LexemeSpan<I>&) noexcept
+        : LParen{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'('};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct RParen
 {
-    using lexeme_tag = void;
+    RParen() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr RParen(RParen, const LexemeSpan<I>&) noexcept
+        : RParen{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{')'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct LBracket
 {
-    using lexeme_tag = void;
+    LBracket() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr LBracket(LBracket,
+                                         const LexemeSpan<I>&) noexcept
+        : LBracket{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'['};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct RBracket
 {
-    using lexeme_tag = void;
+    RBracket() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr RBracket(LBracket,
+                                         const LexemeSpan<I>&) noexcept
+        : RBracket{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{']'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct LBrace
 {
-    using lexeme_tag = void;
+    LBrace() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr LBrace(LBrace, const LexemeSpan<I>&) noexcept
+        : LBrace{}
+    {}
+
+    static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'{'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct RBrace
 {
-    using lexeme_tag = void;
+    RBrace() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr RBrace(RBrace, const LexemeSpan<I>&) noexcept
+        : RBrace{}
+    {}
+
+    static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'}'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
+
 struct Identifier
-{
-    using lexeme_tag     = void;
-    using identifier_tag = void;
-};
+{};
+
 struct IntLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
+
 struct FloatLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
+
 struct CharLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
+
 struct StringLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
+
 struct KeywordLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
+
 struct BoolLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
 
 struct Colon
 {
-    using lexeme_tag = void;
+    Colon() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Colon(Colon, const LexemeSpan<I>&) noexcept
+        : Colon{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{':'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct Quote
+{
+    Quote() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Quote(Quote, const LexemeSpan<I>&) noexcept
+        : Quote{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'\''};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+}
+
+struct SyntaxQuote
+{
+    SyntaxQuote() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr SyntaxQuote(SyntaxQuote,
+                                            const LexemeSpan<I>&) noexcept
+        : SyntaxQuote{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 2>{'#', '\''};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct At
+{
+    At() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr At(At, const LexemeSpan<I>&) noexcept : At{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'@'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct Unquote
+{
+    Unquote() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Unquote(Unquote, const LexemeSpan<I>&) noexcept
+        : Unquote{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{','};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct SyntaxUnquote
+{
+    SyntaxUnquote() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr SyntaxUnquote(SyntaxUnquote,
+                                              const LexemeSpan<I>&) noexcept
+        : SyntaxUnquote{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 2>{'#', ','};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct UnquoteSplicing
+{
+    UnquoteSplicing() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr UnquoteSplicing(UnquoteSplicing,
+                                                const LexemeSpan<I>&) noexcept
+        : UnquoteSplicing{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 2>{',', '@'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct SyntaxUnquoteSplicing
+{
+    SyntaxUnquoteSplicing() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr SyntaxUnquoteSplicing(
+        SyntaxUnquoteSplicing,
+        const LexemeSpan<I>&) noexcept
+        : SyntaxUnquoteSplicing{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 3>{'#', ',', '@'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct Exclamation
+{
+    Exclamation() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Exclamation(Exclamation,
+                                            const LexemeSpan<I>&) noexcept
+        : Exclamation{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'!'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct Question
+{
+    Question() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Question(Question,
+                                         const LexemeSpan<I>&) noexcept
+        : Question{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'?'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct Asterisk
+{
+    Asterisk() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Asterisk(Asterisk,
+                                         const LexemeSpan<I>&) noexcept
+        : Asterisk{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'*'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct QuasiQuote
+{
+    QuasiQuote() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr QuasiQuote(QuasiQuote,
+                                           const LexemeSpan<I>&) noexcept
+        : QuasiQuote{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 1>{'`'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+struct QuasiSyntax
+{
+    QuasiSyntax() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr QuasiSyntax(QuasiSyntax,
+                                            const LexemeSpan<I>&) noexcept
+        : QuasiSyntax{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        static constexpr auto str_ = std::array<char, 2>{'#', '`'};
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
 
 struct UnterminatedStringLit
-{
-    using lexeme_tag  = void;
-    using literal_tag = void;
-};
+{};
+
 struct InvalidNumberSign
-{
-    using lexeme_tag = void;
-};
+{};
+
 struct Eof
 {
-    using lexeme_tag = void;
-    using eof_tag    = void;
+    Eof() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr Eof(Eof, const LexemeSpan<I>&) noexcept : Eof{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        return std::string_view{};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
 };
 } // namespace lexeme
 
@@ -316,91 +658,116 @@ static_assert(
                                                   // needs to be initialized too
 static_assert(sizeof(LexemeKind) == 1);
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
-lexeme_is_newline(Lex lex)
+namespace detail
 {
-    return lexeme::is_newline_v<Lex>;
+template<typename T, typename... Ts>
+inline constexpr bool is_same_as_one_of_v = (std::is_same_v<T, Ts> || ...);
 }
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_newline(LexemeKind kind)
-{
-    return kind.is_newline();
-}
+/// provides the span for the lexeme, in the case of contiguous iterators we can
+/// elide the length since it's just end - start. With non contiguous iterators
+/// we don't do this since the minus operation could be expensive.
+template<typename I,
+         bool ElideLen = detail::is_same_as_one_of_v<
+                             I,
+                             typename std::string_view::iterator,
+                             typename std::string::iterator,
+                             typename std::vector<char>::iterator> ||
+                         std::is_pointer_v<I>>
+class LexemeSpanBase;
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
-lexeme_is_trailing_atmosphere(Lex lex)
+template<typename I>
+class LexemeSpanBase<I, true>
 {
-    return lexeme::is_trailing_atmosphere_v<Lex>;
-}
+public:
+    using iterator  = I;
+    using size_type = std::make_unsigned_t<
+        typename std::iterator_traits<iterator>::difference_type>;
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_trailing_atmosphere(LexemeKind kind)
-{
-    return kind.is_trailing_atmosphere();
-}
+private:
+    iterator start_;
+    iterator end_;
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
-lexeme_is_atmosphere(Lex lex)
-{
-    return lexeme::is_atmosphere_v<Lex>;
-}
+public:
+    LexemeSpanBase() = default;
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_atmosphere(LexemeKind kind)
-{
-    return kind.is_atmosphere();
-}
+    ELY_ALWAYS_INLINE constexpr LexemeSpanBase(iterator  start,
+                                               iterator  end,
+                                               size_type len) noexcept
+        : start_(std::move(start)), end_(std::move(end))
+    {
+        ELY_ASSERT(std::distance(start_, end_) == len,
+                   "The distance between the iterators does not equal the "
+                   "given length");
+    }
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
-lexeme_is_leading_atmosphere(Lex lex)
-{
-    return lexeme::is_atmosphere_v<Lex>;
-}
+    ELY_ALWAYS_INLINE constexpr iterator begin() const noexcept
+    {
+        return start_;
+    }
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_leading_atmosphere(LexemeKind kind)
-{
-    return kind.is_leading_atmosphere();
-}
+    ELY_ALWAYS_INLINE constexpr iterator end() const noexcept
+    {
+        return end_;
+    }
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
-lexeme_is_literal(Lex lex)
-{
-    return lexeme::is_literal_v<Lex>;
-}
+    ELY_ALWAYS_INLINE constexpr size_type size() const noexcept
+    {
+        return static_cast<size_type>(std::distance(begin(), end()));
+    }
+};
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_literal(LexemeKind kind)
+template<typename I>
+class LexemeSpanBase<I, false>
 {
-    return kind.is_literal();
-}
+public:
+    using iterator  = I;
+    using size_type = std::make_unsigned_t<
+        typename std::iterator_traits<iterator>::difference_type>;
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<lexeme::is_lexeme_v<Lex>, bool>
-lexeme_is_eof(Lex lex)
-{
-    return lexeme::is_eof_v<Lex>;
-}
+private:
+    iterator  start_;
+    iterator  end_;
+    size_type size_;
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_eof(LexemeKind kind)
-{
-    return kind.is_eof();
-}
+public:
+    LexemeSpanBase() = default;
 
-template<typename Lex>
-ELY_ALWAYS_INLINE constexpr std::enable_if_t<!std::is_same_v<Lex, LexemeKind>,
-                                             bool>
-lexeme_is_identifier(Lex lex)
-{
-    return lexeme::is_identifier_v<Lex>;
-}
+    ELY_ALWAYS_INLINE constexpr LexemeSpanBase(iterator  start,
+                                               iterator  end,
+                                               size_type sz) noexcept
+        : start_(std::move(start)), end_(std::move(end)), size_(sz)
+    {}
 
-ELY_ALWAYS_INLINE constexpr bool lexeme_is_identifier(LexemeKind kind)
+    ELY_ALWAYS_INLINE constexpr iterator begin() const noexcept
+    {
+        return start_;
+    }
+
+    ELY_ALWAYS_INLINE constexpr iterator end() const noexcept
+    {
+        return end_;
+    }
+
+    ELY_ALWAYS_INLINE constexpr size_type size() const noexcept
+    {
+        return size_;
+    }
+};
+
+template<typename I>
+class LexemeSpan : public LexemeSpanBase<I>
 {
-    return kind.is_identifier();
-}
+private:
+    using base_ = LexemeSpanBase<I>;
+
+public:
+    using base_::base_;
+
+    using base_::begin;
+    using base_::end;
+    using base_::size;
+};
 
 template<typename I>
 struct Lexeme
@@ -410,31 +777,12 @@ public:
     using size_type = uint32_t;
 
 public:
-    I          start{};
-    uint32_t   len{};
+    LexemeSpan span;
     LexemeKind kind{lexeme::Eof{}};
 
     explicit constexpr operator bool() const noexcept
     {
         return !kind.is_eof();
-    }
-
-    constexpr iterator begin() const
-    {
-        return start;
-    }
-
-    constexpr iterator end() const
-    {
-        return std::next(
-            start,
-            static_cast<typename std::iterator_traits<I>::difference_type>(
-                len));
-    }
-
-    constexpr std::size_t size() const noexcept
-    {
-        return static_cast<std::size_t>(len);
     }
 };
 
