@@ -4,9 +4,12 @@
 #include <memory>
 #include <string>
 
+#include "ely/scanner.hpp"
+#include "ely/token_stream2.hpp"
+
 //#include <ely/parser.hpp>
-#include <ely/reader.hpp>
-#include <ely/tokenstream.hpp>
+// #include <ely/reader.hpp>
+//#include <ely/tokenstream.hpp>
 
 constexpr int         lines       = 5;
 constexpr std::size_t buffer_size = 1024;
@@ -23,38 +26,6 @@ std::string long_source()
     std::string res{src.begin(), src.end()};
     return res;
 }
-
-static void BM_scan(benchmark::State& state)
-{
-    auto src      = long_source();
-    auto src_view = static_cast<std::string_view>(src);
-
-    auto lex_buf =
-        std::array<ely::Lexeme<std::string_view::iterator>, buffer_size>{};
-
-    for (auto _ : state)
-    {
-        auto scanner = ely::ScannerStream(src_view.begin(), src_view.end());
-
-        auto lex        = scanner.next();
-        auto lex_buf_it = lex_buf.begin();
-
-        while (lex)
-        {
-            *lex_buf_it = lex;
-            lex         = scanner.next();
-        }
-
-        for (auto it = lex_buf.begin(); it != lex_buf_it; ++it)
-        {
-            benchmark::DoNotOptimize(*it);
-        }
-    }
-
-    state.SetBytesProcessed(src.size() * state.iterations());
-    state.SetItemsProcessed(lines * state.iterations());
-}
-BENCHMARK(BM_scan);
 
 static void BM_scan_stream(benchmark::State& state)
 {
@@ -105,73 +76,103 @@ static void BM_token_stream(benchmark::State& state)
     auto src      = long_source();
     auto src_view = static_cast<std::string_view>(src);
 
-    auto tok_alloc = std::allocator<ely::Token>{};
-    auto tok_buf   = std::allocator_traits<decltype(tok_alloc)>::allocate(
-        tok_alloc, buffer_size);
+    auto tok_buf = std::array<ely::Token2, buffer_size>{};
 
     for (auto _ : state)
     {
-        auto stream = ely::TokenStream(src_view.begin(), src_view.end());
+        auto stream = ely::TokenStream2{src_view.begin(), src_view.end()};
+        auto buf_it = tok_buf.begin();
 
-        while (true)
+        auto tok = stream.next();
+
+        while (tok && buf_it != tok_buf.end())
         {
-            auto buf_it = tok_buf;
-
-            auto tok = stream.next();
-
-            while (!ely::holds<ely::token::Eof>(tok) &&
-                   buf_it != tok_buf + buffer_size)
-            {
-                std::allocator_traits<decltype(tok_alloc)>::construct(
-                    tok_alloc, buf_it, std::move(tok));
-                tok = stream.next();
-                ++buf_it;
-            }
-
-            auto buf_size = buf_it - tok_buf;
-
-            for (std::size_t i = 0; i != buf_size; ++i)
-            {
-                benchmark::DoNotOptimize(tok_buf[i]);
-                std::allocator_traits<decltype(tok_alloc)>::destroy(
-                    tok_alloc, tok_buf + i);
-            }
-
-            if (ely::holds<ely::token::Eof>(tok))
-            {
-                break;
-            }
+            *buf_it = std::move(tok);
+            benchmark::DoNotOptimize(*buf_it);
+            tok = stream.next();
+            ++buf_it;
         }
-    }
 
-    std::allocator_traits<decltype(tok_alloc)>::deallocate(
-        tok_alloc, tok_buf, buffer_size);
+        auto buf_size = buf_it - tok_buf.begin();
+    }
 
     state.SetBytesProcessed(src.size() * state.iterations());
     state.SetItemsProcessed(lines * state.iterations());
 }
 BENCHMARK(BM_token_stream);
 
-static void BM_read(benchmark::State& state)
-{
-    auto src      = long_source();
-    auto src_view = static_cast<std::string_view>(src);
+// static void BM_token_stream(benchmark::State& state)
+// {
+//     auto src      = long_source();
+//     auto src_view = static_cast<std::string_view>(src);
 
-    for (auto _ : state)
-    {
-        auto reader = ely::Reader(src_view.begin(), src_view.end());
+//     auto tok_alloc = std::allocator<ely::Token>{};
+//     auto tok_buf   = std::allocator_traits<decltype(tok_alloc)>::allocate(
+//         tok_alloc, buffer_size);
 
-        auto stx = reader.next();
+//     for (auto _ : state)
+//     {
+//         auto stream = ely::TokenStream(src_view.begin(), src_view.end());
 
-        while (stx)
-        {
-            stx = reader.next();
-        }
-    }
+//         while (true)
+//         {
+//             auto buf_it = tok_buf;
 
-    state.SetBytesProcessed(src.size() * state.iterations());
-    state.SetItemsProcessed(lines * state.iterations());
-}
-BENCHMARK(BM_read);
+//             auto tok = stream.next();
+
+//             while (!ely::holds<ely::token::Eof>(tok) &&
+//                    buf_it != tok_buf + buffer_size)
+//             {
+//                 std::allocator_traits<decltype(tok_alloc)>::construct(
+//                     tok_alloc, buf_it, std::move(tok));
+//                 tok = stream.next();
+//                 ++buf_it;
+//             }
+
+//             auto buf_size = buf_it - tok_buf;
+
+//             for (std::size_t i = 0; i != buf_size; ++i)
+//             {
+//                 benchmark::DoNotOptimize(tok_buf[i]);
+//                 std::allocator_traits<decltype(tok_alloc)>::destroy(
+//                     tok_alloc, tok_buf + i);
+//             }
+
+//             if (ely::holds<ely::token::Eof>(tok))
+//             {
+//                 break;
+//             }
+//         }
+//     }
+
+//     std::allocator_traits<decltype(tok_alloc)>::deallocate(
+//         tok_alloc, tok_buf, buffer_size);
+
+//     state.SetBytesProcessed(src.size() * state.iterations());
+//     state.SetItemsProcessed(lines * state.iterations());
+// }
+// BENCHMARK(BM_token_stream);
+
+// static void BM_read(benchmark::State& state)
+// {
+//     auto src      = long_source();
+//     auto src_view = static_cast<std::string_view>(src);
+
+//     for (auto _ : state)
+//     {
+//         auto reader = ely::Reader(src_view.begin(), src_view.end());
+
+//         auto stx = reader.next();
+
+//         while (stx)
+//         {
+//             stx = reader.next();
+//         }
+//     }
+
+//     state.SetBytesProcessed(src.size() * state.iterations());
+//     state.SetItemsProcessed(lines * state.iterations());
+// }
+// BENCHMARK(BM_read);
 
 BENCHMARK_MAIN();
