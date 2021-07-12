@@ -549,106 +549,50 @@ struct Eof
         return str().size();
     }
 };
+
+using variant_type = ely::Variant<lexeme::Whitespace,
+                                  lexeme::Tab,
+                                  lexeme::NewlineCr,
+                                  lexeme::NewlineLf,
+                                  lexeme::NewlineCrlf,
+                                  lexeme::Comment,
+                                  lexeme::LParen,
+                                  lexeme::RParen,
+                                  lexeme::LBracket,
+                                  lexeme::RBracket,
+                                  lexeme::LBrace,
+                                  lexeme::RBrace,
+                                  lexeme::Identifier,
+                                  lexeme::IntLit,
+                                  lexeme::FloatLit,
+                                  lexeme::CharLit,
+                                  lexeme::StringLit,
+                                  lexeme::KeywordLit,
+                                  lexeme::BoolLit,
+                                  lexeme::Colon,
+                                  lexeme::Quote,
+                                  lexeme::SyntaxQuote,
+                                  lexeme::At,
+                                  lexeme::Unquote,
+                                  lexeme::SyntaxUnquote,
+                                  lexeme::UnquoteSplicing,
+                                  lexeme::SyntaxUnquoteSplicing,
+                                  lexeme::Exclamation,
+                                  lexeme::Question,
+                                  lexeme::Asterisk,
+                                  lexeme::QuasiQuote,
+                                  lexeme::QuasiSyntax,
+                                  lexeme::UnterminatedStringLit,
+                                  lexeme::InvalidNumberSign,
+                                  lexeme::Eof>;
 } // namespace lexeme
 
-class LexemeKind : public ely::Variant<lexeme::Whitespace,
-                                       lexeme::Tab,
-                                       lexeme::NewlineCr,
-                                       lexeme::NewlineLf,
-                                       lexeme::NewlineCrlf,
-                                       lexeme::Comment,
-                                       lexeme::LParen,
-                                       lexeme::RParen,
-                                       lexeme::LBracket,
-                                       lexeme::RBracket,
-                                       lexeme::LBrace,
-                                       lexeme::RBrace,
-                                       lexeme::Identifier,
-                                       lexeme::IntLit,
-                                       lexeme::FloatLit,
-                                       lexeme::CharLit,
-                                       lexeme::StringLit,
-                                       lexeme::KeywordLit,
-                                       lexeme::BoolLit,
-                                       lexeme::Colon,
-                                       lexeme::UnterminatedStringLit,
-                                       lexeme::InvalidNumberSign,
-                                       lexeme::Eof>
+class LexemeKind : public lexeme::variant_type
 {
-    using base_ = ely::Variant<lexeme::Whitespace,
-                               lexeme::Tab,
-                               lexeme::NewlineCr,
-                               lexeme::NewlineLf,
-                               lexeme::NewlineCrlf,
-                               lexeme::Comment,
-                               lexeme::LParen,
-                               lexeme::RParen,
-                               lexeme::LBracket,
-                               lexeme::RBracket,
-                               lexeme::LBrace,
-                               lexeme::RBrace,
-                               lexeme::Identifier,
-                               lexeme::IntLit,
-                               lexeme::FloatLit,
-                               lexeme::CharLit,
-                               lexeme::StringLit,
-                               lexeme::KeywordLit,
-                               lexeme::BoolLit,
-                               lexeme::Colon,
-                               lexeme::UnterminatedStringLit,
-                               lexeme::InvalidNumberSign,
-                               lexeme::Eof>;
+    using base_ = lexeme::variant_type;
 
 public:
     using base_::base_;
-
-    ELY_ALWAYS_INLINE constexpr bool is_newline() const noexcept
-    {
-        return ely::visit(
-            [](auto lex) { return lexeme::is_newline_v<decltype(lex)>; },
-            *this);
-    }
-
-    ELY_ALWAYS_INLINE constexpr bool is_atmosphere() const noexcept
-    {
-        return ely::visit(
-            [](auto lex) { return lexeme::is_atmosphere_v<decltype(lex)>; },
-            *this);
-    }
-
-    ELY_ALWAYS_INLINE constexpr bool is_leading_atmosphere() const noexcept
-    {
-        return is_atmosphere();
-    }
-
-    ELY_ALWAYS_INLINE constexpr bool is_trailing_atmosphere() const noexcept
-    {
-        return ely::visit(
-            [](auto lex) {
-                return lexeme::is_trailing_atmosphere_v<decltype(lex)>;
-            },
-            *this);
-    }
-
-    ELY_ALWAYS_INLINE constexpr bool is_literal() const noexcept
-    {
-        return ely::visit(
-            [](auto lex) { return lexeme::is_literal_v<decltype(lex)>; },
-            *this);
-    }
-
-    ELY_ALWAYS_INLINE constexpr bool is_eof() const noexcept
-    {
-        return ely::visit(
-            [](auto lex) { return lexeme::is_eof_v<decltype(lex)>; }, *this);
-    }
-
-    ELY_ALWAYS_INLINE constexpr bool is_identifier() const noexcept
-    {
-        return ely::visit(
-            [](auto lex) { return lexeme::is_identifier_v<decltype(lex)>; },
-            *this);
-    }
 };
 
 static_assert(std::is_trivially_destructible_v<LexemeKind>);
