@@ -30,11 +30,5 @@ public:
     {
         return reference(scanner_.next());
     }
-
-private:
-    ELY_ALWAYS_INLINE reference next_lexeme() noexcept
-    {
-        return scanner_.next();
-    }
 };
 } // namespace ely
