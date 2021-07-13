@@ -12,7 +12,14 @@ class LexemeKind : public lexeme::variant_type
     using base_ = lexeme::variant_type;
 
 public:
-    using base_::base_;
+    constexpr LexemeKind()
+        : base_(std::in_place_type<std::in_place_type_t<token2::Eof>>)
+    {}
+
+    template<typename U>
+    constexpr LexemeKind(std::in_place_type_t<U>)
+        : base_(std::in_place_type<std::in_place_type_t<U>>)
+    {}
 
     constexpr bool is_eof() const noexcept
     {
