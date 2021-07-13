@@ -598,7 +598,10 @@ public:
                                                  Args&&... args)
         : Variant(std::in_place_index<detail::FindElementIndex<T, Ts...>>,
                   static_cast<Args&&>(args)...)
-    {}
+    {
+        static_assert(detail::FindElementIndex<T, Ts...> != sizeof...(Ts),
+                      "T is not part of the variant");
+    }
 
     template<typename U,
              typename = std::enable_if_t<
