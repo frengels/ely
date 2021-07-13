@@ -5,8 +5,8 @@
 #include <string>
 
 #include "ely/lex/scanner.hpp"
-#include "ely/token_stream2.hpp"
 #include "ely/lex/token.hpp"
+#include "ely/token_stream2.hpp"
 
 //#include <ely/parser.hpp>
 // #include <ely/reader.hpp>
@@ -40,31 +40,19 @@ static void BM_scan_stream(benchmark::State& state)
     {
         auto stream = ely::ScannerStream{src_view.begin(), src_view.end()};
 
-        while (true)
+        auto buf_it = tok_buf.begin();
+
+        auto lexeme = stream.next();
+
+        while (lexeme && buf_it != tok_buf.end())
         {
-            auto buf_it = tok_buf.begin();
-
-            auto lexeme = stream.next();
-
-            while (lexeme && buf_it != tok_buf.end())
-            {
-                *buf_it = lexeme;
-                lexeme  = stream.next();
-                ++buf_it;
-            }
-
-            auto buf_size = buf_it - tok_buf.begin();
-
-            for (std::size_t i = 0; i != buf_size; ++i)
-            {
-                benchmark::DoNotOptimize(tok_buf[i]);
-            }
-
-            if (!lexeme)
-            {
-                break;
-            }
+            *buf_it = lexeme;
+            benchmark::DoNotOptimize(*buf_it);
+            lexeme  = stream.next();
+            ++buf_it;
         }
+
+        auto buf_size = buf_it - tok_buf.begin();
     }
 
     state.SetBytesProcessed(src.size() * state.iterations());

@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    ELY_ALWAYS_INLINE constexpr reference next_lexeme() noexcept
+    ELY_ALWAYS_INLINE reference next_lexeme() noexcept
     {
         return scanner_.next();
     }

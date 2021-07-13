@@ -339,7 +339,7 @@ VARIANT_IMPL(
                 constexpr auto I = decltype(i)::value;
                 ely::destroy<I>(this->get_union());
             },
-            index());
+            this->index());
     },
     constexpr void destroy_unchecked() noexcept {
         ely::detail::dispatch_index<sizeof...(Ts)>(
@@ -395,8 +395,6 @@ VARIANT_IMPL(
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                using ely::emplace;
-                using ely::get_unchecked;
                 ely::emplace<I>(this->get_union(),
                                 ely::get_unchecked<I>(other));
             },
@@ -445,8 +443,6 @@ VARIANT_IMPL(
         dispatch_index<sizeof...(Ts)>(
             [&](auto i) {
                 constexpr auto I = decltype(i)::value;
-                using ely::emplace;
-                using ely::get_unchecked;
                 ely::emplace<I>(this->get_union(),
                                 ely::get_unchecked<I>(std::move(other)));
             },
