@@ -18,10 +18,10 @@ constexpr std::size_t buffer_size = 1024;
 std::string long_source()
 {
     std::string src(
-        R"r((def long 5.0) ; this will be a very long source
-(def (f x) (* x x))
-(def (laugh) (print "hahaha"))
-(print #:out file 5.4)
+        R"r((def long:f64 5.0) ; this will be a very long source
+(def (f x:u32) (* x x))
+(def (laugh) #`(#,print "hahaha":Str))
+(print #:out file '5.4)
 ; just another comment about the code
 )r");
     std::string res{src.begin(), src.end()};
