@@ -275,6 +275,23 @@ constexpr ScanResult<I> scan_line_comment(I it, S end)
 }
 
 template<typename I, typename S>
+constexpr ScanResult<I> scan_comma(I it, S end)
+{
+    if (it != end)
+    {
+        char ch = *it;
+
+        if (ch == '@')
+        {
+            ++it;
+            return {it, std::in_place_type<token2::UnquoteSplicing>};
+        }
+    }
+
+    return {it, std::in_place_type<token2::Unquote>};
+}
+
+template<typename I, typename S>
 constexpr ScanResult<I> scan_number_sign(I it, S end)
 {
     if (it != end)
@@ -302,6 +319,25 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
         case '\\':
             ++it;
             ELY_MUSTTAIL return scan_char(it, end);
+        case '`':
+            ++it;
+            return {it, std::in_place_type<token2::QuasiSyntax>};
+        case '\'':
+            ++it;
+            return {it, std::in_place_type<token2::SyntaxQuote>};
+        case ',':
+            ++it;
+            if (it != end)
+            {
+                ch = *it;
+                if (ch == '@')
+                {
+                    ++it;
+                    return {it,
+                            std::in_place_type<token2::SyntaxUnquoteSplicing>};
+                }
+            }
+            return {it, std::in_place_type<token2::SyntaxUnquote>};
         default:
             ++it;
             ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
@@ -347,6 +383,16 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
         return {it, std::in_place_type<token2::RBrace>};
     case ':':
         return {it, std::in_place_type<token2::Colon>};
+    case '\'':
+        return {it, std::in_place_type<token2::Quote>};
+    case '!':
+        return {it, std::in_place_type<token2::Exclamation>};
+    case '?':
+        return {it, std::in_place_type<token2::Question>};
+    case '&':
+        return {it, std::in_place_type<token2::Ampersand>};
+    case ',':
+        ELY_MUSTTAIL return detail::scan_comma(it, end);
     case '"':
         ELY_MUSTTAIL return detail::scan_string(it, end);
     case '+':

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ely/defines.h"
-#include "ely/utility.hpp"
 #include "ely/assert.h"
+#include "ely/defines.h"
 #include "ely/lex/span.hpp"
+#include "ely/utility.hpp"
 #include "ely/variant.hpp"
 
 namespace ely
@@ -787,17 +787,17 @@ public:
     }
 };
 
-class Asterisk
+class Ampersand
 {
-    static constexpr auto str_ = std::array<char, 1>{'*'};
+    static constexpr auto str_ = std::array<char, 1>{'&'};
 
 public:
-    Asterisk() = default;
+    Ampersand() = default;
 
     template<typename I>
-    ELY_ALWAYS_INLINE constexpr Asterisk(std::in_place_type_t<Asterisk>,
-                                         const LexemeSpan<I>&) noexcept
-        : Asterisk{}
+    ELY_ALWAYS_INLINE constexpr Ampersand(std::in_place_type_t<Ampersand>,
+                                          const LexemeSpan<I>&) noexcept
+        : Ampersand{}
     {}
 
     ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
@@ -967,7 +967,7 @@ using token_types = ely::type_list<token2::Whitespace,
                                    token2::SyntaxUnquoteSplicing,
                                    token2::Exclamation,
                                    token2::Question,
-                                   token2::Asterisk,
+                                   token2::Ampersand,
                                    token2::QuasiQuote,
                                    token2::QuasiSyntax,
                                    token2::UnterminatedStringLit,
