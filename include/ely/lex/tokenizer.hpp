@@ -6,23 +6,22 @@
 namespace ely
 {
 template<typename I, typename S>
-class TokenStream2
+class Tokenizer
 {
 public:
-    using value_type = Token2;
+    using value_type = Token;
     using reference  = value_type;
 
 private:
     ely::ScannerStream<I, S> scanner_;
 
 public:
-    TokenStream2() = default;
+    Tokenizer() = default;
 
-    constexpr TokenStream2(I it, S end)
-        : scanner_(std::move(it), std::move(end))
+    constexpr Tokenizer(I it, S end) : scanner_(std::move(it), std::move(end))
     {}
 
-    explicit constexpr TokenStream2(ScannerStream<I, S> scanner)
+    explicit constexpr Tokenizer(ScannerStream<I, S> scanner)
         : scanner_(std::move(scanner))
     {}
 

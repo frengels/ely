@@ -8,7 +8,7 @@
 
 namespace ely
 {
-namespace token2
+namespace token
 {
 using size_type = std::size_t;
 
@@ -938,42 +938,42 @@ public:
     }
 };
 
-using token_types = ely::type_list<token2::Whitespace,
-                                   token2::Tab,
-                                   token2::NewlineCr,
-                                   token2::NewlineLf,
-                                   token2::NewlineCrlf,
-                                   token2::Comment,
-                                   token2::LParen,
-                                   token2::RParen,
-                                   token2::LBracket,
-                                   token2::RBracket,
-                                   token2::LBrace,
-                                   token2::RBrace,
-                                   token2::Identifier,
-                                   token2::IntLit,
-                                   token2::FloatLit,
-                                   token2::CharLit,
-                                   token2::StringLit,
-                                   token2::KeywordLit,
-                                   token2::BoolLit,
-                                   token2::Colon,
-                                   token2::Quote,
-                                   token2::SyntaxQuote,
-                                   token2::At,
-                                   token2::Unquote,
-                                   token2::SyntaxUnquote,
-                                   token2::UnquoteSplicing,
-                                   token2::SyntaxUnquoteSplicing,
-                                   token2::Exclamation,
-                                   token2::Question,
-                                   token2::Ampersand,
-                                   token2::QuasiQuote,
-                                   token2::QuasiSyntax,
-                                   token2::UnterminatedStringLit,
-                                   token2::InvalidNumberSign,
-                                   token2::Eof>;
+using token_types = ely::type_list<token::Whitespace,
+                                   token::Tab,
+                                   token::NewlineCr,
+                                   token::NewlineLf,
+                                   token::NewlineCrlf,
+                                   token::Comment,
+                                   token::LParen,
+                                   token::RParen,
+                                   token::LBracket,
+                                   token::RBracket,
+                                   token::LBrace,
+                                   token::RBrace,
+                                   token::Identifier,
+                                   token::IntLit,
+                                   token::FloatLit,
+                                   token::CharLit,
+                                   token::StringLit,
+                                   token::KeywordLit,
+                                   token::BoolLit,
+                                   token::Colon,
+                                   token::Quote,
+                                   token::SyntaxQuote,
+                                   token::At,
+                                   token::Unquote,
+                                   token::SyntaxUnquote,
+                                   token::UnquoteSplicing,
+                                   token::SyntaxUnquoteSplicing,
+                                   token::Exclamation,
+                                   token::Question,
+                                   token::Ampersand,
+                                   token::QuasiQuote,
+                                   token::QuasiSyntax,
+                                   token::UnterminatedStringLit,
+                                   token::InvalidNumberSign,
+                                   token::Eof>;
 
 using variant_type = token_types::template apply_all<ely::Variant>;
-} // namespace token2
+} // namespace token
 } // namespace ely

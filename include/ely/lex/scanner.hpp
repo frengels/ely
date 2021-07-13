@@ -87,21 +87,21 @@ template<typename I, typename S>
 constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, std::in_place_type<token2::Identifier>};
+    return {next, std::in_place_type<token::Identifier>};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_keyword(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, std::in_place_type<token2::KeywordLit>};
+    return {next, std::in_place_type<token::KeywordLit>};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, std::in_place_type<token2::InvalidNumberSign>};
+    return {next, std::in_place_type<token::InvalidNumberSign>};
 }
 
 template<typename I, typename S>
@@ -117,7 +117,7 @@ constexpr ScanResult<I> scan_float(I it, S end)
 
     if (is_delimiter(c))
     {
-        return {it, std::in_place_type<token2::FloatLit>};
+        return {it, std::in_place_type<token::FloatLit>};
     }
     else
     {
@@ -146,7 +146,7 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
     }
     else if (is_delimiter(c))
     {
-        return {it, std::in_place_type<token2::IntLit>};
+        return {it, std::in_place_type<token::IntLit>};
     }
     else
     {
@@ -170,18 +170,18 @@ constexpr ScanResult<I> scan_string(I it, S end)
         }
         else if (ch == '"' && !escaping)
         {
-            return {it, std::in_place_type<token2::StringLit>};
+            return {it, std::in_place_type<token::StringLit>};
         }
     }
 
-    return {it, std::in_place_type<token2::UnterminatedStringLit>};
+    return {it, std::in_place_type<token::UnterminatedStringLit>};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
-    return {new_it, std::in_place_type<token2::CharLit>};
+    return {new_it, std::in_place_type<token::CharLit>};
 }
 
 template<typename I, typename S>
@@ -196,7 +196,7 @@ constexpr ScanResult<I> scan_sign(I it, S end)
     }
     else if (is_delimiter(ch))
     {
-        return {it, std::in_place_type<token2::Identifier>};
+        return {it, std::in_place_type<token::Identifier>};
     }
     else
     {
@@ -221,7 +221,7 @@ constexpr ScanResult<I> scan_whitespace(I it, S end)
         }
     }
 
-    return {it, std::in_place_type<token2::Whitespace>};
+    return {it, std::in_place_type<token::Whitespace>};
 }
 
 template<typename I, typename S>
@@ -240,7 +240,7 @@ constexpr ScanResult<I> scan_tab(I it, S end)
         }
     }
 
-    return {it, std::in_place_type<token2::Tab>};
+    return {it, std::in_place_type<token::Tab>};
 }
 
 template<typename I, typename S>
@@ -252,11 +252,11 @@ constexpr ScanResult<I> scan_cr(I it, S end)
         if (ch == '\n')
         {
             ++it;
-            return {it, std::in_place_type<token2::NewlineCrlf>};
+            return {it, std::in_place_type<token::NewlineCrlf>};
         }
     }
 
-    return {it, std::in_place_type<token2::NewlineCr>};
+    return {it, std::in_place_type<token::NewlineCr>};
 }
 
 template<typename I, typename S>
@@ -271,7 +271,7 @@ constexpr ScanResult<I> scan_line_comment(I it, S end)
         }
     }
 
-    return {it, std::in_place_type<token2::Comment>};
+    return {it, std::in_place_type<token::Comment>};
 }
 
 template<typename I, typename S>
@@ -284,11 +284,11 @@ constexpr ScanResult<I> scan_comma(I it, S end)
         if (ch == '@')
         {
             ++it;
-            return {it, std::in_place_type<token2::UnquoteSplicing>};
+            return {it, std::in_place_type<token::UnquoteSplicing>};
         }
     }
 
-    return {it, std::in_place_type<token2::Unquote>};
+    return {it, std::in_place_type<token::Unquote>};
 }
 
 template<typename I, typename S>
@@ -312,7 +312,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                     ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
                 }
             }
-            return {it, std::in_place_type<token2::BoolLit>};
+            return {it, std::in_place_type<token::BoolLit>};
         case ':':
             ++it;
             ELY_MUSTTAIL return scan_keyword(it, end);
@@ -321,10 +321,10 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
             ELY_MUSTTAIL return scan_char(it, end);
         case '`':
             ++it;
-            return {it, std::in_place_type<token2::QuasiSyntax>};
+            return {it, std::in_place_type<token::QuasiSyntax>};
         case '\'':
             ++it;
-            return {it, std::in_place_type<token2::SyntaxQuote>};
+            return {it, std::in_place_type<token::SyntaxQuote>};
         case ',':
             ++it;
             if (it != end)
@@ -334,17 +334,17 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                 {
                     ++it;
                     return {it,
-                            std::in_place_type<token2::SyntaxUnquoteSplicing>};
+                            std::in_place_type<token::SyntaxUnquoteSplicing>};
                 }
             }
-            return {it, std::in_place_type<token2::SyntaxUnquote>};
+            return {it, std::in_place_type<token::SyntaxUnquote>};
         default:
             ++it;
             ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
         }
     }
 
-    return {it, std::in_place_type<token2::InvalidNumberSign>};
+    return {it, std::in_place_type<token::InvalidNumberSign>};
 }
 
 template<typename I, typename S>
@@ -352,7 +352,7 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
 {
     if (it == end)
     {
-        return {it, std::in_place_type<token2::Eof>};
+        return {it, std::in_place_type<token::Eof>};
     }
 
     char ch = *it++;
@@ -366,31 +366,31 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
     case '\r':
         ELY_MUSTTAIL return detail::scan_cr(it, end);
     case '\n':
-        return {it, std::in_place_type<token2::NewlineLf>};
+        return {it, std::in_place_type<token::NewlineLf>};
     case ';':
         ELY_MUSTTAIL return detail::scan_line_comment(it, end);
     case '(':
-        return {it, std::in_place_type<token2::LParen>};
+        return {it, std::in_place_type<token::LParen>};
     case ')':
-        return {it, std::in_place_type<token2::RParen>};
+        return {it, std::in_place_type<token::RParen>};
     case '[':
-        return {it, std::in_place_type<token2::LBracket>};
+        return {it, std::in_place_type<token::LBracket>};
     case ']':
-        return {it, std::in_place_type<token2::RBracket>};
+        return {it, std::in_place_type<token::RBracket>};
     case '{':
-        return {it, std::in_place_type<token2::LBrace>};
+        return {it, std::in_place_type<token::LBrace>};
     case '}':
-        return {it, std::in_place_type<token2::RBrace>};
+        return {it, std::in_place_type<token::RBrace>};
     case ':':
-        return {it, std::in_place_type<token2::Colon>};
+        return {it, std::in_place_type<token::Colon>};
     case '\'':
-        return {it, std::in_place_type<token2::Quote>};
+        return {it, std::in_place_type<token::Quote>};
     case '!':
-        return {it, std::in_place_type<token2::Exclamation>};
+        return {it, std::in_place_type<token::Exclamation>};
     case '?':
-        return {it, std::in_place_type<token2::Question>};
+        return {it, std::in_place_type<token::Question>};
     case '&':
-        return {it, std::in_place_type<token2::Ampersand>};
+        return {it, std::in_place_type<token::Ampersand>};
     case ',':
         ELY_MUSTTAIL return detail::scan_comma(it, end);
     case '"':

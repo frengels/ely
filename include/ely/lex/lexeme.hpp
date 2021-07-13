@@ -13,7 +13,7 @@ class LexemeKind : public lexeme::variant_type
 
 public:
     constexpr LexemeKind()
-        : base_(std::in_place_type<std::in_place_type_t<token2::Eof>>)
+        : base_(std::in_place_type<std::in_place_type_t<token::Eof>>)
     {}
 
     template<typename U>
@@ -23,8 +23,7 @@ public:
 
     constexpr bool is_eof() const noexcept
     {
-        return !ely::holds_alternative<std::in_place_type_t<token2::Eof>>(
-            *this);
+        return !ely::holds_alternative<std::in_place_type_t<token::Eof>>(*this);
     }
 };
 
@@ -44,7 +43,7 @@ public:
 
 public:
     LexemeSpan<I> span;
-    LexemeKind    kind{std::in_place_type<token2::Eof>};
+    LexemeKind    kind{std::in_place_type<token::Eof>};
 
     explicit constexpr operator bool() const noexcept
     {

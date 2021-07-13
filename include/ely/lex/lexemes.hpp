@@ -6,7 +6,7 @@ namespace ely
 {
 namespace lexeme
 {
-using variant_type = token2::token_types::template apply_each<
+using variant_type = token::token_types::template apply_each<
     std::in_place_type_t>::template apply_all<ely::Variant>;
 
 } // namespace lexeme
