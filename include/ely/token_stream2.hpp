@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ely/scanner.hpp"
-#include "ely/token2.hpp"
+#include "ely/lex/scanner.hpp"
+#include "ely/lex/token.hpp"
 
 namespace ely
 {
@@ -28,14 +28,7 @@ public:
 
     reference next()
     {
-        auto tok = scanner_.next();
-        return ely::visit(
-            [&](auto t) {
-                // pass it twice to select the variant to construct and the
-                // variant requires it as first arg
-                return reference{t, t, tok.span};
-            },
-            tok.kind);
+        return reference(scanner_.next());
     }
 
 private:

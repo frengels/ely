@@ -4,8 +4,9 @@
 #include <memory>
 #include <string>
 
-#include "ely/scanner.hpp"
+#include "ely/lex/scanner.hpp"
 #include "ely/token_stream2.hpp"
+#include "ely/lex/token.hpp"
 
 //#include <ely/parser.hpp>
 // #include <ely/reader.hpp>

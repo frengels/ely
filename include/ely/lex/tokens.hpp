@@ -1,11 +1,9 @@
 #pragma once
 
-#include <array>
-#include <string>
-
+#include "ely/defines.h"
+#include "ely/utility.hpp"
 #include "ely/assert.h"
 #include "ely/lex/span.hpp"
-#include "ely/utility.hpp"
 #include "ely/variant.hpp"
 
 namespace ely
@@ -978,17 +976,4 @@ using token_types = ely::type_list<token2::Whitespace,
 
 using variant_type = token_types::template apply_all<ely::Variant>;
 } // namespace token2
-
-class Token2 : public token2::variant_type
-{
-    using base_ = token2::variant_type;
-
-public:
-    using base_::base_;
-
-    explicit constexpr operator bool() const noexcept
-    {
-        return !ely::holds_alternative<token2::Eof>(*this);
-    }
-};
 } // namespace ely
