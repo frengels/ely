@@ -12,9 +12,140 @@ namespace token
 {
 using size_type = std::size_t;
 
+class Whitespace;
+class Tab;
+class Comment;
+class NewlineCr;
+class NewlineLf;
+class NewlineCrlf;
+class LParen;
+class RParen;
+class LBracket;
+class RBracket;
+class LBrace;
+class RBrace;
+class Identifier;
+class IntLit;
+class FloatLit;
+class CharLit;
+class StringLit;
+class KeywordLit;
+class BoolLit;
+class Colon;
+class Quote;
+class SyntaxQuote;
+class At;
+class Unquote;
+class SyntaxUnquote;
+class UnquoteSplicing;
+class SyntaxUnquoteSplicing;
+class Exclamation;
+class Question;
+class Ampersand;
+class QuasiQuote;
+class QuasiSyntax;
+class UnterminatedStringLit;
+class InvalidNumberSign;
+class Eof;
+
+template<typename D>
+struct TokenBase
+{
+private:
+    static constexpr bool D_must_inherit_from_TokenBaseD() noexcept
+    {
+        return std::is_base_of_v<TokenBase<D>, D>;
+    }
+
+#define CRTP_CHECK static_assert(D_must_inherit_from_TokenBaseD())
+
+public:
+    static constexpr bool is_atmosphere() noexcept
+    {
+        CRTP_CHECK;
+        return is_trailing_atmosphere();
+    }
+
+    static constexpr bool is_leading_atmosphere() noexcept
+    {
+        CRTP_CHECK;
+        return ely::is_same_one_of_v<D, NewlineCr, NewlineLf, NewlineCrlf> ||
+               is_trailing_atmosphere();
+    }
+
+    static constexpr bool is_trailing_atmosphere() noexcept
+    {
+        CRTP_CHECK;
+        return ely::is_same_one_of_v<D, Whitespace, Tab, Comment>;
+    }
+
+    static constexpr bool is_identifier() noexcept
+    {
+        CRTP_CHECK;
+        return std::is_same_v<D, Identifier>;
+    }
+
+    static constexpr bool is_literal() noexcept
+    {
+        CRTP_CHECK;
+        return ely::is_same_one_of_v<D,
+                                     IntLit,
+                                     FloatLit,
+                                     CharLit,
+                                     StringLit,
+                                     KeywordLit,
+                                     BoolLit>;
+    }
+
+    static constexpr bool is_prefix_abbrev() noexcept
+    {
+        CRTP_CHECK;
+        return ely::is_same_one_of_v<D,
+                                     Quote,
+                                     SyntaxQuote,
+                                     At,
+                                     Unquote,
+                                     SyntaxUnquote,
+                                     UnquoteSplicing,
+                                     SyntaxUnquoteSplicing,
+                                     Exclamation,
+                                     Question,
+                                     Ampersand,
+                                     QuasiQuote,
+                                     QuasiSyntax>;
+    }
+
+    static constexpr bool is_infix_abbrev() noexcept
+    {
+        CRTP_CHECK;
+        return std::is_same_v<D, Colon>;
+    }
+
+    static constexpr bool is_abbrev() noexcept
+    {
+        CRTP_CHECK;
+        return is_prefix_abbrev() || is_infix_abbrev();
+    }
+
+    static constexpr bool is_poison() noexcept
+    {
+        CRTP_CHECK;
+        return ely::
+            is_same_one_of_v<D, UnterminatedStringLit, InvalidNumberSign>;
+    }
+
+    static constexpr bool is_eof() noexcept
+    {
+        CRTP_CHECK;
+        return std::is_same_v<D, Eof>;
+    }
+
+#undef CRTP_CHECK
+};
+
 // atmosphere tokens
 
-class Whitespace
+class Whitespace : TokenBase<Whitespace>
 {
     size_type len_{1};
 
@@ -40,7 +171,7 @@ public:
     }
 };
 
-class Tab
+class Tab : TokenBase<Tab>
 {
     size_type len_{1};
 
@@ -64,80 +195,7 @@ public:
     }
 };
 
-class NewlineCr
-{
-    static constexpr auto str_ = std::array<char, 1>{'\r'};
-
-public:
-    NewlineCr() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr NewlineCr(std::in_place_type_t<NewlineCr>,
-                                          const LexemeSpan<I>&) noexcept
-        : NewlineCr{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-class NewlineLf
-{
-    static constexpr auto str_ = std::array<char, 1>{'\n'};
-
-public:
-    NewlineLf() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr NewlineLf(std::in_place_type_t<NewlineLf>,
-                                          const LexemeSpan<I>&) noexcept
-        : NewlineLf{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-class NewlineCrlf
-{
-    static constexpr auto str_ = std::array<char, 2>{'\r', '\n'};
-
-public:
-    NewlineCrlf() = default;
-
-    template<typename I>
-    ELY_ALWAYS_INLINE constexpr NewlineCrlf(std::in_place_type_t<NewlineCrlf>,
-                                            const LexemeSpan<I>&) noexcept
-        : NewlineCrlf{}
-    {}
-
-    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
-    {
-        return std::string_view{str_.data(), str_.size()};
-    }
-
-    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
-    {
-        return str().size();
-    }
-};
-
-class Comment
+class Comment : TokenBase<Comment>
 {
     std::string str_;
 
@@ -164,9 +222,82 @@ public:
     }
 };
 
+class NewlineCr : TokenBase<NewlineCr>
+{
+    static constexpr auto str_ = std::array<char, 1>{'\r'};
+
+public:
+    NewlineCr() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr NewlineCr(std::in_place_type_t<NewlineCr>,
+                                          const LexemeSpan<I>&) noexcept
+        : NewlineCr{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+class NewlineLf : TokenBase<NewlineLf>
+{
+    static constexpr auto str_ = std::array<char, 1>{'\n'};
+
+public:
+    NewlineLf() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr NewlineLf(std::in_place_type_t<NewlineLf>,
+                                          const LexemeSpan<I>&) noexcept
+        : NewlineLf{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
+class NewlineCrlf : TokenBase<NewlineCrlf>
+{
+    static constexpr auto str_ = std::array<char, 2>{'\r', '\n'};
+
+public:
+    NewlineCrlf() = default;
+
+    template<typename I>
+    ELY_ALWAYS_INLINE constexpr NewlineCrlf(std::in_place_type_t<NewlineCrlf>,
+                                            const LexemeSpan<I>&) noexcept
+        : NewlineCrlf{}
+    {}
+
+    ELY_ALWAYS_INLINE static constexpr std::string_view str() noexcept
+    {
+        return std::string_view{str_.data(), str_.size()};
+    }
+
+    ELY_ALWAYS_INLINE static constexpr size_type size() noexcept
+    {
+        return str().size();
+    }
+};
+
 // real tokens
 
-class LParen
+class LParen : TokenBase<LParen>
 {
     static constexpr auto str_ = std::array<char, 1>{'('};
 
@@ -190,7 +321,7 @@ public:
     }
 };
 
-class RParen
+class RParen : TokenBase<RParen>
 {
     static constexpr auto str_ = std::array<char, 1>{')'};
 
@@ -214,7 +345,7 @@ public:
     }
 };
 
-class LBracket
+class LBracket : TokenBase<LBracket>
 {
     static constexpr auto str_ = std::array<char, 1>{'['};
 
@@ -238,7 +369,7 @@ public:
     }
 };
 
-class RBracket
+class RBracket : TokenBase<RBracket>
 {
     static constexpr auto str_ = std::array<char, 1>{']'};
 
@@ -262,7 +393,7 @@ public:
     }
 };
 
-class LBrace
+class LBrace : TokenBase<LBrace>
 {
     static constexpr auto str_ = std::array<char, 1>{'{'};
 
@@ -286,7 +417,7 @@ public:
     }
 };
 
-class RBrace
+class RBrace : TokenBase<RBrace>
 {
     static constexpr auto str_ = std::array<char, 1>{'}'};
 
@@ -309,7 +440,7 @@ public:
         return str().size();
     }
 };
-class Identifier
+class Identifier : TokenBase<Identifier>
 {
     std::string name_;
 
@@ -347,7 +478,7 @@ public:
     }
 };
 
-class IntLit
+class IntLit : TokenBase<IntLit>
 {
     std::string str_;
 
@@ -379,7 +510,7 @@ public:
     }
 };
 
-class FloatLit
+class FloatLit : TokenBase<FloatLit>
 {
     std::string str_;
 
@@ -411,7 +542,7 @@ public:
     }
 };
 
-class CharLit
+class CharLit : TokenBase<CharLit>
 {
     std::string str_;
 
@@ -443,7 +574,7 @@ public:
     }
 };
 
-class StringLit
+class StringLit : TokenBase<StringLit>
 {
     std::string str_;
 
@@ -475,7 +606,7 @@ public:
     }
 };
 
-class KeywordLit
+class KeywordLit : TokenBase<KeywordLit>
 {
     std::string str_;
 
@@ -508,7 +639,7 @@ public:
     }
 };
 
-class BoolLit
+class BoolLit : TokenBase<BoolLit>
 {
     static constexpr auto true_  = std::array<char, 2>{'#', 't'};
     static constexpr auto false_ = std::array<char, 2>{'#', 'f'};
@@ -544,7 +675,7 @@ public:
     }
 };
 
-class Colon
+class Colon : TokenBase<Colon>
 {
     static constexpr auto str_ = std::array<char, 1>{':'};
 
@@ -568,7 +699,7 @@ public:
     }
 };
 
-class Quote
+class Quote : TokenBase<Quote>
 {
     static constexpr auto str_ = std::array<char, 1>{'\''};
 
@@ -592,7 +723,7 @@ public:
     }
 };
 
-class SyntaxQuote
+class SyntaxQuote : TokenBase<SyntaxQuote>
 {
     static constexpr auto str_ = std::array<char, 2>{'#', '\''};
 
@@ -616,7 +747,7 @@ public:
     }
 };
 
-class At
+class At : TokenBase<At>
 {
     static constexpr auto str_ = std::array<char, 1>{'@'};
 
@@ -640,7 +771,7 @@ public:
     }
 };
 
-class Unquote
+class Unquote : TokenBase<Unquote>
 {
     static constexpr auto str_ = std::array<char, 1>{','};
 
@@ -664,7 +795,7 @@ public:
     }
 };
 
-class SyntaxUnquote
+class SyntaxUnquote : TokenBase<SyntaxUnquote>
 {
     static constexpr auto str_ = std::array<char, 2>{'#', ','};
 
@@ -689,7 +820,7 @@ public:
     }
 };
 
-class UnquoteSplicing
+class UnquoteSplicing : TokenBase<UnquoteSplicing>
 {
     static constexpr auto str_ = std::array<char, 2>{',', '@'};
 
@@ -714,7 +845,7 @@ public:
     }
 };
 
-class SyntaxUnquoteSplicing
+class SyntaxUnquoteSplicing : TokenBase<SyntaxUnquoteSplicing>
 {
     static constexpr auto str_ = std::array<char, 3>{'#', ',', '@'};
 
@@ -739,7 +870,7 @@ public:
     }
 };
 
-class Exclamation
+class Exclamation : TokenBase<Exclamation>
 {
     static constexpr auto str_ = std::array<char, 1>{'!'};
 
@@ -763,7 +894,7 @@ public:
     }
 };
 
-class Question
+class Question : TokenBase<Question>
 {
     static constexpr auto str_ = std::array<char, 1>{'?'};
 
@@ -787,7 +918,7 @@ public:
     }
 };
 
-class Ampersand
+class Ampersand : TokenBase<Ampersand>
 {
     static constexpr auto str_ = std::array<char, 1>{'&'};
 
@@ -811,7 +942,7 @@ public:
     }
 };
 
-class QuasiQuote
+class QuasiQuote : TokenBase<QuasiQuote>
 {
     static constexpr auto str_ = std::array<char, 1>{'`'};
 
@@ -835,7 +966,7 @@ public:
     }
 };
 
-class QuasiSyntax
+class QuasiSyntax : TokenBase<QuasiSyntax>
 {
     static constexpr auto str_ = std::array<char, 2>{'#', '`'};
 
@@ -859,7 +990,7 @@ public:
     }
 };
 
-class UnterminatedStringLit
+class UnterminatedStringLit : TokenBase<UnterminatedStringLit>
 {
     std::string str_;
 
@@ -888,7 +1019,7 @@ public:
     }
 };
 
-class InvalidNumberSign
+class InvalidNumberSign : TokenBase<InvalidNumberSign>
 {
     std::string str_;
 
@@ -916,7 +1047,7 @@ public:
     }
 };
 
-class Eof
+class Eof : TokenBase<Eof>
 {
 public:
     Eof() = default;
