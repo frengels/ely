@@ -11,6 +11,9 @@ namespace ely
 template<typename T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
+template<typename T, typename... Us>
+inline constexpr bool is_same_one_of_v = (std::is_same_v<T, Us> || ...);
+
 template<typename... Ts>
 struct type_list
 {
