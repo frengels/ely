@@ -27,6 +27,19 @@ struct type_list
 template<std::size_t I, typename... Ts>
 using nth_element_t = std::tuple_element_t<I, std::tuple<Ts...>>;
 
+template<typename... Ts>
+struct first_element
+{};
+
+template<typename T, typename... Rs>
+struct first_element<T, Rs...>
+{
+    using type = T;
+};
+
+template<typename... Ts>
+using first_element_t = typename first_element<Ts...>::type;
+
 namespace detail
 {
 struct type_index_helper
