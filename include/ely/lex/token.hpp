@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 #include <string>
 
 #include "ely/lex/lexeme.hpp"
@@ -26,21 +27,21 @@ template<typename T>
 using what_in_place_type_t = typename what_in_place_type<T>::type;
 } // namespace detail
 
-class Token : public token::variant_type
+template<typename... Ts>
+class TokenVariant : public ely::Variant<Ts...>
 {
-    using base_ = token::variant_type;
+    using base_ = ely::Variant<Ts...>;
 
 public:
-    Token() : base_(std::in_place_type<ely::token::Eof>)
-    {}
+    TokenVariant() = default;
 
     template<typename T, typename... Args>
-    explicit constexpr Token(std::in_place_type_t<T> t, Args&&... args)
+    explicit constexpr TokenVariant(std::in_place_type_t<T> t, Args&&... args)
         : base_(t, static_cast<Args&&>(args)...)
     {}
 
     template<typename I>
-    explicit constexpr Token(const Lexeme<I>& lex)
+    explicit constexpr TokenVariant(const Lexeme<I>& lex)
         : base_(ely::visit([&](auto t) { return base_(t, t, lex.span); },
                            lex.kind))
     {}
@@ -51,149 +52,161 @@ public:
     }
 };
 
-class LeadingAtmosphereToken : public ely::Variant<token::Whitespace,
-                                                   token::Tab,
-                                                   token::Comment,
-                                                   token::NewlineCr,
-                                                   token::NewlineLf,
-                                                   token::NewlineCrlf>
+template<typename Token, typename... Ts>
+class TokenVariantView
 {
-    using base_ = ely::Variant<token::Whitespace,
-                               token::Tab,
-                               token::Comment,
-                               token::NewlineCr,
-                               token::NewlineLf,
-                               token::NewlineCrlf>;
+public:
+    using token_type = Token;
+
+private:
+    token_type* tok_;
 
 public:
-    static constexpr std::size_t variant_size = 6;
+    TokenVariantView() = default;
 
-    using base_::base_;
+    constexpr TokenVariantView(Token& t) : tok_(std::addressof(t))
+    {
+        ELY_ASSERT((ely::holds_alternative<Ts>(t) || ...),
+                   "Token is not holding one of the expected variants");
+    }
+
+    template<typename R, typename F>
+    friend constexpr R visit(F&& fn, const TokenVariantView& tvv)
+    {
+        ely::visit<R>(
+            [&](auto&& x) -> R {
+                using ty = ely::remove_cvref_t<decltype(x)>;
+
+                if constexpr (ely::is_same_one_of_v<ty, Ts...>)
+                {
+                    return std::invoke(static_cast<F&&>(fn),
+                                       static_cast<decltype(x)&&>(x));
+                }
+                else
+                {
+                    __builtin_unreachable();
+                }
+            },
+            *tvv.tok_);
+    }
+
+    template<typename F>
+    friend constexpr decltype(auto) visit(F&& fn, const TokenVariantView& tvv)
+    {
+        using R = std::invoke_result_t<F, ely::first_element_t<Ts...>&>;
+
+        return visit<R>(static_cast<F&&>(fn), tvv);
+    }
 };
 
-class TrailingAtmosphereTokenView
-    : public ely::Variant<token::Whitespace, token::Tab, token::Comment>
+template<typename It, typename... Ts>
+class TokenVariantIterator
 {
+    using iter_traits   = std::iterator_traits<It>;
+    using base_iterator = It;
 
-    using base_ = ely::Variant<token::Whitespace, token::Tab, token::Comment>;
+    using Self = TokenVariantIterator;
 
 public:
-    static constexpr std::size_t variant_size = 3;
-
-    using base_::base_;
-};
-
-template<template<typename> class It>
-class TrailingAtmosphereView
-{
-    using base_iterator = It<Token>;
-
-public:
-    class sentinel;
-
-    class iterator
-    {
-        friend sentinel;
-
-    public:
-        using value_type        = TrailingAtmosphereTokenView;
-        using reference         = value_type;
-        using pointer           = void;
-        using difference_type   = std::ptrdiff_t;
-        using iterator_category = std::bidirectional_iterator_tag;
-
-    private:
-        base_iterator it_;
-
-    public:
-        iterator() = default;
-
-        explicit constexpr iterator(base_iterator it) : it_(it)
-        {}
-
-        constexpr bool operator==(const iterator& other) const noexcept
-        {
-            return it_ == other.it_;
-        }
-
-        constexpr bool operator!=(const iterator& other) const noexcept
-        {
-            return it_ != other.it_;
-        }
-
-        constexpr iterator& operator++()
-        {
-            ++it_;
-        }
-
-        constexpr iterator operator++(int)
-        {
-            return iterator{it_++};
-        }
-
-        constexpr iterator& operator--()
-        {
-            --it_;
-        }
-
-        constexpr iterator operator--(int)
-        {
-            return iterator{it_--};
-        }
-
-        constexpr reference operator*() const noexcept
-        {
-            return ely::visit(
-                [&](auto&& x) {
-                    using ty = ely::remove_cvref_t<decltype(x)>;
-
-                    if constexpr(ely::is_same_one_of_v<ty, )
-                },
-                *it_);
-        }
-    };
-
-    class sentinel
-    {
-    public:
-        sentinel() = default;
-
-        friend constexpr bool operator==(const sentinel&,
-                                         const iterator& it) noexcept
-        {
-            return ely::visit(
-                [](const auto& x) { return !x.is_trailing_atmosphere(); },
-                it.it_);
-        }
-    };
-
-    using value_type      = typename iterator::value_type;
-    using reference       = value_type&;
-    using const_reference = const value_type&;
+    using value_type =
+        TokenVariantView<typename iter_traits::value_type, Ts...>;
+    using reference         = value_type;
+    using pointer           = void;
+    using difference_type   = typename iter_traits::difference_type;
+    using iterator_category = typename iter_traits::iterator_category;
 
 private:
     base_iterator it_;
 
 public:
-    constexpr TrailingAtmosphereView(base_iterator it) : it_(it)
+    TokenVariantIterator() = default;
+
+    constexpr TokenVariantIterator(base_iterator base_it) : it_(base_it)
     {}
 
-    constexpr iterator begin() const noexcept
+    constexpr base_iterator base() const
     {
-        iterator{it_};
+        return it_;
     }
 
-    constexpr sentinel end() const noexcept
+    template<typename... Us>
+    friend constexpr bool operator==(const Self&                            lhs,
+                                     const TokenVariantIterator<It, Us...>& rhs)
     {
-        sentinel{};
+        return lhs.base() == rhs.base();
+    }
+
+    template<typename... Us>
+    friend constexpr bool operator!=(const Self&                            lhs,
+                                     const TokenVariantIterator<It, Us...>& rhs)
+    {
+        return lhs.base() != rhs.base();
+    }
+
+    template<typename... Us>
+    friend constexpr bool operator<(const Self&                            lhs,
+                                    const TokenVariantIterator<It, Us...>& rhs)
+    {
+        return lhs.base() < rhs.base();
+    }
+
+    template<typename... Us>
+    friend constexpr bool operator<=(const Self&                            lhs,
+                                     const TokenVariantIterator<It, Us...>& rhs)
+    {
+        return lhs.base() <= rhs.base();
+    }
+
+    template<typename... Us>
+    friend constexpr bool operator>(const Self&                            lhs,
+                                    const TokenVariantIterator<It, Us...>& rhs)
+    {
+        return lhs.base() > rhs.base();
+    }
+
+    template<typename... Us>
+    friend constexpr bool operator>=(const Self&                            lhs,
+                                     const TokenVariantIterator<It, Us...>& rhs)
+    {
+        return lhs.base() >= rhs.base();
+    }
+
+    constexpr Self& operator++()
+    {
+        ++it_;
+        return *this;
+    }
+
+    constexpr Self operator++(int)
+    {
+        return Self{it_++};
+    }
+
+    constexpr Self& operator--()
+    {
+        --it_;
+        return *this;
+    }
+
+    constexpr Self operator--(int)
+    {
+        return Self{it_--};
+    }
+
+    constexpr reference operator*() const
+    {
+        return reference{*it_};
     }
 };
 
-class ConcreteToken : public token::variant_type
+class Token : public token::token_types::template apply_all<ely::TokenVariant>
 {
-    using base_ = token::variant_type;
+    using base_ = token::token_types::template apply_all<ely::TokenVariant>;
 
 public:
     using base_::base_;
+
+    constexpr Token() : base_(std::in_place_type<ely::token::Eof>)
+    {}
 };
 } // namespace ely
