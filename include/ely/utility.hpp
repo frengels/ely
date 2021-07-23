@@ -197,4 +197,47 @@ struct to_address_helper<
     }
 };
 } // namespace detail
+
+template<typename T>
+ELY_ALWAYS_INLINE void* voidify(T& ref) noexcept
+{
+    return const_cast<void*>(
+        static_cast<const volatile void*>(std::addressof(ref)));
+}
+
+template<typename Alloc,
+         typename InputIt,
+         typename Sentinel,
+         typename ForwardIt>
+ELY_ALWAYS_INLINE ForwardIt uninitialized_move_a(Alloc&    alloc,
+                                                 InputIt   first,
+                                                 Sentinel  last,
+                                                 ForwardIt dst_first)
+{
+    for (; first != last; ++first, ++dst_first)
+    {
+        std::allocator_traits<Alloc>::construct(
+            alloc, std::addressof(*dst_first), std::move(*first));
+    }
+
+    return dst_first;
+}
+
+template<typename Alloc,
+         typename InputIt,
+         typename Sentinel,
+         typename ForwardIt>
+ELY_ALWAYS_INLINE ForwardIt uninitialized_copy_a(Alloc&    alloc,
+                                                 InputIt   first,
+                                                 Sentinel  last,
+                                                 ForwardIt dst_first)
+{
+    for (; first != last; ++first, ++dst_first)
+    {
+        std::allocator_traits<Alloc>::construct(
+            alloc, std::addressof(*dst_first), *first);
+    }
+
+    return dst_first;
+}
 } // namespace ely
