@@ -5,7 +5,8 @@ set(ELY_TESTS
 set(TESTS
     union
     variant
-    pair)
+    pair
+    simd)
 
 find_package(doctest REQUIRED)
 
