@@ -9,6 +9,8 @@ endif()
 
 option(ELY_TESTS "enable Ely's unit tests" ${IS_MASTER_PROJECT})
 option(ELY_BENCHMARKS "enable Ely's benchmarks" ${IS_MASTER_PROJECT})
+option(ELY_AVX2 "enable AVX-2 support" OFF)
+option(ELY_AVX512 "enable AVX-512 support" OFF)
 
 if(${IS_MASTER_PROJECT})
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)

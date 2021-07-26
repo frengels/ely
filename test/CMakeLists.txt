@@ -1,12 +1,12 @@
 set(ELY_TESTS
     ilist
-    memory)
+    memory
+    simd)
 
 set(TESTS
     union
     variant
-    pair
-    simd)
+    pair)
 
 find_package(doctest REQUIRED)
 
