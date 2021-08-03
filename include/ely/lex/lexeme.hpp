@@ -2,37 +2,157 @@
 
 #include <type_traits>
 
+#include "ely/defines.h"
 #include "ely/lex/lexemes.hpp"
 #include "ely/lex/tokens.hpp"
 
 namespace ely
 {
-class LexemeKind : public lexeme::variant_type
+enum class LexemeKind : unsigned char
 {
-    using base_ = lexeme::variant_type;
+    Eof,
 
-public:
-    constexpr LexemeKind()
-        : base_(std::in_place_type<std::in_place_type_t<token::Eof>>)
-    {}
+    LParen,
+    RParen,
+    LBracket,
+    RBracket,
+    LBrace,
+    RBrace,
+    Identifier,
+    IntLit,
+    FloatLit,
+    CharLit,
+    StringLit,
+    KeywordLit,
+    BoolLit,
+    Colon,
+    Quote,
+    SyntaxQuote,
+    At,
+    Unquote,
+    SyntaxUnquote,
+    UnquoteSplicing,
+    SyntaxUnquoteSplicing,
+    Exclamation,
+    Question,
+    Ampersand,
+    QuasiQuote,
+    QuasiSyntax,
+    UnterminatedStringLit,
+    InvalidNumberSign,
 
-    template<typename U>
-    constexpr LexemeKind(std::in_place_type_t<U>)
-        : base_(std::in_place_type<std::in_place_type_t<U>>)
-    {}
-
-    constexpr bool is_eof() const noexcept
-    {
-        return !ely::holds_alternative<std::in_place_type_t<token::Eof>>(*this);
-    }
+    Whitespace,
+    Tab,
+    Comment,
+    NewlineCr,
+    NewlineLf,
+    NewlineCrlf,
 };
 
-static_assert(std::is_trivially_destructible_v<LexemeKind>);
-static_assert(std::is_trivially_copy_constructible_v<LexemeKind>);
-static_assert(
-    std::is_default_constructible_v<LexemeKind>); // not trivial since index
-                                                  // needs to be initialized too
-static_assert(sizeof(LexemeKind) == 1);
+ELY_ALWAYS_INLINE constexpr bool
+lexeme_kind_is_trailing_atmosphere(LexemeKind kind) noexcept
+{
+    switch (kind)
+    {
+    case LexemeKind::Whitespace:
+    case LexemeKind::Tab:
+    case LexemeKind::Comment:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ELY_ALWAYS_INLINE constexpr bool
+lexeme_kind_is_leading_atmosphere(LexemeKind kind) noexcept
+{
+    switch (kind)
+    {
+    case LexemeKind::NewlineCr:
+    case LexemeKind::NewlineLf:
+    case LexemeKind::NewlineCrlf:
+        return true;
+    default:
+        ELY_MUSTTAIL return lexeme_kind_is_trailing_atmosphere(kind);
+    }
+}
+
+ELY_ALWAYS_INLINE constexpr bool
+lexeme_kind_is_atmosphere(LexemeKind kind) noexcept
+{
+    ELY_MUSTTAIL return lexeme_kind_is_trailing_atmosphere(kind);
+}
+
+ELY_ALWAYS_INLINE constexpr bool
+lexeme_kind_is_literal(LexemeKind kind) noexcept
+{
+    switch (kind)
+    {
+    case LexemeKind::IntLit:
+    case LexemeKind::FloatLit:
+    case LexemeKind::CharLit:
+    case LexemeKind::StringLit:
+    case LexemeKind::KeywordLit:
+    case LexemeKind::BoolLit:
+    case LexemeKind::UnterminatedStringLit:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ELY_ALWAYS_INLINE constexpr bool
+lexeme_kind_is_prefix_abbrev(LexemeKind kind) noexcept
+{
+    switch (kind)
+    {
+    case LexemeKind::Quote:
+    case LexemeKind::SyntaxQuote:
+    case LexemeKind::At:
+    case LexemeKind::Unquote:
+    case LexemeKind::SyntaxUnquote:
+    case LexemeKind::UnquoteSplicing:
+    case LexemeKind::SyntaxUnquoteSplicing:
+    case LexemeKind::Exclamation:
+    case LexemeKind::Question:
+    case LexemeKind::Ampersand:
+    case LexemeKind::QuasiQuote:
+    case LexemeKind::QuasiSyntax:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ELY_ALWAYS_INLINE constexpr bool
+lexeme_kind_is_infix_abbrev(LexemeKind kind) noexcept
+{
+    switch (kind)
+    {
+    case LexemeKind::Colon:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ELY_ALWAYS_INLINE constexpr bool lexeme_kind_is_abbrev(LexemeKind kind) noexcept
+{
+    return lexeme_kind_is_prefix_abbrev(kind) ||
+           lexeme_kind_is_infix_abbrev(kind);
+}
+
+ELY_ALWAYS_INLINE constexpr bool lexeme_kind_is_poison(LexemeKind kind) noexcept
+{
+    switch (kind)
+    {
+    case LexemeKind::UnterminatedStringLit:
+    case LexemeKind::InvalidNumberSign:
+        return true;
+    default:
+        return false;
+    }
+}
 
 template<typename I>
 struct Lexeme
@@ -43,11 +163,11 @@ public:
 
 public:
     LexemeSpan<I> span;
-    LexemeKind    kind{std::in_place_type<token::Eof>};
+    LexemeKind    kind{LexemeKind::Eof};
 
-    explicit constexpr operator bool() const noexcept
+    ELY_ALWAYS_INLINE explicit constexpr operator bool() const noexcept
     {
-        return !kind.is_eof();
+        return kind != LexemeKind::Eof;
     }
 };
 } // namespace ely
