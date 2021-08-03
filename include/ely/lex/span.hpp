@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ely/defines.h"
+#include "ely/assert.h"
 
 namespace ely
 {

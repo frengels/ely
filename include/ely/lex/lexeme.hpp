@@ -3,8 +3,7 @@
 #include <type_traits>
 
 #include "ely/defines.h"
-#include "ely/lex/lexemes.hpp"
-#include "ely/lex/tokens.hpp"
+#include "ely/lex/span.hpp"
 
 namespace ely
 {

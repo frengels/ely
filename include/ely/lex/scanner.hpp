@@ -2,7 +2,6 @@
 
 #include "ely/defines.h"
 #include "ely/lex/lexeme.hpp"
-#include "ely/lex/lexemes.hpp"
 
 namespace ely
 {
@@ -87,21 +86,21 @@ template<typename I, typename S>
 constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, std::in_place_type<token::Identifier>};
+    return {next, LexemeKind::Identifier};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_keyword(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, std::in_place_type<token::KeywordLit>};
+    return {next, LexemeKind::KeywordLit};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, std::in_place_type<token::InvalidNumberSign>};
+    return {next, LexemeKind::InvalidNumberSign};
 }
 
 template<typename I, typename S>
@@ -117,7 +116,7 @@ constexpr ScanResult<I> scan_float(I it, S end)
 
     if (is_delimiter(c))
     {
-        return {it, std::in_place_type<token::FloatLit>};
+        return {it, LexemeKind::FloatLit};
     }
     else
     {
@@ -146,7 +145,7 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
     }
     else if (is_delimiter(c))
     {
-        return {it, std::in_place_type<token::IntLit>};
+        return {it, LexemeKind::IntLit};
     }
     else
     {
@@ -170,18 +169,18 @@ constexpr ScanResult<I> scan_string(I it, S end)
         }
         else if (ch == '"' && !escaping)
         {
-            return {it, std::in_place_type<token::StringLit>};
+            return {it, LexemeKind::StringLit};
         }
     }
 
-    return {it, std::in_place_type<token::UnterminatedStringLit>};
+    return {it, LexemeKind::UnterminatedStringLit};
 }
 
 template<typename I, typename S>
 constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
-    return {new_it, std::in_place_type<token::CharLit>};
+    return {new_it, LexemeKind::CharLit};
 }
 
 template<typename I, typename S>
@@ -196,7 +195,7 @@ constexpr ScanResult<I> scan_sign(I it, S end)
     }
     else if (is_delimiter(ch))
     {
-        return {it, std::in_place_type<token::Identifier>};
+        return {it, LexemeKind::Identifier};
     }
     else
     {
@@ -221,7 +220,7 @@ constexpr ScanResult<I> scan_whitespace(I it, S end)
         }
     }
 
-    return {it, std::in_place_type<token::Whitespace>};
+    return {it, LexemeKind::Whitespace};
 }
 
 template<typename I, typename S>
@@ -240,7 +239,7 @@ constexpr ScanResult<I> scan_tab(I it, S end)
         }
     }
 
-    return {it, std::in_place_type<token::Tab>};
+    return {it, LexemeKind::Tab};
 }
 
 template<typename I, typename S>
@@ -252,11 +251,11 @@ constexpr ScanResult<I> scan_cr(I it, S end)
         if (ch == '\n')
         {
             ++it;
-            return {it, std::in_place_type<token::NewlineCrlf>};
+            return {it, LexemeKind::NewlineCrlf};
         }
     }
 
-    return {it, std::in_place_type<token::NewlineCr>};
+    return {it, LexemeKind::NewlineCr};
 }
 
 template<typename I, typename S>
@@ -271,7 +270,7 @@ constexpr ScanResult<I> scan_line_comment(I it, S end)
         }
     }
 
-    return {it, std::in_place_type<token::Comment>};
+    return {it, LexemeKind::Comment};
 }
 
 template<typename I, typename S>
@@ -284,11 +283,11 @@ constexpr ScanResult<I> scan_comma(I it, S end)
         if (ch == '@')
         {
             ++it;
-            return {it, std::in_place_type<token::UnquoteSplicing>};
+            return {it, LexemeKind::UnquoteSplicing};
         }
     }
 
-    return {it, std::in_place_type<token::Unquote>};
+    return {it, LexemeKind::Unquote};
 }
 
 template<typename I, typename S>
@@ -312,7 +311,7 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                     ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
                 }
             }
-            return {it, std::in_place_type<token::BoolLit>};
+            return {it, LexemeKind::BoolLit};
         case ':':
             ++it;
             ELY_MUSTTAIL return scan_keyword(it, end);
@@ -321,10 +320,10 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
             ELY_MUSTTAIL return scan_char(it, end);
         case '`':
             ++it;
-            return {it, std::in_place_type<token::QuasiSyntax>};
+            return {it, LexemeKind::QuasiSyntax};
         case '\'':
             ++it;
-            return {it, std::in_place_type<token::SyntaxQuote>};
+            return {it, LexemeKind::SyntaxQuote};
         case ',':
             ++it;
             if (it != end)
@@ -333,18 +332,17 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
                 if (ch == '@')
                 {
                     ++it;
-                    return {it,
-                            std::in_place_type<token::SyntaxUnquoteSplicing>};
+                    return {it, LexemeKind::SyntaxUnquoteSplicing};
                 }
             }
-            return {it, std::in_place_type<token::SyntaxUnquote>};
+            return {it, LexemeKind::SyntaxUnquote};
         default:
             ++it;
             ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
         }
     }
 
-    return {it, std::in_place_type<token::InvalidNumberSign>};
+    return {it, LexemeKind::InvalidNumberSign};
 }
 
 template<typename I, typename S>
@@ -352,7 +350,7 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
 {
     if (it == end)
     {
-        return {it, std::in_place_type<token::Eof>};
+        return {it, LexemeKind::Eof};
     }
 
     char ch = *it++;
@@ -366,31 +364,31 @@ constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
     case '\r':
         ELY_MUSTTAIL return detail::scan_cr(it, end);
     case '\n':
-        return {it, std::in_place_type<token::NewlineLf>};
+        return {it, LexemeKind::NewlineLf};
     case ';':
         ELY_MUSTTAIL return detail::scan_line_comment(it, end);
     case '(':
-        return {it, std::in_place_type<token::LParen>};
+        return {it, LexemeKind::LParen};
     case ')':
-        return {it, std::in_place_type<token::RParen>};
+        return {it, LexemeKind::RParen};
     case '[':
-        return {it, std::in_place_type<token::LBracket>};
+        return {it, LexemeKind::LBracket};
     case ']':
-        return {it, std::in_place_type<token::RBracket>};
+        return {it, LexemeKind::RBracket};
     case '{':
-        return {it, std::in_place_type<token::LBrace>};
+        return {it, LexemeKind::LBrace};
     case '}':
-        return {it, std::in_place_type<token::RBrace>};
+        return {it, LexemeKind::RBrace};
     case ':':
-        return {it, std::in_place_type<token::Colon>};
+        return {it, LexemeKind::Colon};
     case '\'':
-        return {it, std::in_place_type<token::Quote>};
+        return {it, LexemeKind::Quote};
     case '!':
-        return {it, std::in_place_type<token::Exclamation>};
+        return {it, LexemeKind::Exclamation};
     case '?':
-        return {it, std::in_place_type<token::Question>};
+        return {it, LexemeKind::Question};
     case '&':
-        return {it, std::in_place_type<token::Ampersand>};
+        return {it, LexemeKind::Ampersand};
     case ',':
         ELY_MUSTTAIL return detail::scan_comma(it, end);
     case '"':
