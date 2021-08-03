@@ -7,7 +7,7 @@ namespace ely
 {
 namespace detail
 {
-constexpr bool is_newline_start(char c)
+ELY_ALWAYS_INLINE constexpr bool is_newline_start(char c)
 {
     switch (c)
     {
@@ -19,12 +19,12 @@ constexpr bool is_newline_start(char c)
     }
 }
 
-constexpr bool is_number(char c)
+ELY_ALWAYS_INLINE constexpr bool is_number(char c)
 {
     return '0' <= c && c <= '9';
 }
 
-constexpr bool is_atmosphere_start(char c)
+ELY_ALWAYS_INLINE constexpr bool is_atmosphere_start(char c)
 {
     switch (c)
     {
@@ -37,7 +37,7 @@ constexpr bool is_atmosphere_start(char c)
     }
 }
 
-constexpr bool is_delimiter(char c)
+ELY_ALWAYS_INLINE constexpr bool is_delimiter(char c)
 {
     switch (c)
     {
@@ -56,7 +56,7 @@ constexpr bool is_delimiter(char c)
 }
 
 template<typename I, typename S>
-constexpr I advance_to_delimiter(I it, S end)
+ELY_ALWAYS_INLINE constexpr I advance_to_delimiter(I it, S end)
 {
     if (it != end)
     {
@@ -83,28 +83,28 @@ struct ScanResult
 };
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_identifier_continue(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
     return {next, LexemeKind::Identifier};
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_keyword(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_keyword(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
     return {next, LexemeKind::KeywordLit};
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
     return {next, LexemeKind::InvalidNumberSign};
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_float(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_float(I it, S end)
 {
     char c = *it;
 
@@ -126,7 +126,7 @@ constexpr ScanResult<I> scan_float(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_number_continue(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_number_continue(I it, S end)
 {
     char c = *it;
 
@@ -155,7 +155,7 @@ constexpr ScanResult<I> scan_number_continue(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_string(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_string(I it, S end)
 {
     bool escaping = false;
 
@@ -177,14 +177,14 @@ constexpr ScanResult<I> scan_string(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_char(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
     return {new_it, LexemeKind::CharLit};
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_sign(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_sign(I it, S end)
 {
     char ch = *it;
 
@@ -205,7 +205,7 @@ constexpr ScanResult<I> scan_sign(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_whitespace(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_whitespace(I it, S end)
 {
     while (it != end)
     {
@@ -224,7 +224,7 @@ constexpr ScanResult<I> scan_whitespace(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_tab(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_tab(I it, S end)
 {
     while (it != end)
     {
@@ -243,7 +243,7 @@ constexpr ScanResult<I> scan_tab(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_cr(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_cr(I it, S end)
 {
     if (it != end)
     {
@@ -259,7 +259,7 @@ constexpr ScanResult<I> scan_cr(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_line_comment(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_line_comment(I it, S end)
 {
     for (; it != end; ++it)
     {
@@ -274,7 +274,7 @@ constexpr ScanResult<I> scan_line_comment(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_comma(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_comma(I it, S end)
 {
     if (it != end)
     {
@@ -291,7 +291,7 @@ constexpr ScanResult<I> scan_comma(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr ScanResult<I> scan_number_sign(I it, S end)
+ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_number_sign(I it, S end)
 {
     if (it != end)
     {
@@ -346,7 +346,8 @@ constexpr ScanResult<I> scan_number_sign(I it, S end)
 }
 
 template<typename I, typename S>
-constexpr detail::ScanResult<I> scan_lexeme(I it, S end) noexcept
+ELY_ALWAYS_INLINE constexpr detail::ScanResult<I> scan_lexeme(I it,
+                                                              S end) noexcept
 {
     if (it == end)
     {
@@ -425,21 +426,21 @@ private:
 public:
     ScannerStream() = default;
 
-    constexpr ScannerStream(I it, S end)
+    ELY_ALWAYS_INLINE constexpr ScannerStream(I it, S end)
         : it_(std::move(it)), end_(std::move(end))
     {}
 
-    constexpr I base_iterator() const
+    ELY_ALWAYS_INLINE constexpr I base_iterator() const
     {
         return it_;
     }
 
-    constexpr S base_sentinel() const
+    ELY_ALWAYS_INLINE constexpr S base_sentinel() const
     {
         return end_;
     }
 
-    constexpr reference next() noexcept
+    ELY_ALWAYS_INLINE constexpr reference next() noexcept
     {
         detail::ScanResult<I> scan_res = detail::scan_lexeme(it_, end_);
         value_type            res{
