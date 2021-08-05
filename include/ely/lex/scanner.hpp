@@ -86,21 +86,21 @@ template<typename I, typename S>
 ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_identifier_continue(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::Identifier};
+    return {next, lexeme::Identifier{}};
 }
 
 template<typename I, typename S>
 ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_keyword(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::KeywordLit};
+    return {next, lexeme::KeywordLit{}};
 }
 
 template<typename I, typename S>
 ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_invalid_number_sign(I it, S end)
 {
     I next = advance_to_delimiter(it, end);
-    return {next, LexemeKind::InvalidNumberSign};
+    return {next, lexeme::InvalidNumberSign{}};
 }
 
 template<typename I, typename S>
@@ -116,7 +116,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_float(I it, S end)
 
     if (is_delimiter(c))
     {
-        return {it, LexemeKind::FloatLit};
+        return {it, lexeme::FloatLit{}};
     }
     else
     {
@@ -145,7 +145,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_number_continue(I it, S end)
     }
     else if (is_delimiter(c))
     {
-        return {it, LexemeKind::IntLit};
+        return {it, lexeme::IntLit{}};
     }
     else
     {
@@ -169,18 +169,18 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_string(I it, S end)
         }
         else if (ch == '"' && !escaping)
         {
-            return {it, LexemeKind::StringLit};
+            return {it, lexeme::StringLit{}};
         }
     }
 
-    return {it, LexemeKind::UnterminatedStringLit};
+    return {it, lexeme::UnterminatedStringLit{}};
 }
 
 template<typename I, typename S>
 ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_char(I it, S end)
 {
     I new_it = advance_to_delimiter(it, end);
-    return {new_it, LexemeKind::CharLit};
+    return {new_it, lexeme::CharLit{}};
 }
 
 template<typename I, typename S>
@@ -195,7 +195,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_sign(I it, S end)
     }
     else if (is_delimiter(ch))
     {
-        return {it, LexemeKind::Identifier};
+        return {it, lexeme::Identifier{}};
     }
     else
     {
@@ -220,7 +220,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_whitespace(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Whitespace};
+    return {it, lexeme::Whitespace{}};
 }
 
 template<typename I, typename S>
@@ -239,7 +239,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_tab(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Tab};
+    return {it, lexeme::Tab{}};
 }
 
 template<typename I, typename S>
@@ -251,11 +251,11 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_cr(I it, S end)
         if (ch == '\n')
         {
             ++it;
-            return {it, LexemeKind::NewlineCrlf};
+            return {it, lexeme::NewlineCrlf{}};
         }
     }
 
-    return {it, LexemeKind::NewlineCr};
+    return {it, lexeme::NewlineCr{}};
 }
 
 template<typename I, typename S>
@@ -270,7 +270,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_line_comment(I it, S end)
         }
     }
 
-    return {it, LexemeKind::Comment};
+    return {it, lexeme::Comment{}};
 }
 
 template<typename I, typename S>
@@ -283,11 +283,11 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_comma(I it, S end)
         if (ch == '@')
         {
             ++it;
-            return {it, LexemeKind::UnquoteSplicing};
+            return {it, lexeme::UnquoteSplicing{}};
         }
     }
 
-    return {it, LexemeKind::Unquote};
+    return {it, lexeme::Unquote{}};
 }
 
 template<typename I, typename S>
@@ -311,7 +311,7 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_number_sign(I it, S end)
                     ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
                 }
             }
-            return {it, LexemeKind::BoolLit};
+            return {it, lexeme::BoolLit{}};
         case ':':
             ++it;
             ELY_MUSTTAIL return scan_keyword(it, end);
@@ -320,10 +320,10 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_number_sign(I it, S end)
             ELY_MUSTTAIL return scan_char(it, end);
         case '`':
             ++it;
-            return {it, LexemeKind::QuasiSyntax};
+            return {it, lexeme::QuasiSyntax{}};
         case '\'':
             ++it;
-            return {it, LexemeKind::SyntaxQuote};
+            return {it, lexeme::SyntaxQuote{}};
         case ',':
             ++it;
             if (it != end)
@@ -332,17 +332,17 @@ ELY_ALWAYS_INLINE constexpr ScanResult<I> scan_number_sign(I it, S end)
                 if (ch == '@')
                 {
                     ++it;
-                    return {it, LexemeKind::SyntaxUnquoteSplicing};
+                    return {it, lexeme::SyntaxUnquoteSplicing{}};
                 }
             }
-            return {it, LexemeKind::SyntaxUnquote};
+            return {it, lexeme::SyntaxUnquote{}};
         default:
             ++it;
             ELY_MUSTTAIL return scan_invalid_number_sign(it, end);
         }
     }
 
-    return {it, LexemeKind::InvalidNumberSign};
+    return {it, lexeme::InvalidNumberSign{}};
 }
 
 template<typename I, typename S>
@@ -351,7 +351,7 @@ ELY_ALWAYS_INLINE constexpr detail::ScanResult<I> scan_lexeme(I it,
 {
     if (it == end)
     {
-        return {it, LexemeKind::Eof};
+        return {it, lexeme::Eof{}};
     }
 
     char ch = *it++;
@@ -365,31 +365,31 @@ ELY_ALWAYS_INLINE constexpr detail::ScanResult<I> scan_lexeme(I it,
     case '\r':
         ELY_MUSTTAIL return detail::scan_cr(it, end);
     case '\n':
-        return {it, LexemeKind::NewlineLf};
+        return {it, lexeme::NewlineLf{}};
     case ';':
         ELY_MUSTTAIL return detail::scan_line_comment(it, end);
     case '(':
-        return {it, LexemeKind::LParen};
+        return {it, lexeme::LParen{}};
     case ')':
-        return {it, LexemeKind::RParen};
+        return {it, lexeme::RParen{}};
     case '[':
-        return {it, LexemeKind::LBracket};
+        return {it, lexeme::LBracket{}};
     case ']':
-        return {it, LexemeKind::RBracket};
+        return {it, lexeme::RBracket{}};
     case '{':
-        return {it, LexemeKind::LBrace};
+        return {it, lexeme::LBrace{}};
     case '}':
-        return {it, LexemeKind::RBrace};
+        return {it, lexeme::RBrace{}};
     case ':':
-        return {it, LexemeKind::Colon};
+        return {it, lexeme::Colon{}};
     case '\'':
-        return {it, LexemeKind::Quote};
+        return {it, lexeme::Quote{}};
     case '!':
-        return {it, LexemeKind::Exclamation};
+        return {it, lexeme::Exclamation{}};
     case '?':
-        return {it, LexemeKind::Question};
+        return {it, lexeme::Question{}};
     case '&':
-        return {it, LexemeKind::Ampersand};
+        return {it, lexeme::Ampersand{}};
     case ',':
         ELY_MUSTTAIL return detail::scan_comma(it, end);
     case '"':
