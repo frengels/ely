@@ -9,6 +9,7 @@
 #include "ely/defines.h"
 #include "ely/pair.hpp"
 #include "ely/union.hpp"
+#include "ely/utility.hpp"
 
 namespace ely
 {
@@ -571,6 +572,9 @@ class Variant : public detail::VariantMoveAssign<
     using base_ = detail::VariantMoveAssign<
         ely::detail::CommonAvailability<Ts...>::move_assignable,
         Ts...>;
+
+public:
+    using value_types = ely::type_list<Ts...>;
 
 public:
     using base_::base_;
