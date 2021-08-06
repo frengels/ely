@@ -5,8 +5,10 @@
 #include <string>
 
 #include <ely/lex/scanner.hpp>
-#include <ely/lex/token.hpp>
-#include <ely/lex/tokenizer.hpp>
+//#include <ely/lex/token.hpp>
+//#include <ely/lex/tokenizer.hpp>
+
+//#include <ely/stx/tape.hpp>
 
 //#include <ely/stx/reader.hpp>
 
@@ -58,6 +60,7 @@ static void BM_scan_stream(benchmark::State& state)
 }
 BENCHMARK(BM_scan_stream);
 
+/*
 static void BM_tokenizer(benchmark::State& state)
 {
     auto src      = long_source();
@@ -87,5 +90,5 @@ static void BM_tokenizer(benchmark::State& state)
     state.SetItemsProcessed(lines * state.iterations());
 }
 BENCHMARK(BM_tokenizer);
-
+*/
 BENCHMARK_MAIN();
