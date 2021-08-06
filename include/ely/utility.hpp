@@ -14,6 +14,15 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 template<typename T, typename... Us>
 inline constexpr bool is_same_one_of_v = (std::is_same_v<T, Us> || ...);
 
+// allows use as a metafunction. For example in combination with a type_list:
+// `type_list<int, bool>::apply_all<is_same_mf<float>::invoke>::value -> false`
+template<typename T>
+struct is_same_mf
+{
+    template<typename... Us>
+    using invoke = std::bool_constant<is_same_one_of_v<T, Us...>>;
+};
+
 template<typename... Ts>
 struct type_list
 {
