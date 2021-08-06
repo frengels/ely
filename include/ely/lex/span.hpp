@@ -5,8 +5,8 @@
 #include <string_view>
 #include <vector>
 
-#include "ely/defines.h"
 #include "ely/assert.h"
+#include "ely/defines.h"
 
 namespace ely
 {
@@ -46,9 +46,10 @@ private:
 public:
     LexemeSpanBase() = default;
 
-    ELY_ALWAYS_INLINE constexpr LexemeSpanBase(iterator  start,
-                                               iterator  end,
-                                               size_type len) noexcept
+    ELY_ALWAYS_INLINE constexpr LexemeSpanBase(
+        iterator                   start,
+        iterator                   end,
+        [[maybe_unused]] size_type len) noexcept
         : start_(std::move(start)), end_(std::move(end))
     {
         ELY_ASSERT(std::distance(start_, end_) == len,
