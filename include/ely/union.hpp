@@ -323,7 +323,7 @@ class UnionStorage<UnionConfig::EBO, std::index_sequence<Is...>, Ts...>
 
 public:
     // this should enable trivial construction
-    UnionStorage() = default;
+    ELY_ALWAYS_INLINE UnionStorage() = default;
 
     using UnionBox<Is, Ts, ely::type_index_v<Ts, Ts...> != Is>::UnionBox...;
 
