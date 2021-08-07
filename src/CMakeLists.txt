@@ -18,7 +18,7 @@ set_target_properties(Ely
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON) # only for c++
-target_compile_features(Ely PUBLIC cxx_std_17)
+target_compile_features(Ely PUBLIC cxx_std_20)
 
 add_executable(elycpp ely.cpp)
 target_link_libraries(elycpp PUBLIC Ely::Ely)
