@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <functional>
 
 #include "ely/defines.h"
 #include "ely/lex/span.hpp"
@@ -274,5 +275,12 @@ public:
 public:
     LexemeSpan<I> span;
     L             kind{};
+
+    template<typename F>
+    constexpr Lexeme<I, std::invoke_result_t<F, L>>
+    transform(F&& fn) const noexcept
+    {
+        return {span, std::invoke(static_cast<F&&>(fn), span)};
+    }
 };
 } // namespace ely
