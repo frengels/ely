@@ -1,7 +1,7 @@
 #pragma once
 
-#include <type_traits>
 #include <functional>
+#include <type_traits>
 
 #include "ely/defines.h"
 #include "ely/lex/span.hpp"
@@ -58,6 +58,27 @@ enum struct Literal : unsigned char
     UnterminatedStringLit,
 };
 
+enum struct PrefixAbbrev : unsigned char
+{
+    Quote,
+    SyntaxQuote,
+    At,
+    Unquote,
+    SyntaxUnquote,
+    UnquoteSplicing,
+    SyntaxUnquoteSplicing,
+    Exclamation,
+    Question,
+    Ampersand,
+    QuasiQuote,
+    QuasiSyntax
+};
+
+enum struct InfixAbbrev : unsigned char
+{
+    Colon
+};
+
 enum struct LexemeKind : unsigned char
 {
     Eof,
@@ -97,82 +118,87 @@ enum struct LexemeKind : unsigned char
     NewlineCrlf,
 };
 
-ELY_ALWAYS_INLINE constexpr bool
-is_trailing_atmosphere(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_trailing_atmosphere(E kind) noexcept
 {
     switch (kind)
     {
-    case LexemeKind::Whitespace:
-    case LexemeKind::Tab:
-    case LexemeKind::Comment:
+    case E::Whitespace:
+    case E::Tab:
+    case E::Comment:
         return true;
     default:
         return false;
     }
 }
 
-ELY_ALWAYS_INLINE constexpr bool is_leading_atmosphere(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_leading_atmosphere(E kind) noexcept
 {
     switch (kind)
     {
-    case LexemeKind::NewlineCr:
-    case LexemeKind::NewlineLf:
-    case LexemeKind::NewlineCrlf:
+    case E::NewlineCr:
+    case E::NewlineLf:
+    case E::NewlineCrlf:
         return true;
     default:
         return is_trailing_atmosphere(kind);
     }
 }
 
-ELY_ALWAYS_INLINE constexpr bool is_atmosphere(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_atmosphere(E kind) noexcept
 {
     return is_leading_atmosphere(kind);
 }
 
-ELY_ALWAYS_INLINE constexpr bool is_literal(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_literal(E kind) noexcept
 {
     switch (kind)
     {
-    case LexemeKind::IntLit:
-    case LexemeKind::FloatLit:
-    case LexemeKind::CharLit:
-    case LexemeKind::StringLit:
-    case LexemeKind::KeywordLit:
-    case LexemeKind::BoolLit:
-    case LexemeKind::UnterminatedStringLit:
+    case E::IntLit:
+    case E::FloatLit:
+    case E::CharLit:
+    case E::StringLit:
+    case E::KeywordLit:
+    case E::BoolLit:
+    case E::UnterminatedStringLit:
         return true;
     default:
         return false;
     }
 }
 
-ELY_ALWAYS_INLINE constexpr bool is_prefix_abbrev(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_prefix_abbrev(E kind) noexcept
 {
     switch (kind)
     {
-    case LexemeKind::Quote:
-    case LexemeKind::SyntaxQuote:
-    case LexemeKind::At:
-    case LexemeKind::Unquote:
-    case LexemeKind::SyntaxUnquote:
-    case LexemeKind::UnquoteSplicing:
-    case LexemeKind::SyntaxUnquoteSplicing:
-    case LexemeKind::Exclamation:
-    case LexemeKind::Question:
-    case LexemeKind::Ampersand:
-    case LexemeKind::QuasiQuote:
-    case LexemeKind::QuasiSyntax:
+    case E::Quote:
+    case E::SyntaxQuote:
+    case E::At:
+    case E::Unquote:
+    case E::SyntaxUnquote:
+    case E::UnquoteSplicing:
+    case E::SyntaxUnquoteSplicing:
+    case E::Exclamation:
+    case E::Question:
+    case E::Ampersand:
+    case E::QuasiQuote:
+    case E::QuasiSyntax:
         return true;
     default:
         return false;
     }
 }
 
-ELY_ALWAYS_INLINE constexpr bool is_infix_abbrev(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_infix_abbrev(E lex) noexcept
 {
-    switch (kind)
+    switch (lex)
     {
-    case LexemeKind::Colon:
+    case E::Colon:
         return true;
     default:
         return false;
@@ -184,29 +210,32 @@ ELY_ALWAYS_INLINE constexpr bool is_abbrev(LexemeKind kind) noexcept
     return is_prefix_abbrev(kind) || is_infix_abbrev(kind);
 }
 
-ELY_ALWAYS_INLINE constexpr TrailingAtmosphere
-as_trailing_atmosphere(LexemeKind kind, ely::UncheckedT) noexcept
+template<typename To = TrailingAtmosphere, typename From>
+ELY_ALWAYS_INLINE constexpr To as_trailing_atmosphere(From lex,
+                                                      ely::UncheckedT) noexcept
 {
-    ELY_ASSERT(is_trailing_atmosphere(kind), "expected trailing atmosphere");
-    switch (kind)
+    ELY_ASSERT(is_trailing_atmosphere(lex), "expected trailing atmosphere");
+
+    switch (lex)
     {
-    case LexemeKind::Whitespace:
-        return TrailingAtmosphere::Whitespace;
-    case LexemeKind::Tab:
-        return TrailingAtmosphere::Tab;
-    case LexemeKind::Comment:
-        return TrailingAtmosphere::Comment;
+    case From::Whitespace:
+        return To::Whitespace;
+    case From::Tab:
+        return To::Tab;
+    case From::Comment:
+        return To::Comment;
     default:
         __builtin_unreachable();
     }
 }
 
-ELY_ALWAYS_INLINE constexpr std::optional<TrailingAtmosphere>
-as_trailing_atmosphere(LexemeKind kind) noexcept
+template<typename To = TrailingAtmosphere, typename From>
+ELY_ALWAYS_INLINE constexpr std::optional<To>
+as_trailing_atmosphere(From lex) noexcept
 {
-    if (is_trailing_atmosphere(kind))
+    if (is_trailing_atmosphere(lex))
     {
-        return as_trailing_atmosphere(kind, ely::Unchecked);
+        return as_trailing_atmosphere(lex, ely::Unchecked);
     }
     else
     {
@@ -214,53 +243,56 @@ as_trailing_atmosphere(LexemeKind kind) noexcept
     }
 }
 
-ELY_ALWAYS_INLINE constexpr LeadingAtmosphere
-as_leading_atmosphere(LexemeKind kind, ely::UncheckedT) noexcept
-{
-    ELY_ASSERT(is_leading_atmosphere(kind), "expected leading atmosphere");
-
-    switch (kind)
-    {
-    case LexemeKind::Whitespace:
-        return LeadingAtmosphere::Whitespace;
-    case LexemeKind::Tab:
-        return LeadingAtmosphere::Tab;
-    case LexemeKind::Comment:
-        return LeadingAtmosphere::Comment;
-    case LexemeKind::NewlineCr:
-        return LeadingAtmosphere::NewlineCr;
-    case LexemeKind::NewlineLf:
-        return LeadingAtmosphere::NewlineLf;
-    case LexemeKind::NewlineCrlf:
-        return LeadingAtmosphere::NewlineCrlf;
-    default:
-        __builtin_unreachable();
-    }
-}
-
-ELY_ALWAYS_INLINE constexpr std::optional<LeadingAtmosphere>
-as_leading_atmosphere(LexemeKind kind) noexcept
-{
-    if (is_leading_atmosphere(kind))
-    {
-        return as_leading_atmosphere(kind, ely::Unchecked);
-    }
-    else
-    {
-        return std::nullopt;
-    }
-}
-
-ELY_ALWAYS_INLINE constexpr Atmosphere as_atmosphere(LexemeKind kind,
+template<typename To = LeadingAtmosphere, typename From>
+ELY_ALWAYS_INLINE constexpr To as_leading_atmosphere(From lex,
                                                      ely::UncheckedT) noexcept
 {
-    return as_leading_atmosphere(kind, ely::Unchecked);
+    ELY_ASSERT(is_leading_atmosphere(lex), "expected leading atmosphere");
+
+    switch (lex)
+    {
+    case From::Whitespace:
+        return To::Whitespace;
+    case From::Tab:
+        return To::Tab;
+    case From::Comment:
+        return To::Comment;
+    case From::NewlineCr:
+        return To::NewlineCr;
+    case From::NewlineLf:
+        return To::NewlineLf;
+    case From::NewlineCrlf:
+        return To::NewlineCrlf;
+    default:
+        __builtin_unreachable();
+    }
 }
 
-ELY_ALWAYS_INLINE constexpr std::optional<Atmosphere>
-as_atmosphere(LexemeKind kind) noexcept
+template<typename To = LeadingAtmosphere, typename From>
+ELY_ALWAYS_INLINE constexpr std::optional<To>
+as_leading_atmosphere(From lex) noexcept
 {
-    return as_leading_atmosphere(kind);
+    if (is_leading_atmosphere(lex))
+    {
+        return as_leading_atmosphere<To>(lex, ely::Unchecked);
+    }
+    else
+    {
+        return std::nullopt;
+    }
+}
+
+template<typename To = Atmosphere, typename From>
+ELY_ALWAYS_INLINE constexpr Atmosphere as_atmosphere(From lex,
+                                                     ely::UncheckedT) noexcept
+{
+    return as_leading_atmosphere<To>(lex, ely::Unchecked);
+}
+
+template<typename To = Atmosphere, typename From>
+ELY_ALWAYS_INLINE constexpr std::optional<To> as_atmosphere(From lex) noexcept
+{
+    return as_leading_atmosphere<To>(lex);
 }
 } // namespace lexeme
 
