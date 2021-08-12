@@ -79,6 +79,23 @@ enum struct InfixAbbrev : unsigned char
     Colon
 };
 
+enum struct Abbrev : unsigned char
+{
+    Colon,
+    Quote,
+    SyntaxQuote,
+    At,
+    Unquote,
+    SyntaxUnquote,
+    UnquoteSplicing,
+    SyntaxUnquoteSplicing,
+    Exclamation,
+    Question,
+    Ampersand,
+    QuasiQuote,
+    QuasiSyntax
+};
+
 enum struct LexemeKind : unsigned char
 {
     Eof,
@@ -205,7 +222,8 @@ ELY_ALWAYS_INLINE constexpr bool is_infix_abbrev(E lex) noexcept
     }
 }
 
-ELY_ALWAYS_INLINE constexpr bool is_abbrev(LexemeKind kind) noexcept
+template<typename E>
+ELY_ALWAYS_INLINE constexpr bool is_abbrev(E kind) noexcept
 {
     return is_prefix_abbrev(kind) || is_infix_abbrev(kind);
 }
@@ -283,8 +301,7 @@ as_leading_atmosphere(From lex) noexcept
 }
 
 template<typename To = Atmosphere, typename From>
-ELY_ALWAYS_INLINE constexpr Atmosphere as_atmosphere(From lex,
-                                                     ely::UncheckedT) noexcept
+ELY_ALWAYS_INLINE constexpr To as_atmosphere(From lex, ely::UncheckedT) noexcept
 {
     return as_leading_atmosphere<To>(lex, ely::Unchecked);
 }
@@ -293,6 +310,137 @@ template<typename To = Atmosphere, typename From>
 ELY_ALWAYS_INLINE constexpr std::optional<To> as_atmosphere(From lex) noexcept
 {
     return as_leading_atmosphere<To>(lex);
+}
+
+template<typename To = InfixAbbrev, typename From>
+ELY_ALWAYS_INLINE constexpr To as_infix_abbrev(From kind,
+                                               ely::UncheckedT) noexcept
+{
+    ELY_ASSERT(is_infix_abbrev(kind), "expected infix abbrev");
+
+    switch (kind)
+    {
+    case From::Colon:
+        return To::Colon;
+    default:
+        __builtin_unreachable();
+    }
+}
+
+template<typename To = InfixAbbrev, typename From>
+ELY_ALWAYS_INLINE constexpr std::optional<To>
+as_infix_abbrev(From kind) noexcept
+{
+    if (is_infix_abbrev(kind))
+    {
+        return as_infix_abbrev<To>(kind);
+    }
+    else
+    {
+        return std::nullopt;
+    }
+}
+
+template<typename To = PrefixAbbrev, typename From>
+ELY_ALWAYS_INLINE constexpr To as_prefix_abbrev(From kind,
+                                                ely::UncheckedT) noexcept
+{
+    ELY_ASSERT(is_prefix_abbrev(kind), "expected prefix abbrev");
+
+    switch (kind)
+    {
+    case From::Quote:
+        return To::Quote;
+    case From::SyntaxQuote:
+        return To::SyntaxQuote;
+    case From::At:
+        return To::At;
+    case From::Unquote:
+        return To::Unquote;
+    case From::SyntaxUnquote:
+        return To::SyntaxUnquote;
+    case From::UnquoteSplicing:
+        return To::UnquoteSplicing;
+    case From::SyntaxUnquoteSplicing:
+        return To::SyntaxUnquoteSplicing;
+    case From::Exclamation:
+        return To::Exclamation;
+    case From::Question:
+        return To::Question;
+    case From::Ampersand:
+        return To::Ampersand;
+    case From::QuasiQuote:
+        return To::QuasiQuote;
+    case From::QuasiSyntax:
+        return To::QuasiSyntax;
+    default:
+        __builtin_unreachable();
+    }
+}
+
+template<typename To = PrefixAbbrev, typename From>
+ELY_ALWAYS_INLINE constexpr std::optional<To>
+as_prefix_abbrev(From kind) noexcept
+{
+    if (is_prefix_abbrev(kind))
+    {
+        return as_prefix_abbrev<To>(kind, ely::Unchecked);
+    }
+    else
+    {
+        return std::nullopt;
+    }
+}
+
+template<typename To = Abbrev, typename From>
+ELY_ALWAYS_INLINE constexpr To as_abbrev(From kind, ely::UncheckedT) noexcept
+{
+    ELY_ASSERT(is_abbrev(kind), "expected abbrev");
+
+    switch (kind)
+    {
+    case From::Colon:
+        return To::Colon;
+    case From::Quote:
+        return To::Quote;
+    case From::SyntaxQuote:
+        return To::SyntaxQuote;
+    case From::At:
+        return To::At;
+    case From::Unquote:
+        return To::Unquote;
+    case From::SyntaxUnquote:
+        return To::SyntaxUnquote;
+    case From::UnquoteSplicing:
+        return To::UnquoteSplicing;
+    case From::SyntaxUnquoteSplicing:
+        return To::SyntaxUnquoteSplicing;
+    case From::Exclamation:
+        return To::Exclamation;
+    case From::Question:
+        return To::Question;
+    case From::Ampersand:
+        return To::Ampersand;
+    case From::QuasiQuote:
+        return To::QuasiQuote;
+    case From::QuasiSyntax:
+        return To::QuasiSyntax;
+    default:
+        __builtin_unreachable();
+    }
+}
+
+template<typename To = Abbrev, typename From>
+ELY_ALWAYS_INLINE constexpr std::optional<To> as_abbrev(From kind) noexcept
+{
+    if (is_abbrev(kind))
+    {
+        return as_abbrev<To>(kind);
+    }
+    else
+    {
+        return std::nullopt;
+    }
 }
 } // namespace lexeme
 
