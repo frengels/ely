@@ -5,10 +5,11 @@
 #include <string>
 
 #include <ely/lex/scanner.hpp>
+
 //#include <ely/lex/token.hpp>
 //#include <ely/lex/tokenizer.hpp>
 
-//#include <ely/stx/tape.hpp>
+#include <ely/stx/tape.hpp>
 
 //#include <ely/stx/reader.hpp>
 
@@ -44,7 +45,8 @@ static void BM_scan_stream(benchmark::State& state)
 
         auto lexeme = stream.next();
 
-        while (lexeme && buf_it != tok_buf.end())
+        while (lexeme.kind != ely::lexeme::LexemeKind::Eof &&
+               buf_it != tok_buf.end())
         {
             *buf_it = lexeme;
             benchmark::DoNotOptimize(*buf_it);
