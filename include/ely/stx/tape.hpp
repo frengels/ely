@@ -44,6 +44,40 @@ enum struct TapeKind : uint8_t
     InvalidNumberSign,
 };
 
+ELY_ALWAYS_INLINE constexpr TapeKind
+prefix_abbrev_to_tape(lexeme::PrefixAbbrev kind) noexcept
+{
+    switch (kind)
+    {
+    case lexeme::PrefixAbbrev::Quote:
+        return TapeKind::Quote;
+    case lexeme::PrefixAbbrev::SyntaxQuote:
+        return TapeKind::SyntaxQuote;
+    case lexeme::PrefixAbbrev::At:
+        return TapeKind::At;
+    case lexeme::PrefixAbbrev::Unquote:
+        return TapeKind::Unquote;
+    case lexeme::PrefixAbbrev::SyntaxUnquote:
+        return TapeKind::SyntaxUnquote;
+    case lexeme::PrefixAbbrev::UnquoteSplicing:
+        return TapeKind::UnquoteSplicing;
+    case lexeme::PrefixAbbrev::SyntaxUnquoteSplicing:
+        return TapeKind::SyntaxUnquoteSplicing;
+    case lexeme::PrefixAbbrev::Exclamation:
+        return TapeKind::Exclamation;
+    case lexeme::PrefixAbbrev::Question:
+        return TapeKind::Question;
+    case lexeme::PrefixAbbrev::Ampersand:
+        return TapeKind::Ampersand;
+    case lexeme::PrefixAbbrev::QuasiQuote:
+        return TapeKind::QuasiQuote;
+    case lexeme::PrefixAbbrev::QuasiSyntax:
+        return TapeKind::QuasiSyntax;
+    default:
+        __builtin_unreachable();
+    }
+}
+
 // gets used for all identifier, int, float, string, and char lits
 struct StringLit
 {
