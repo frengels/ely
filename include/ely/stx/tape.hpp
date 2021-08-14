@@ -10,6 +10,44 @@ namespace ely
 {
 namespace tape
 {
+enum struct AtmosphereKind : uint8_t
+{
+    Whitespace,
+    Tab,
+    Comment,
+    NewlineCr, // these newlines can be compressed into one tape element
+    NewlineLf,
+    NewlineCrlf,
+};
+
+struct Whitespace
+{
+    uint32_t len;
+};
+
+struct Tab
+{
+    uint32_t len;
+};
+struct Comment
+{
+    uint32_t len;
+    uint32_t idx;
+};
+
+struct Atmosphere
+{
+    AtmosphereKind kind_;
+
+    union
+    {
+        char       empty_;
+        Whitespace ws_;
+        Tab        tab_;
+        Comment    comment_;
+    };
+};
+
 enum struct TapeKind : uint8_t
 {
     ListStart,
@@ -20,14 +58,27 @@ enum struct TapeKind : uint8_t
     TupleEnd,
     AttributesEnd,
 
+    MissingListEnd,
+    MissingTupleEnd,
+    MissingAttributesEnd,
+
     IntLit, // TODO: split this into shorter variants to save string space and
             // improve performance
     FloatLit,
     StringLit,
     CharLit,
     BoolLit,
+    // the identifier should be interned to reduce memory
+    // consumption from duplicates
     Identifier,
+    // var is followed by the lefthand element and then righthand
+    // element
+    // offsets will have to be calculated for getting the correct atmosphere
+    // span, id<:>ty
+    // Both sides can be arbitrary sexps such as !&x:(signed u32)
     Var,
+    MissingVarId, // <id>:ty
+    MissingVarTy, // id:<ty>
     Quote,
     SyntaxQuote,
     At,
@@ -133,7 +184,8 @@ private:
     // this reallocates too much most likely
     ely::Vector<TapeElement> tape_elements_;
     // TODO: this isn't really a string pool currently
-    std::string string_pool_;
+    std::string             string_pool_;
+    ely::Vector<Atmosphere> atmosphere_pool_;
 
     ely::stx::Position end_pos_;
 
@@ -145,7 +197,7 @@ public:
     {}
 
     template<typename I>
-    void emplace_back_string(TapeKind kind, I first, I last)
+    void emplace_back_string(I first, I last)
     {
         TapeElement te;
 
@@ -154,18 +206,17 @@ public:
 
         std::size_t len = string_pool_.size() - offset;
 
-        te.kind_    = kind;
+        te.kind_    = TapeKind::StringLit;
         te.str_.len = static_cast<uint32_t>(len);
         te.str_.idx = static_cast<uint32_t>(string_pool_.size());
 
         tape_elements_.emplace_back(te);
     }
 
-    void emplace_back_abbrev(TapeKind kind)
+    void emplace_back_prefix_abbrev(lexeme::PrefixAbbrev kind)
     {
         TapeElement te;
-
-        te.kind_ = kind;
+        te.kind_ = prefix_abbrev_to_tape(kind);
 
         tape_elements_.emplace_back(te);
     }
