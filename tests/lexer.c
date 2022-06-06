@@ -22,6 +22,9 @@ static inline void test_eof(ely_token* dst, uint32_t len)
 {
     ely_lexer* lex = ely_lexer_create("");
     assert(ely_lexer_empty(lex));
+    uint32_t write = ely_lexer_scan_tokens(lex, dst, len);
+    assert(write == 0);
+    assert(ely_lexer_empty(lex));
 
     ely_lexer_destroy(lex);
 }

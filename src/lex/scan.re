@@ -73,7 +73,7 @@ uint32_t ely_lexer_scan_tokens(ely_lexer*  lex,
 {
     uint32_t i = 0;
 
-    if (dst_len == 0)
+    if (dst_len == 0 || lex->src[lex->offset] == '\0')
     {
         return 0;
     }
@@ -84,7 +84,7 @@ uint32_t ely_lexer_scan_tokens(ely_lexer*  lex,
         tok    = scan(lex);
         dst[i] = tok;
         ++i;
-    } while (lex->src[lex->offset] != 0);
+    } while (lex->src[lex->offset] != '\0');
 
     return i;
 }
