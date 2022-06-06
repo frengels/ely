@@ -27,3 +27,6 @@ set(ELY_SRC
 add_executable(ely ${ELY_SRC})
 target_link_libraries(ely PRIVATE ely_lex)
 target_include_directories(ely PRIVATE src/lex)
+
+enable_testing()
+add_subdirectory(tests)
