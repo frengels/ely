@@ -5,7 +5,7 @@
 
 static inline ely_token scan(ely_lexer* lex)
 {
-    uint32_t marker_offset = lex->offset;
+    const char* marker = lex->src;
 
 loop:
     /*!include:re2c "unicode_categories.re" */
@@ -16,10 +16,10 @@ loop:
     re2c:api = custom;
     re2c:api:style = free-form;
     re2c:define:YYCTYPE = char;
-    re2c:define:YYPEEK = "lex->src[lex->offset];";
-    re2c:define:YYSKIP = "++lex->offset; ++lex->col;";
-    re2c:define:YYBACKUP = "marker_offset = lex->offset;";
-    re2c:define:YYRESTORE = "lex->offset = marker_offset;";
+    re2c:define:YYPEEK = "*lex->src;";
+    re2c:define:YYSKIP = "++lex->src; ++lex->offset; ++lex->col;";
+    re2c:define:YYBACKUP = "marker = lex->src;";
+    re2c:define:YYRESTORE = "lex->src = marker;";
 
     ascii_space = " ";
     ascii_tab = "\t";
@@ -73,7 +73,7 @@ uint32_t ely_lexer_scan_tokens(ely_lexer*  lex,
 {
     uint32_t i = 0;
 
-    if (dst_len == 0 || lex->src[lex->offset] == '\0')
+    if (dst_len == 0 || *lex->src == '\0')
     {
         return 0;
     }
@@ -84,7 +84,7 @@ uint32_t ely_lexer_scan_tokens(ely_lexer*  lex,
         tok    = scan(lex);
         dst[i] = tok;
         ++i;
-    } while (lex->src[lex->offset] != '\0');
+    } while (*lex->src != '\0');
 
     return i;
 }

@@ -29,5 +29,5 @@ ely_position ely_lexer_position(const ely_lexer* lex)
 
 bool ely_lexer_empty(const ely_lexer* lex)
 {
-    return lex->src[lex->offset] == '\0';
+    return *lex->src == '\0';
 }
