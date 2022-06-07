@@ -178,7 +178,7 @@ scan_number_cont(ely_lexer* lex, char ch, const char* token_start)
         return scan_decimal(lex, ch, token_start);
     }
 
-    return (ely_token){.type = ELY_TOKEN_INT};
+    return (ely_token){.type = ELY_TOKEN_INT, .start = token_start};
 }
 
 static inline ely_token scan_number(ely_lexer* lex, char ch)
@@ -199,7 +199,7 @@ scan_identifier_cont(ely_lexer* lex, char ch, const char* token_start)
         ch = peek_char(lex);
     }
 
-    return (ely_token){.type = ELY_TOKEN_IDENTIFIER};
+    return (ely_token){.type = ELY_TOKEN_IDENTIFIER, .start = token_start};
 }
 
 static inline ely_token scan_sign(ely_lexer* lex, char ch)
@@ -232,7 +232,7 @@ static inline ely_token scan_identifier(ely_lexer* lex, char ch)
         return scan_identifier_cont(lex, ch, token_start);
     }
 
-    return (ely_token){.type = ELY_TOKEN_IDENTIFIER};
+    return (ely_token){.type = ELY_TOKEN_IDENTIFIER, .start = token_start};
 }
 
 static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
@@ -261,12 +261,22 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
         ch       = consume_char(lex);
     }
 
-    return (ely_token){.type = ELY_TOKEN_STRING};
+    return (ely_token){.type = ELY_TOKEN_STRING, .start = token_start};
+}
+
+static inline ely_token scan_single(ely_lexer* lex, ely_token_type ty)
+{
+    const char*  token_start = lex->cursor;
+    ely_position pos         = ely_lexer_position(lex);
+    advance_char(lex);
+    return (ely_token){.type = ty, .len = 1, .start = token_start, .pos = pos};
 }
 
 static inline ely_token scan_token(ely_lexer* lex)
 {
-    char ch;
+    char         ch;
+    ely_position start_pos    = ely_lexer_position(lex);
+    const char*  start_cursor = lex->cursor;
 
 loop:
     ch = peek_char(lex);
@@ -284,17 +294,17 @@ loop:
     case '"':
         return scan_string_lit(lex, ch);
     case '(':
-        return (ely_token){.type = ELY_TOKEN_LPAREN};
+        return scan_single(lex, ELY_TOKEN_LPAREN);
     case ')':
-        return (ely_token){.type = ELY_TOKEN_RPAREN};
+        return scan_single(lex, ELY_TOKEN_RPAREN);
     case '[':
-        return (ely_token){.type = ELY_TOKEN_LBRACKET};
+        return scan_single(lex, ELY_TOKEN_LBRACKET);
     case ']':
-        return (ely_token){.type = ELY_TOKEN_RBRACKET};
+        return scan_single(lex, ELY_TOKEN_RBRACKET);
     case '{':
-        return (ely_token){.type = ELY_TOKEN_LBRACE};
+        return scan_single(lex, ELY_TOKEN_LBRACE);
     case '}':
-        return (ely_token){.type = ELY_TOKEN_RBRACE};
+        return scan_single(lex, ELY_TOKEN_RBRACE);
     case '-':
     case '+':
         return scan_sign(lex, ch);
