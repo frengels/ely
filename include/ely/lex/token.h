@@ -11,24 +11,9 @@ extern "C" {
 
 typedef enum
 {
-    ELY_TOKEN_EOF,
-
-    ELY_TOKEN_LPAREN,
-    ELY_TOKEN_RPAREN,
-    ELY_TOKEN_LBRACKET,
-    ELY_TOKEN_RBRACKET,
-    ELY_TOKEN_LBRACE,
-    ELY_TOKEN_RBRACE,
-
-    ELY_TOKEN_IDENTIFIER,
-    ELY_TOKEN_STRING,
-    ELY_TOKEN_INT,
-    ELY_TOKEN_DEC,
-    ELY_TOKEN_CHAR,
-    ELY_TOKEN_BOOL,
-
-    ELY_TOKEN_UNKNOWN_CHAR,
-    ELY_TOKEN_UNTERMINATED_STRING
+#define X(val, x) val,
+#include "token.def"
+#undef X
 } ely_token_type;
 
 const char* ely_token_type_to_string(ely_token_type ty);
