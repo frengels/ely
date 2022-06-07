@@ -40,6 +40,11 @@ bool ely_lexer_empty(const ely_lexer* lex)
     return *lex->cursor == '\0';
 }
 
+const char* ely_lexer_cursor(const ely_lexer* lex)
+{
+    return lex->cursor;
+}
+
 static inline char peek_char(ely_lexer* lex)
 {
     return *lex->cursor;
@@ -262,7 +267,7 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
         advance_char(lex);
         ch = peek_char(lex);
     }
-    
+
     advance_char(lex);
     return (ely_token){.type = ELY_TOKEN_STRING, .start = token_start};
 }

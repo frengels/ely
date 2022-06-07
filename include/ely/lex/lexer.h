@@ -25,6 +25,7 @@ void       ely_lexer_destroy(ely_lexer* lex);
 
 ely_position ely_lexer_position(const ely_lexer* lex);
 bool         ely_lexer_empty(const ely_lexer* lex);
+const char*  ely_lexer_cursor(const ely_lexer* lex);
 
 uint32_t
 ely_lexer_scan_tokens(ely_lexer* lex, ely_token* dst, uint32_t dst_len);
