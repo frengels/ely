@@ -26,6 +26,7 @@ typedef enum
     ELY_TOKEN_BOOL,
 
     ELY_TOKEN_UNKNOWN_CHAR,
+    ELY_TOKEN_UNTERMINATED_STRING
 } ely_token_type;
 
 typedef struct
