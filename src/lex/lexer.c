@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "common.h"
 #include "ely/lex/token.h"
 
 typedef struct ely_lexer
@@ -113,6 +112,7 @@ static inline bool is_identifier_continue(char ch)
 static inline void scan_line_comment(ely_lexer* lex, char ch)
 {
     assert(ch == ';');
+    const char* token_start = lex->cursor;
     advance_char(lex);
 
     ch = consume_char(lex);
@@ -128,11 +128,15 @@ static inline void scan_line_comment(ely_lexer* lex, char ch)
                 advance_char(lex);
                 ++lex->line;
                 lex->col = 1;
+                return;
             }
             __attribute__((fallthrough));
         case '\n':
             ++lex->line;
             lex->col = 1;
+            __attribute__((fallthrough));
+        case '\0':
+            return;
         }
 
         ch = consume_char(lex);
@@ -242,15 +246,19 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
 
     while (escaping || ch != '"')
     {
-        if (ch == '\\')
+        if (ch == '\0')
+        {
+            return (ely_token){.type = ELY_TOKEN_UNTERMINATED_STRING};
+        }
+        else if (ch == '\\')
         {
             escaping = !escaping;
-            ch = consume_char(lex);
+            ch       = consume_char(lex);
             continue;
         }
 
         escaping = false;
-        ch = consume_char(lex);
+        ch       = consume_char(lex);
     }
 
     return (ely_token){.type = ELY_TOKEN_STRING};
