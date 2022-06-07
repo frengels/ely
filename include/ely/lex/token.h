@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-typedef enum
+typedef enum ely_token_type
 {
 #define X(val, x) val,
 #include "token.def"
