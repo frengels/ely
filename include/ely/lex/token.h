@@ -2,6 +2,7 @@
 #define ELY_LEX_TOKEN_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "ely/location.h"
 
@@ -25,6 +26,8 @@ typedef struct ely_token
     const char*    start; // 16 bytes
     ely_position   pos;   // 28 bytes
 } ely_token;
+
+int ely_token_print(FILE* f, const ely_token* t);
 
 #ifdef __cplusplus
 }

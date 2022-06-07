@@ -18,8 +18,10 @@
         fprintf(stderr, "  read %d characters\n", end.offset - start.offset);  \
         assert(write == 1);                                                    \
         fprintf(stderr,                                                        \
-                "  received token: \"%s\"\n",                                  \
+                "  received token: \"%s\"\n  ",                                \
                 ely_token_type_to_string(dst[0].type));                        \
+        ely_token_print(stderr, dst);                                          \
+        fprintf(stderr, "\n");                                                 \
         assert(dst[0].type == ty);                                             \
         ely_lexer_destroy(lex);                                                \
     }
