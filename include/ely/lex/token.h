@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "ely/location.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,18 +31,14 @@ typedef enum
     ELY_TOKEN_UNTERMINATED_STRING
 } ely_token_type;
 
-typedef struct
-{
-    uint32_t line;
-    uint32_t column;
-} ely_token_position;
+const char* ely_token_type_to_string(ely_token_type ty);
 
 typedef struct ely_token
 {
-    ely_token_type type; // 4 bytes
-                         /* uint32_t           len;   // 8 bytes
-                          const char*        start; // 16 bytes
-                          ely_token_position pos;   // 24 bytes */
+    ely_token_type type;  // 4 bytes
+    uint32_t       len;   // 8 bytes
+    const char*    start; // 16 bytes
+    ely_position   pos;   // 28 bytes
 } ely_token;
 
 #ifdef __cplusplus

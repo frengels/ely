@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 project(ely VERSION 0.1.0 LANGUAGES C)
 
 set(ELY_LEX_SRC
-    "src/lex/lexer.c")
+    "src/lex/lexer.c"
+    "src/lex/token.c")
 
 add_library(ely_lex SHARED ${ELY_LEX_SRC})
 target_include_directories(ely_lex PUBLIC 
