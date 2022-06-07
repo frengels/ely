@@ -242,7 +242,7 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
     advance_char(lex);
 
     bool escaping = false;
-    ch            = consume_char(lex);
+    ch            = peek_char(lex);
 
     while (escaping || ch != '"')
     {
@@ -253,14 +253,17 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
         else if (ch == '\\')
         {
             escaping = !escaping;
-            ch       = consume_char(lex);
+            advance_char(lex);
+            ch = peek_char(lex);
             continue;
         }
 
         escaping = false;
-        ch       = consume_char(lex);
+        advance_char(lex);
+        ch = peek_char(lex);
     }
-
+    
+    advance_char(lex);
     return (ely_token){.type = ELY_TOKEN_STRING, .start = token_start};
 }
 
@@ -274,12 +277,8 @@ static inline ely_token scan_single(ely_lexer* lex, ely_token_type ty)
 
 static inline ely_token scan_token(ely_lexer* lex)
 {
-    char         ch;
-    ely_position start_pos    = ely_lexer_position(lex);
-    const char*  start_cursor = lex->cursor;
-
 loop:
-    ch = peek_char(lex);
+    char ch = peek_char(lex);
     switch (ch)
     {
     case '\0':
@@ -311,13 +310,15 @@ loop:
     default:
         if (is_digit(ch))
         {
-            scan_number(lex, ch);
+            return scan_number(lex, ch);
         }
         else if (is_identifier_start(ch))
         {
-            scan_identifier(lex, ch);
+            return scan_identifier(lex, ch);
         }
     }
+
+    return scan_single(lex, ELY_TOKEN_UNKNOWN_CHAR);
 }
 
 uint32_t ely_lexer_scan_tokens(ely_lexer* lex, ely_token* dst, uint32_t dst_len)
