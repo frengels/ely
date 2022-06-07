@@ -162,7 +162,9 @@ scan_decimal(ely_lexer* lex, char ch, const char* token_start)
         ch = peek_char(lex);
     }
 
-    return (ely_token){.type = ELY_TOKEN_DEC};
+    return (ely_token){.type  = ELY_TOKEN_DEC,
+                       .len   = lex->cursor - token_start,
+                       .start = token_start};
 }
 
 static inline ely_token
@@ -183,7 +185,9 @@ scan_number_cont(ely_lexer* lex, char ch, const char* token_start)
         return scan_decimal(lex, ch, token_start);
     }
 
-    return (ely_token){.type = ELY_TOKEN_INT, .start = token_start};
+    return (ely_token){.type  = ELY_TOKEN_INT,
+                       .len   = lex->cursor - token_start,
+                       .start = token_start};
 }
 
 static inline ely_token scan_number(ely_lexer* lex, char ch)
@@ -204,7 +208,9 @@ scan_identifier_cont(ely_lexer* lex, char ch, const char* token_start)
         ch = peek_char(lex);
     }
 
-    return (ely_token){.type = ELY_TOKEN_IDENTIFIER, .start = token_start};
+    return (ely_token){.type  = ELY_TOKEN_IDENTIFIER,
+                       .len   = lex->cursor - token_start,
+                       .start = token_start};
 }
 
 static inline ely_token scan_sign(ely_lexer* lex, char ch)
@@ -237,7 +243,9 @@ static inline ely_token scan_identifier(ely_lexer* lex, char ch)
         return scan_identifier_cont(lex, ch, token_start);
     }
 
-    return (ely_token){.type = ELY_TOKEN_IDENTIFIER, .start = token_start};
+    return (ely_token){.type  = ELY_TOKEN_IDENTIFIER,
+                       .len   = lex->cursor - token_start,
+                       .start = token_start};
 }
 
 static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
@@ -253,7 +261,9 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
     {
         if (ch == '\0')
         {
-            return (ely_token){.type = ELY_TOKEN_UNTERMINATED_STRING};
+            return (ely_token){.type  = ELY_TOKEN_UNTERMINATED_STRING,
+                               .len   = lex->cursor - token_start,
+                               .start = token_start};
         }
         else if (ch == '\\')
         {
@@ -269,7 +279,9 @@ static inline ely_token scan_string_lit(ely_lexer* lex, char ch)
     }
 
     advance_char(lex);
-    return (ely_token){.type = ELY_TOKEN_STRING, .start = token_start};
+    return (ely_token){.type  = ELY_TOKEN_STRING,
+                       .len   = lex->cursor - token_start,
+                       .start = token_start};
 }
 
 static inline ely_token scan_single(ely_lexer* lex, ely_token_type ty)
