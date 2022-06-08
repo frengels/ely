@@ -34,10 +34,13 @@ void ely_stx_datum_destroy(ely_stx_datum* datum)
     {
     case ELY_STX_DATUM_LITERAL:
         ely_stx_literal_destroy(datum->data.lit);
+        break;
     case ELY_STX_DATUM_LIST:
         ely_stx_list_destroy(datum->data.list);
+        break;
     case ELY_STX_DATUM_IDENTIFIER:
         ely_stx_identifier_destroy(datum->data.ident);
+        break;
     default:
         __builtin_unreachable();
     }
