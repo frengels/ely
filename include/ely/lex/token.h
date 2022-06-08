@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "ely/export.h"
 #include "ely/location.h"
 
 #ifdef __cplusplus
@@ -17,7 +18,7 @@ typedef enum ely_token_type
 #undef X
 } ely_token_type;
 
-const char* ely_token_type_to_string(ely_token_type ty);
+ELY_EXPORT const char* ely_token_type_to_string(ely_token_type ty);
 
 typedef struct ely_token
 {
@@ -27,7 +28,7 @@ typedef struct ely_token
     ely_position   pos;   // 28 bytes
 } ely_token;
 
-int ely_token_print(FILE* f, const ely_token* t);
+ELY_EXPORT int ely_token_print(FILE* f, const ely_token* t);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 #ifndef ELY_STX_DATUM_H
 #define ELY_STX_DATUM_H
 
+#include "ely/export.h"
 #include "ely/stx/identifier.h"
 #include "ely/stx/list.h"
 #include "ely/stx/literal.h"
@@ -27,9 +28,10 @@ typedef struct ely_stx_datum
     } data;
 } ely_stx_datum;
 
-ely_stx_datum ely_stx_datum_create_literal(ely_stx_literal lit);
-ely_stx_datum ely_stx_datum_create_identifier(ely_stx_identifier ident);
-ely_stx_datum ely_stx_datum_create_list(ely_stx_list list);
+ELY_EXPORT ely_stx_datum ely_stx_datum_create_literal(ely_stx_literal lit);
+ELY_EXPORT ely_stx_datum
+ely_stx_datum_create_identifier(ely_stx_identifier ident);
+ELY_EXPORT ely_stx_datum ely_stx_datum_create_list(ely_stx_list list);
 
 void ely_stx_datum_destroy(ely_stx_datum* datum);
 

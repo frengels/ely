@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "ely/export.h"
 #include "ely/location.h"
 
 #ifdef __cplusplus
@@ -17,8 +18,9 @@ typedef struct
     bool         is_literal;
 } ely_stx_identifier;
 
-ely_stx_identifier ely_stx_identifier_create(const char* str, size_t len, const ely_position* pos);
-void               ely_stx_identifier_destroy(ely_stx_identifier* ident);
+ELY_EXPORT ely_stx_identifier
+ely_stx_identifier_create(const char* str, size_t len, const ely_position* pos);
+ELY_EXPORT void ely_stx_identifier_destroy(ely_stx_identifier* ident);
 
 #ifdef __cplusplus
 }

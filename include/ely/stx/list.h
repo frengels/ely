@@ -1,9 +1,10 @@
 #ifndef ELY_STX_LIST_H
 #define ELY_STX_LIST_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
+#include "ely/export.h"
 #include "ely/location.h"
 
 #ifdef __cplusplus
@@ -29,11 +30,11 @@ typedef struct
     ely_stx_list_type type;
 } ely_stx_list;
 
-ely_stx_list ely_stx_list_create(ely_stx_list_type   ty,
-                                 ely_stx_datum*      data,
-                                 size_t              len,
-                                 const ely_position* pos);
-void         ely_stx_list_destroy(ely_stx_list* list);
+ELY_EXPORT ely_stx_list ely_stx_list_create(ely_stx_list_type   ty,
+                                            ely_stx_datum*      data,
+                                            size_t              len,
+                                            const ely_position* pos);
+ELY_EXPORT void         ely_stx_list_destroy(ely_stx_list* list);
 
 #ifdef __cplusplus
 }

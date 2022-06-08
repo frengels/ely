@@ -13,4 +13,4 @@ foreach(t ${ELY_TESTS})
     make_test(${t})
 endforeach()
 
-target_link_libraries(lexer PRIVATE ely_lex)
+target_link_libraries(lexer PRIVATE ely)

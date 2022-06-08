@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "ely/export.h"
 #include "ely/location.h"
 
 #ifdef __cplusplus
@@ -30,21 +31,23 @@ typedef struct
     } data;
 } ely_stx_literal;
 
-ely_stx_literal ely_stx_literal_create_int(const char*         str,
-                                           size_t              len,
-                                           const ely_position* pos);
-ely_stx_literal ely_stx_literal_create_dec(const char*         str,
-                                           size_t              len,
-                                           const ely_position* pos);
-ely_stx_literal ely_stx_literal_create_string(const char*         str,
-                                              size_t              len,
-                                              const ely_position* pos);
-ely_stx_literal ely_stx_literal_create_char(const char*         str,
-                                            size_t              len,
-                                            const ely_position* pos);
-ely_stx_literal ely_stx_literal_create_bool(bool b, const ely_position* pos);
+ELY_EXPORT ely_stx_literal ely_stx_literal_create_int(const char*         str,
+                                                      size_t              len,
+                                                      const ely_position* pos);
+ELY_EXPORT ely_stx_literal ely_stx_literal_create_dec(const char*         str,
+                                                      size_t              len,
+                                                      const ely_position* pos);
+ELY_EXPORT ely_stx_literal
+                           ely_stx_literal_create_string(const char*         str,
+                                                         size_t              len,
+                                                         const ely_position* pos);
+ELY_EXPORT ely_stx_literal ely_stx_literal_create_char(const char*         str,
+                                                       size_t              len,
+                                                       const ely_position* pos);
+ELY_EXPORT ely_stx_literal ely_stx_literal_create_bool(bool                b,
+                                                       const ely_position* pos);
 
-void ely_stx_literal_destroy(ely_stx_literal* lit);
+ELY_EXPORT void ely_stx_literal_destroy(ely_stx_literal* lit);
 
 #ifdef __cplusplus
 }
