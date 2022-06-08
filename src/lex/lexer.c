@@ -310,44 +310,47 @@ static inline ely_token scan_single(ely_lexer* lex, ely_token_type ty)
 
 static inline ely_token scan_token(ely_lexer* lex)
 {
-loop:
-    char ch = peek_char(lex);
-    switch (ch)
+    while (true)
     {
-    case '\0':
-        __builtin_unreachable();
-    case ';':
-        scan_line_comment(lex, ch);
-    case '\n':
-    case ' ':
-    case '\t':
-    case '\v':
-        goto loop;
-    case '"':
-        return scan_string_lit(lex, ch);
-    case '(':
-        return scan_single(lex, ELY_TOKEN_LPAREN);
-    case ')':
-        return scan_single(lex, ELY_TOKEN_RPAREN);
-    case '[':
-        return scan_single(lex, ELY_TOKEN_LBRACKET);
-    case ']':
-        return scan_single(lex, ELY_TOKEN_RBRACKET);
-    case '{':
-        return scan_single(lex, ELY_TOKEN_LBRACE);
-    case '}':
-        return scan_single(lex, ELY_TOKEN_RBRACE);
-    case '-':
-    case '+':
-        return scan_sign(lex, ch);
-    default:
-        if (is_digit(ch))
+        char ch = peek_char(lex);
+        switch (ch)
         {
-            return scan_number(lex, ch);
-        }
-        else if (is_identifier_start(ch))
-        {
-            return scan_identifier(lex, ch);
+        case '\0':
+            __builtin_unreachable();
+        case ';':
+            scan_line_comment(lex, ch);
+        case '\n':
+        case ' ':
+        case '\t':
+        case '\v':
+            continue;
+        case '"':
+            return scan_string_lit(lex, ch);
+        case '(':
+            return scan_single(lex, ELY_TOKEN_LPAREN);
+        case ')':
+            return scan_single(lex, ELY_TOKEN_RPAREN);
+        case '[':
+            return scan_single(lex, ELY_TOKEN_LBRACKET);
+        case ']':
+            return scan_single(lex, ELY_TOKEN_RBRACKET);
+        case '{':
+            return scan_single(lex, ELY_TOKEN_LBRACE);
+        case '}':
+            return scan_single(lex, ELY_TOKEN_RBRACE);
+        case '-':
+        case '+':
+            return scan_sign(lex, ch);
+        default:
+            if (is_digit(ch))
+            {
+                return scan_number(lex, ch);
+            }
+            else if (is_identifier_start(ch))
+            {
+                return scan_identifier(lex, ch);
+            }
+            break;
         }
     }
 

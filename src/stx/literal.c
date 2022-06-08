@@ -67,5 +67,6 @@ void ely_stx_literal_destroy(ely_stx_literal* lit)
         free(lit->data.str);
     case ELY_STX_LITERAL_BOOL:
     default:
+        break;
     }
 }
