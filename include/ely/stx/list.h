@@ -13,8 +13,6 @@ extern "C" {
 
 typedef struct ely_stx_datum ely_stx_datum;
 
-static inline void ely_stx_datum_destroy(ely_stx_datum*);
-
 typedef enum
 {
     ELY_STX_LIST_PARENS,

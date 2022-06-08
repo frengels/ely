@@ -21,3 +21,8 @@ ely_stx_list ely_stx_list_create(ely_stx_list_type   ty,
 
     return res;
 }
+
+void ely_stx_list_destroy(ely_stx_list* list)
+{
+    free(list->data);
+}
