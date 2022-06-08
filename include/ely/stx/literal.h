@@ -3,7 +3,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdlib.h>
+
+#include "ely/location.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,7 +12,8 @@ extern "C" {
 
 typedef enum
 {
-    ELY_STX_LITERAL_NUMBER,
+    ELY_STX_LITERAL_INT,
+    ELY_STX_LITERAL_DEC,
     ELY_STX_LITERAL_STRING,
     ELY_STX_LITERAL_CHAR,
     ELY_STX_LITERAL_BOOL,
@@ -19,6 +21,7 @@ typedef enum
 
 typedef struct
 {
+    ely_position         pos;
     ely_stx_literal_type type;
     union
     {
@@ -27,23 +30,21 @@ typedef struct
     } data;
 } ely_stx_literal;
 
-ely_stx_literal ely_stx_literal_create_number(const char* str, size_t len);
+ely_stx_literal ely_stx_literal_create_int(const char*         str,
+                                           size_t              len,
+                                           const ely_position* pos);
+ely_stx_literal ely_stx_literal_create_dec(const char*         str,
+                                           size_t              len,
+                                           const ely_position* pos);
+ely_stx_literal ely_stx_literal_create_string(const char*         str,
+                                              size_t              len,
+                                              const ely_position* pos);
+ely_stx_literal ely_stx_literal_create_char(const char*         str,
+                                            size_t              len,
+                                            const ely_position* pos);
+ely_stx_literal ely_stx_literal_create_bool(bool b, const ely_position* pos);
 
-static inline ely_stx_literal ely_stx_literal_create_number(const char* str,
-                                                            size_t      len)
-{}
-
-static inline void ely_stx_literal_destroy(ely_stx_literal* lit)
-{
-    switch (lit->type)
-    {
-    case ELY_STX_LITERAL_NUMBER:
-    case ELY_STX_LITERAL_STRING:
-    case ELY_STX_LITERAL_CHAR:
-        free(lit->data.str);
-    default:
-    }
-}
+void ely_stx_literal_destroy(ely_stx_literal* lit);
 
 #ifdef __cplusplus
 }

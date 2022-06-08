@@ -9,14 +9,14 @@
 extern "C" {
 #endif
 
-typedef enum
+typedef enum ely_stx_datum_type
 {
     ELY_STX_DATUM_LITERAL,
     ELY_STX_DATUM_LIST,
     ELY_STX_DATUM_IDENTIFIER
 } ely_stx_datum_type;
 
-typedef struct
+typedef struct ely_stx_datum
 {
     ely_stx_datum_type type;
     union
@@ -50,21 +50,6 @@ static inline ely_stx_datum ely_stx_datum_create_list(ely_stx_list list)
     res.type      = ELY_STX_DATUM_LIST;
     res.data.list = list;
     return res;
-}
-
-static inline void ely_stx_datum_destroy(ely_stx_datum* datum)
-{
-    switch (datum->type)
-    {
-    case ELY_STX_DATUM_LITERAL:
-        return ely_stx_literal_destroy(&datum->data.lit);
-    case ELY_STX_DATUM_LIST:
-        return ely_stx_list_destroy(&datum->data.list);
-    case ELY_STX_DATUM_IDENTIFIER:
-        return ely_stx_identifier_destroy(&datum->data.ident);
-    default:
-        __builtin_unreachable();
-    }
 }
 
 #ifdef __cplusplus
