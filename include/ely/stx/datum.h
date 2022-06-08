@@ -27,30 +27,11 @@ typedef struct ely_stx_datum
     } data;
 } ely_stx_datum;
 
-static inline ely_stx_datum ely_stx_datum_create_literal(ely_stx_literal lit)
-{
-    ely_stx_datum res;
-    res.type     = ELY_STX_DATUM_LITERAL;
-    res.data.lit = lit;
-    return res;
-}
+ely_stx_datum ely_stx_datum_create_literal(ely_stx_literal lit);
+ely_stx_datum ely_stx_datum_create_identifier(ely_stx_identifier ident);
+ely_stx_datum ely_stx_datum_create_list(ely_stx_list list);
 
-static inline ely_stx_datum
-ely_stx_datum_create_identifier(ely_stx_identifier ident)
-{
-    ely_stx_datum res;
-    res.type       = ELY_STX_DATUM_IDENTIFIER;
-    res.data.ident = ident;
-    return res;
-}
-
-static inline ely_stx_datum ely_stx_datum_create_list(ely_stx_list list)
-{
-    ely_stx_datum res;
-    res.type      = ELY_STX_DATUM_LIST;
-    res.data.list = list;
-    return res;
-}
+void ely_stx_datum_destroy(ely_stx_datum* datum);
 
 #ifdef __cplusplus
 }
