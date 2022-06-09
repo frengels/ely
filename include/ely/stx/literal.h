@@ -11,43 +11,41 @@
 extern "C" {
 #endif
 
-typedef enum
+typedef enum ely_literal_type
 {
-    ELY_STX_LITERAL_INT,
-    ELY_STX_LITERAL_DEC,
-    ELY_STX_LITERAL_STRING,
-    ELY_STX_LITERAL_CHAR,
-    ELY_STX_LITERAL_BOOL,
-} ely_stx_literal_type;
+    ELY_LITERAL_INT,
+    ELY_LITERAL_DEC,
+    ELY_LITERAL_STRING,
+    ELY_LITERAL_CHAR,
+    ELY_LITERAL_BOOL,
+} ely_literal_type;
 
-typedef struct
+typedef struct ely_literal
 {
-    ely_position         pos;
-    ely_stx_literal_type type;
+    ely_position     pos;
+    ely_literal_type type;
     union
     {
         char* str;
         bool  b;
     } data;
-} ely_stx_literal;
+} ely_literal;
 
-ELY_EXPORT ely_stx_literal ely_stx_literal_create_int(const char*         str,
-                                                      size_t              len,
-                                                      const ely_position* pos);
-ELY_EXPORT ely_stx_literal ely_stx_literal_create_dec(const char*         str,
-                                                      size_t              len,
-                                                      const ely_position* pos);
-ELY_EXPORT ely_stx_literal
-                           ely_stx_literal_create_string(const char*         str,
-                                                         size_t              len,
-                                                         const ely_position* pos);
-ELY_EXPORT ely_stx_literal ely_stx_literal_create_char(const char*         str,
-                                                       size_t              len,
-                                                       const ely_position* pos);
-ELY_EXPORT ely_stx_literal ely_stx_literal_create_bool(bool                b,
-                                                       const ely_position* pos);
+ELY_EXPORT ely_literal ely_literal_create_int(const char*         str,
+                                              size_t              len,
+                                              const ely_position* pos);
+ELY_EXPORT ely_literal ely_literal_create_dec(const char*         str,
+                                              size_t              len,
+                                              const ely_position* pos);
+ELY_EXPORT ely_literal ely_literal_create_string(const char*         str,
+                                                 size_t              len,
+                                                 const ely_position* pos);
+ELY_EXPORT ely_literal ely_literal_create_char(const char*         str,
+                                               size_t              len,
+                                               const ely_position* pos);
+ELY_EXPORT ely_literal ely_literal_create_bool(bool b, const ely_position* pos);
 
-ELY_EXPORT void ely_stx_literal_destroy(ely_stx_literal* lit);
+ELY_EXPORT void ely_literal_destroy(ely_literal* lit);
 
 #ifdef __cplusplus
 }
