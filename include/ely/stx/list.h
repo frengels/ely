@@ -30,7 +30,7 @@ typedef struct ely_list
 
 ELY_NO_EXPORT void
 ely_list_init(ely_list* list, ely_list_type ty, const ely_position* pos);
-ELY_NO_EXPORT void ely_list_deinit(ely_list* list);
+ELY_NO_EXPORT void ely_list_destroy(ely_list* list);
 
 #ifdef __cplusplus
 }

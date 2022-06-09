@@ -12,7 +12,7 @@ void ely_list_init(ely_list* list, ely_list_type ty, const ely_position* pos)
     ely_ilist_init(&list->head);
 }
 
-void ely_list_deinit(ely_list* list)
+void ely_list_destroy(ely_list* list)
 {
     ely_ilist* it = list->head.next;
     while (it != &list->head)

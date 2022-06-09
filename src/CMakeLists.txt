@@ -2,6 +2,7 @@ set(ELY_SRC
     "ilist.c"
     "lex/lexer.c"
     "lex/token.c"
+    "stx/datum.c"
     "stx/literal.c"
     "stx/list.c"
     "stx/identifier.c"
