@@ -1,12 +1,12 @@
-#include "ely/list.h"
+#include "ely/ilist.h"
 
-void ely_list_init(ely_list* list)
+void ely_ilist_init(ely_ilist* list)
 {
     list->prev = list;
     list->next = list;
 }
 
-void ely_list_insert(ely_list* list, ely_list* element)
+void ely_ilist_insert(ely_ilist* list, ely_ilist* element)
 {
     element->prev       = list;
     element->next       = list->next;
@@ -14,7 +14,7 @@ void ely_list_insert(ely_list* list, ely_list* element)
     element->next->prev = element;
 }
 
-void ely_list_remove(ely_list* element)
+void ely_ilist_remove(ely_ilist* element)
 {
     element->prev->next = element->next;
     element->next->prev = element->prev;
@@ -22,10 +22,10 @@ void ely_list_remove(ely_list* element)
     element->prev       = NULL;
 }
 
-uint32_t ely_list_length(const ely_list* list)
+uint32_t ely_ilist_length(const ely_ilist* list)
 {
-    ely_list* e   = list->next;
-    uint32_t  len = 0;
+    ely_ilist* e   = list->next;
+    uint32_t   len = 0;
 
     while (e != list)
     {
@@ -36,14 +36,14 @@ uint32_t ely_list_length(const ely_list* list)
     return len;
 }
 
-bool ely_list_empty(const ely_list* list)
+bool ely_ilist_empty(const ely_ilist* list)
 {
     return list->next == list;
 }
 
-void ely_list_insert_list(ely_list* list, ely_list* other)
+void ely_ilist_insert_list(ely_ilist* list, ely_ilist* other)
 {
-    if (ely_list_empty(other))
+    if (ely_ilist_empty(other))
     {
         return;
     }
