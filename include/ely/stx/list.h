@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "ely/export.h"
+#include "ely/ilist.h"
 #include "ely/location.h"
 
 #ifdef __cplusplus
@@ -13,26 +14,23 @@ extern "C" {
 
 typedef struct ely_stx_datum ely_stx_datum;
 
-typedef enum
+typedef enum ely_list_type
 {
-    ELY_STX_LIST_PARENS,
-    ELY_STX_LIST_BRACKET,
-    ELY_STX_LIST_BRACE
-} ely_stx_list_type;
+    ELY_LIST_PARENS,
+    ELY_LIST_BRACKET,
+    ELY_LIST_BRACE
+} ely_list_type;
 
-typedef struct
+typedef struct ely_list
 {
-    ely_position      pos;
-    ely_stx_datum*    data;
-    uint32_t          data_len;
-    ely_stx_list_type type;
-} ely_stx_list;
+    ely_list_type type;
+    ely_position  pos;
+    ely_ilist     head;
+} ely_list;
 
-ELY_EXPORT ely_stx_list ely_stx_list_create(ely_stx_list_type   ty,
-                                            ely_stx_datum*      data,
-                                            size_t              len,
-                                            const ely_position* pos);
-ELY_EXPORT void         ely_stx_list_destroy(ely_stx_list* list);
+ELY_NO_EXPORT void
+ely_list_init(ely_list* list, ely_list_type ty, const ely_position* pos);
+ELY_NO_EXPORT void ely_list_deinit(ely_list* list);
 
 #ifdef __cplusplus
 }

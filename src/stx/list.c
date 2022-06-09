@@ -5,24 +5,20 @@
 
 #include "ely/stx/datum.h"
 
-ely_stx_list ely_stx_list_create(ely_stx_list_type   ty,
-                                 ely_stx_datum*      data,
-                                 size_t              len,
-                                 const ely_position* pos)
+void ely_list_init(ely_list* list, ely_list_type ty, const ely_position* pos)
 {
-    ely_stx_datum* data_dst = malloc(sizeof(ely_stx_datum) * len);
-    memcpy(data_dst, data, len * sizeof(ely_stx_datum));
-
-    ely_stx_list res;
-    res.pos      = *pos;
-    res.data     = data_dst;
-    res.data_len = (uint32_t) len;
-    res.type     = ty;
-
-    return res;
+    list->type = ty;
+    list->pos  = *pos;
+    ely_ilist_init(&list->head);
 }
 
-void ely_stx_list_destroy(ely_stx_list* list)
+void ely_list_deinit(ely_list* list)
 {
-    free(list->data);
+    ely_ilist* it = list->head.next;
+    while (it != &list->head)
+    {
+        ely_datum* datum = ELY_CONTAINER_OF(it, datum, link);
+        it               = it->next;
+        ely_datum_destroy(datum);
+    }
 }
