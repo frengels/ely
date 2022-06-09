@@ -1,5 +1,5 @@
 set(ELY_SRC
-    "list.c"
+    "ilist.c"
     "lex/lexer.c"
     "lex/token.c"
     "stx/literal.c"
