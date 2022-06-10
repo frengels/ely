@@ -68,6 +68,31 @@ ely_datum* ely_datum_create_identifier_str(const char*         str,
     return ely_datum_create_identifier(&ident);
 }
 
+static inline ely_datum* create_list(ely_list_type ty, const ely_position* pos)
+{
+    ely_datum* res      = malloc(sizeof(ely_datum));
+    res->type           = ELY_DATUM_LIST;
+    res->data.list.type = ty;
+    res->data.list.pos  = *pos;
+    ely_ilist_init(&res->data.list.head);
+    return res;
+}
+
+ely_datum* ely_datum_create_parens_list(const ely_position* pos)
+{
+    return create_list(ELY_LIST_PARENS, pos);
+}
+
+ely_datum* ely_datum_create_bracket_list(const ely_position* pos)
+{
+    return create_list(ELY_LIST_BRACKET, pos);
+}
+
+ely_datum* ely_datum_create_brace_list(const ely_position* pos)
+{
+    return create_list(ELY_LIST_BRACE, pos);
+}
+
 void ely_datum_destroy(ely_datum* datum)
 {
     switch (datum->type)
