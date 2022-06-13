@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include <llvm/Support/SMLoc.h>
+
 #include "ely/export.h"
 #include "ely/position.hpp"
 
@@ -10,18 +12,18 @@ namespace ely
 {
 class ELY_EXPORT identifier
 {
-    ely::position pos_;
-    std::string   str_;
-    bool          is_literal{false};
+    std::string str_;
+    bool        is_literal{false};
+    llvm::SMLoc loc_;
 
 public:
-    identifier(std::string_view str, const ely::position& pos = {})
-        : pos_(pos), str_(std::move(str))
+    identifier(std::string_view str)
+        : str_(std::move(str)), loc_(llvm::SMLoc::getFromPointer(str.data()))
     {}
 
-    constexpr const ely::position& pos() const
+    llvm::SMLoc location() const
     {
-        return pos_;
+        return loc_;
     }
 };
 } // namespace ely
