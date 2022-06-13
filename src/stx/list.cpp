@@ -5,10 +5,10 @@
 
 #include "ely/stx/datum.hpp"
 
-void ely_list_init(ely_list* list, ely_list_type ty, const ely::position& pos)
+void ely_list_init(ely_list* list, ely_list_type ty, llvm::SMRange range)
 {
-    list->type = ty;
-    list->pos  = pos;
+    list->type  = ty;
+    list->range = range;
     ely_ilist_init(&list->head);
 }
 

@@ -6,7 +6,6 @@
 
 #include "ely/export.h"
 #include "ely/lex/token.hpp"
-#include "ely/position.hpp"
 
 namespace ely
 {

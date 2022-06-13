@@ -49,29 +49,27 @@ ely_datum* ely_datum_create_identifier_str(std::string_view str)
     return ely_datum_create_identifier(ely::identifier(str));
 }
 
-static inline ely_datum* create_list(ely_list_type ty, const ely::position& pos)
+static inline ely_datum* create_list(ely_list_type ty, llvm::SMRange range)
 {
-    ely_datum* res      = static_cast<ely_datum*>(malloc(sizeof(ely_datum)));
-    res->type           = ELY_DATUM_LIST;
-    res->data.list.type = ty;
-    res->data.list.pos  = pos;
-    ely_ilist_init(&res->data.list.head);
+    ely_datum* res = static_cast<ely_datum*>(malloc(sizeof(ely_datum)));
+    res->type      = ELY_DATUM_LIST;
+    ely_list_init(&res->data.list, ty, range);
     return res;
 }
 
-ely_datum* ely_datum_create_parens_list(const ely::position& pos)
+ely_datum* ely_datum_create_parens_list(llvm::SMRange range)
 {
-    return create_list(ELY_LIST_PARENS, pos);
+    return create_list(ELY_LIST_PARENS, range);
 }
 
-ely_datum* ely_datum_create_bracket_list(const ely::position& pos)
+ely_datum* ely_datum_create_bracket_list(llvm::SMRange range)
 {
-    return create_list(ELY_LIST_BRACKET, pos);
+    return create_list(ELY_LIST_BRACKET, range);
 }
 
-ely_datum* ely_datum_create_brace_list(const ely::position& pos)
+ely_datum* ely_datum_create_brace_list(llvm::SMRange range)
 {
-    return create_list(ELY_LIST_BRACE, pos);
+    return create_list(ELY_LIST_BRACE, range);
 }
 
 void ely_datum_destroy(ely_datum* datum)

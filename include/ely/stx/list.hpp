@@ -1,12 +1,13 @@
 #ifndef ELY_STX_LIST_H
 #define ELY_STX_LIST_H
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+
+#include <llvm/Support/SMLoc.h>
 
 #include "ely/export.h"
 #include "ely/ilist.h"
-#include "ely/location.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,12 +25,12 @@ typedef enum ely_list_type
 typedef struct ely_list
 {
     ely_list_type type;
-    ely::position pos;
+    llvm::SMRange range;
     ely_ilist     head;
 } ely_list;
 
 ELY_EXPORT void
-ely_list_init(ely_list* list, ely_list_type ty, const ely::position& pos);
+ely_list_init(ely_list* list, ely_list_type ty, llvm::SMRange range);
 ELY_EXPORT void ely_list_destroy(ely_list* list);
 
 ELY_EXPORT uint32_t   ely_list_length(const ely_list* list);

@@ -4,7 +4,6 @@
 
 #include "ely/export.h"
 #include "ely/ilist.h"
-#include "ely/position.hpp"
 #include "ely/stx/identifier.hpp"
 #include "ely/stx/list.hpp"
 #include "ely/stx/literal.hpp"
@@ -39,9 +38,9 @@ ELY_EXPORT ely_datum* ely_datum_create_char_literal(std::string_view str);
 
 ELY_EXPORT ely_datum* ely_datum_create_identifier_str(std::string_view str);
 
-ELY_EXPORT ely_datum* ely_datum_create_parens_list(const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_bracket_list(const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_brace_list(const ely::position& pos);
+ELY_EXPORT ely_datum* ely_datum_create_parens_list(llvm::SMRange range);
+ELY_EXPORT ely_datum* ely_datum_create_bracket_list(llvm::SMRange range);
+ELY_EXPORT ely_datum* ely_datum_create_brace_list(llvm::SMRange range);
 
 ELY_EXPORT void ely_datum_destroy(ely_datum* datum);
 }

@@ -8,7 +8,6 @@
 #include <llvm/Support/SMLoc.h>
 
 #include "ely/export.h"
-#include "ely/position.hpp"
 
 namespace ely
 {
