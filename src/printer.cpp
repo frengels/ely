@@ -1,6 +1,6 @@
-#include "ely/printer.h"
+#include "ely/printer.hpp"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 typedef struct ely_printer
 {
@@ -9,7 +9,7 @@ typedef struct ely_printer
 
 ely_printer* ely_printer_create(FILE* out)
 {
-    ely_printer* p = malloc(sizeof(ely_printer));
+    ely_printer* p = static_cast<ely_printer*>(malloc(sizeof(ely_printer)));
     p->out         = out;
     return p;
 }

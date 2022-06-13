@@ -1,14 +1,14 @@
-#include "ely/stx/list.h"
+#include "ely/stx/list.hpp"
 
 #include <stdlib.h>
 #include <string.h>
 
-#include "ely/stx/datum.h"
+#include "ely/stx/datum.hpp"
 
-void ely_list_init(ely_list* list, ely_list_type ty, const ely_position* pos)
+void ely_list_init(ely_list* list, ely_list_type ty, const ely::position& pos)
 {
     list->type = ty;
-    list->pos  = *pos;
+    list->pos  = pos;
     ely_ilist_init(&list->head);
 }
 

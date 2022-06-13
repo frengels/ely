@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "ely/export.h"
-#include "ely/stx/list.h"
+#include "ely/stx/list.hpp"
 
 #ifdef __cplusplus
 extern "C" {

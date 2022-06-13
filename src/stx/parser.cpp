@@ -4,20 +4,20 @@
 #include <cstdlib>
 
 #include "ely/lex/lexer.hpp"
-#include "ely/stx/datum.h"
+#include "ely/stx/datum.hpp"
 
 #define DEFAULT_TOKEN_BUF_SIZE 1024
 
 typedef struct ely_stx_parser
 {
-    ely::lexer* lex;
+    ely::lexer  lex;
     ely::token* token_buf;
     uint32_t    buf_cap;
     uint32_t    buf_head;
     uint32_t    buf_tail;
 } ely_stx_parser;
 
-ely_stx_parser* ely_stx_parser_create(ely::lexer* lex)
+ely_stx_parser* ely_stx_parser_create(ely::lexer lex)
 {
     ely_stx_parser* parser =
         static_cast<ely_stx_parser*>(malloc(sizeof(*parser)));
@@ -72,7 +72,7 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
     ely_ilist_init(res_list);
 
     parser->buf_tail =
-        parser->lex->scan_tokens(parser->token_buf, parser->buf_cap);
+        parser->lex.scan_tokens(parser->token_buf, parser->buf_cap);
 
     ely::token tok = peek_token(parser);
 
@@ -94,19 +94,19 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
         datum = parse_brace_list(parser);
         break;
     case token_type::identifier:
-        datum = ely_datum_create_identifier_str(tok.start, tok.len, &tok.pos);
+        datum = ely_datum_create_identifier_str(tok.start, tok.len, tok.pos);
         break;
     case token_type::string_literal:
-        datum = ely_datum_create_string_literal(tok.start, tok.len, &tok.pos);
+        datum = ely_datum_create_string_literal(tok.start, tok.len, tok.pos);
         break;
     case token_type::int_literal:
-        datum = ely_datum_create_int_literal(tok.start, tok.len, &tok.pos);
+        datum = ely_datum_create_int_literal(tok.start, tok.len, tok.pos);
         break;
     case token_type::decimal_literal:
-        datum = ely_datum_create_dec_literal(tok.start, tok.len, &tok.pos);
+        datum = ely_datum_create_dec_literal(tok.start, tok.len, tok.pos);
         break;
     case token_type::char_literal:
-        datum = ely_datum_create_char_literal(tok.start, tok.len, &tok.pos);
+        datum = ely_datum_create_char_literal(tok.start, tok.len, tok.pos);
         break;
     case token_type::unknown_char:
     case token_type::unterminated_string:

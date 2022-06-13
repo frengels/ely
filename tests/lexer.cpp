@@ -10,11 +10,11 @@
         fprintf(stderr, "testing: " #name ", \"" src "\"\n");                  \
         ely::token   dst[16];                                                  \
         ely::lexer   lex   = ely::lexer((src));                                \
-        ely_position start = lex.position();                                   \
+        ely::position start = lex.position();                                   \
         assert(!lex.empty());                                                  \
         uint32_t write = lex.scan_tokens(dst, 16);                             \
         fprintf(stderr, "  wrote %d tokens\n", write);                         \
-        ely_position end = lex.position();                                     \
+        ely::position end = lex.position();                                     \
         fprintf(stderr, "  read %d characters\n", end.offset - start.offset);  \
         assert(write == 1);                                                    \
         fprintf(stderr,                                                        \

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "ely/location.h"
+#include "ely/location.hpp"
 
 #ifdef __cplusplus
 extern "C" {

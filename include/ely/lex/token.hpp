@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include "ely/export.h"
-#include "ely/location.h"
+#include "ely/position.hpp"
 
 namespace ely
 {
@@ -18,9 +18,9 @@ ELY_EXPORT const char* token_type_to_string(ely::token_type ty);
 
 struct token
 {
-    token_type   type;  // 4 bytes
-    uint32_t     len;   // 8 bytes
-    const char*  start; // 16 bytes
-    ely_position pos;   // 28 bytes
+    token_type    type;  // 4 bytes
+    uint32_t      len;   // 8 bytes
+    const char*   start; // 16 bytes
+    ely::position pos;   // 28 bytes
 };
 } // namespace ely

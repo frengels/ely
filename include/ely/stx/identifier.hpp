@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 #include "ely/export.h"
-#include "ely/location.h"
+#include "ely/position.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,14 +13,14 @@ extern "C" {
 
 typedef struct ely_identifier
 {
-    ely_position pos;
-    char*        str;
-    bool         is_literal;
+    ely::position pos;
+    char*         str;
+    bool          is_literal;
 } ely_identifier;
 
 ELY_EXPORT ely_identifier ely_identifier_create(const char*         str,
                                                 size_t              len,
-                                                const ely_position* pos);
+                                                const ely::position& pos);
 ELY_EXPORT void           ely_identifier_destroy(ely_identifier* ident);
 
 #ifdef __cplusplus

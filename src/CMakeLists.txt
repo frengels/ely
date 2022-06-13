@@ -1,12 +1,12 @@
 set(ELY_SRC
     "ilist.c"
-    "printer.c"
+    "printer.cpp"
     "lex/lexer.cpp"
     "lex/token.cpp"
-    "stx/datum.c"
-    "stx/literal.c"
-    "stx/list.c"
-    "stx/identifier.c"
+    "stx/datum.cpp"
+    "stx/literal.cpp"
+    "stx/list.cpp"
+    "stx/identifier.cpp"
     "stx/parser.cpp")
 
 include(GenerateExportHeader)

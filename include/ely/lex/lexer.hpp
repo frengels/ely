@@ -2,9 +2,10 @@
 
 #include <cstdint>
 
-#include "ely/diagnostic.h"
+#include "ely/diagnostic.hpp"
 #include "ely/export.h"
 #include "ely/lex/token.hpp"
+#include "ely/position.hpp"
 
 typedef struct
 {
@@ -30,7 +31,7 @@ public:
         : cursor(src), offset(offset), line(line), col(col)
     {}
 
-    constexpr ely_position position() const
+    constexpr ely::position position() const
     {
         return {.offset = offset, .line = line, .col = col};
     }
