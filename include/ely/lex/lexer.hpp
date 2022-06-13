@@ -28,6 +28,8 @@ public:
         return *cursor == '\0';
     }
 
+    ely::token next();
+
     uint32_t scan_tokens(ely::token* dst, uint32_t dst_len);
 };
 } // namespace ely

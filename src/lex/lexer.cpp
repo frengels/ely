@@ -247,57 +247,57 @@ ely::token scan_single(ely::lexer& lex, token_type ty)
     advance_char(lex);
     return {ty, token_start, 1};
 }
+}
+} // namespace
 
-ely::token scan_token(ely::lexer& lex)
+ely::token ely::lexer::next()
 {
     while (true)
     {
-        char ch = peek_char(lex);
+        char ch = peek_char(*this);
         switch (ch)
         {
         case '\0':
             __builtin_unreachable();
         case ';':
-            scan_line_comment(lex, ch);
+            scan_line_comment(*this, ch);
         case '\n':
         case ' ':
         case '\t':
         case '\v':
             continue;
         case '"':
-            return scan_string_lit(lex, ch);
+            return scan_string_lit(*this, ch);
         case '(':
-            return scan_single(lex, token_type::lparen);
+            return scan_single(*this, token_type::lparen);
         case ')':
-            return scan_single(lex, token_type::rparen);
+            return scan_single(*this, token_type::rparen);
         case '[':
-            return scan_single(lex, token_type::lbracket);
+            return scan_single(*this, token_type::lbracket);
         case ']':
-            return scan_single(lex, token_type::rbracket);
+            return scan_single(*this, token_type::rbracket);
         case '{':
-            return scan_single(lex, token_type::lbrace);
+            return scan_single(*this, token_type::lbrace);
         case '}':
-            return scan_single(lex, token_type::rbrace);
+            return scan_single(*this, token_type::rbrace);
         case '-':
         case '+':
-            return scan_sign(lex, ch);
+            return scan_sign(*this, ch);
         default:
             if (is_digit(ch))
             {
-                return scan_number(lex, ch);
+                return scan_number(*this, ch);
             }
             else if (is_identifier_start(ch))
             {
-                return scan_identifier(lex, ch);
+                return scan_identifier(*this, ch);
             }
             break;
         }
     }
 
-    return scan_single(lex, token_type::unknown_char);
+    return scan_single(*this, token_type::unknown_char);
 }
-}
-} // namespace
 
 uint32_t ely::lexer::scan_tokens(token* dst, uint32_t dst_len)
 {
@@ -310,7 +310,7 @@ uint32_t ely::lexer::scan_tokens(token* dst, uint32_t dst_len)
 
     do
     {
-        auto tok = scan_token(*this);
+        auto tok = next();
         dst[i]   = tok;
         ++i;
     } while (*cursor != '\0');
