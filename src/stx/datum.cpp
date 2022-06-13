@@ -14,11 +14,12 @@ ely_datum* ely_datum_create_literal(const ely_literal* lit)
     return res;
 }
 
-ely_datum* ely_datum_create_identifier(const ely_identifier* ident)
+ely_datum* ely_datum_create_identifier(ely::identifier ident)
 {
-    ely_datum* res  = static_cast<ely_datum*>(malloc(sizeof(ely_datum)));
-    res->type       = ELY_DATUM_IDENTIFIER;
-    res->data.ident = *ident;
+    ely_datum* res = static_cast<ely_datum*>(malloc(sizeof(ely_datum)));
+    res->type      = ELY_DATUM_IDENTIFIER;
+
+    new (&res->data.ident) ely::identifier(std::move(ident));
     return res;
 }
 
@@ -60,12 +61,10 @@ ely_datum* ely_datum_create_bool_literal(bool b, const ely::position& pos)
     return ely_datum_create_literal(&lit);
 }
 
-ely_datum* ely_datum_create_identifier_str(const char*          str,
-                                           size_t               len,
+ely_datum* ely_datum_create_identifier_str(std::string          str,
                                            const ely::position& pos)
 {
-    ely_identifier ident = ely_identifier_create(str, len, pos);
-    return ely_datum_create_identifier(&ident);
+    return ely_datum_create_identifier(ely::identifier(std::move(str), pos));
 }
 
 static inline ely_datum* create_list(ely_list_type ty, const ely::position& pos)
@@ -101,7 +100,7 @@ void ely_datum_destroy(ely_datum* datum)
         ely_literal_destroy(&datum->data.lit);
         break;
     case ELY_DATUM_IDENTIFIER:
-        ely_identifier_destroy(&datum->data.ident);
+        datum->data.ident.~identifier();
         break;
     case ELY_DATUM_LIST:
         ely_list_destroy(&datum->data.list);

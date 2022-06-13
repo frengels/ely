@@ -23,14 +23,14 @@ typedef struct ely_datum
     ely_datum_type type;
     union
     {
-        ely_literal    lit;
-        ely_list       list;
-        ely_identifier ident;
+        ely_literal     lit;
+        ely_list        list;
+        ely::identifier ident;
     } data;
 } ely_datum;
 
 ELY_EXPORT ely_datum* ely_datum_create_literal(const ely_literal* lit);
-ELY_EXPORT ely_datum* ely_datum_create_identifier(const ely_identifier* ident);
+ELY_EXPORT ely_datum* ely_datum_create_identifier(ely::identifier ident);
 
 ELY_EXPORT ely_datum* ely_datum_create_string_literal(const char*          str,
                                                       size_t               len,
@@ -47,8 +47,7 @@ ELY_EXPORT ely_datum* ely_datum_create_char_literal(const char*          str,
 ELY_EXPORT ely_datum* ely_datum_create_bool_literal(bool                 b,
                                                     const ely::position& pos);
 
-ELY_EXPORT ely_datum* ely_datum_create_identifier_str(const char*          str,
-                                                      size_t               len,
+ELY_EXPORT ely_datum* ely_datum_create_identifier_str(std::string          str,
                                                       const ely::position& pos);
 
 ELY_EXPORT ely_datum* ely_datum_create_parens_list(const ely::position& pos);

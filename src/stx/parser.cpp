@@ -93,9 +93,11 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
     case token_type::lbrace:
         datum = parse_brace_list(parser);
         break;
-    case token_type::identifier:
-        datum = ely_datum_create_identifier_str(tok.start, tok.len, tok.pos);
-        break;
+    case token_type::identifier: {
+        auto str = std::string(tok.start, tok.len);
+        datum    = ely_datum_create_identifier_str(std::move(str), tok.pos);
+    }
+    break;
     case token_type::string_literal:
         datum = ely_datum_create_string_literal(tok.start, tok.len, tok.pos);
         break;

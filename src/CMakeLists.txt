@@ -6,7 +6,6 @@ set(ELY_SRC
     "stx/datum.cpp"
     "stx/literal.cpp"
     "stx/list.cpp"
-    "stx/identifier.cpp"
     "stx/parser.cpp")
 
 include(GenerateExportHeader)
