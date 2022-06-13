@@ -17,8 +17,6 @@ static inline char peek_char(ely::lexer& lex)
 
 static inline void advance_char(ely::lexer& lex)
 {
-    ++lex.offset;
-    ++lex.col;
     ++lex.cursor;
 }
 
@@ -96,14 +94,10 @@ void scan_line_comment(ely::lexer& lex, char ch)
             if (ch == '\n')
             {
                 advance_char(lex);
-                ++lex.line;
-                lex.col = 1;
                 return;
             }
             __attribute__((fallthrough));
         case '\n':
-            ++lex.line;
-            lex.col = 1;
             __attribute__((fallthrough));
         case '\0':
             return;
@@ -113,10 +107,7 @@ void scan_line_comment(ely::lexer& lex, char ch)
     }
 }
 
-ely::token scan_decimal(ely::lexer&          lex,
-                        char                 ch,
-                        const char*          token_start,
-                        const ely::position& pos)
+ely::token scan_decimal(ely::lexer& lex, char ch, const char* token_start)
 {
     assert(ch == '.');
     advance_char(lex);
@@ -134,10 +125,7 @@ ely::token scan_decimal(ely::lexer&          lex,
             static_cast<uint32_t>(lex.cursor - token_start)};
 }
 
-ely::token scan_number_cont(ely::lexer&          lex,
-                            char                 ch,
-                            const char*          token_start,
-                            const ely::position& pos)
+ely::token scan_number_cont(ely::lexer& lex, char ch, const char* token_start)
 {
     assert(is_digit(ch));
     advance_char(lex);
@@ -151,7 +139,7 @@ ely::token scan_number_cont(ely::lexer&          lex,
 
     if (ch == '.')
     {
-        return scan_decimal(lex, ch, token_start, pos);
+        return scan_decimal(lex, ch, token_start);
     }
 
     return {token_type::int_literal,
@@ -161,14 +149,11 @@ ely::token scan_number_cont(ely::lexer&          lex,
 
 ely::token scan_number(ely::lexer& lex, char ch)
 {
-    const auto pos = lex.position();
-    return scan_number_cont(lex, ch, lex.cursor, pos);
+    return scan_number_cont(lex, ch, lex.cursor);
 }
 
-ely::token scan_identifier_cont(ely::lexer&          lex,
-                                char                 ch,
-                                const char*          token_start,
-                                const ely::position& pos)
+ely::token
+scan_identifier_cont(ely::lexer& lex, char ch, const char* token_start)
 {
     assert(is_identifier_continue(ch));
     advance_char(lex);
@@ -189,17 +174,16 @@ ely::token scan_sign(ely::lexer& lex, char ch)
 {
     assert(ch == '+' || ch == '-');
     const char* token_start = lex.cursor;
-    const auto  pos         = lex.position();
     advance_char(lex);
 
     ch = peek_char(lex);
     if (is_digit(ch))
     {
-        return scan_number_cont(lex, ch, token_start, pos);
+        return scan_number_cont(lex, ch, token_start);
     }
     else
     {
-        return scan_identifier_cont(lex, ch, token_start, pos);
+        return scan_identifier_cont(lex, ch, token_start);
     }
 }
 
@@ -207,14 +191,13 @@ ely::token scan_identifier(ely::lexer& lex, char ch)
 {
     assert(is_identifier_start(ch));
     const char* token_start = lex.cursor;
-    const auto  pos         = lex.position();
     advance_char(lex);
 
     ch = peek_char(lex);
 
     if (is_identifier_continue(ch))
     {
-        return scan_identifier_cont(lex, ch, token_start, pos);
+        return scan_identifier_cont(lex, ch, token_start);
     }
 
     return {token_type::identifier,
@@ -226,7 +209,6 @@ ely::token scan_string_lit(ely::lexer& lex, char ch)
 {
     assert(ch == '"');
     const char* token_start = lex.cursor;
-    const auto  pos         = lex.position();
     advance_char(lex);
 
     bool escaping = false;
@@ -236,7 +218,7 @@ ely::token scan_string_lit(ely::lexer& lex, char ch)
     {
         if (ch == '\0')
         {
-            return {token_type::unterminated_string,
+            return {token_type::unterminated_string_literal,
                     token_start,
                     static_cast<uint32_t>(lex.cursor - token_start)};
         }
@@ -262,7 +244,6 @@ ely::token scan_string_lit(ely::lexer& lex, char ch)
 ely::token scan_single(ely::lexer& lex, token_type ty)
 {
     const char* token_start = lex.cursor;
-    const auto  pos         = lex.position();
     advance_char(lex);
     return {ty, token_start, 1};
 }

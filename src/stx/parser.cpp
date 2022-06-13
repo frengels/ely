@@ -109,7 +109,7 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
         datum = ely_datum_create_char_literal(tok.content());
         break;
     case token_type::unknown_char:
-    case token_type::unterminated_string:
+    case token_type::unterminated_string_literal:
     default:
         assert(false && "Unimplemented parsing cases");
         break;

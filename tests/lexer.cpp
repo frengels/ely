@@ -8,14 +8,14 @@
     static inline void name()                                                  \
     {                                                                          \
         fprintf(stderr, "testing: " #name ", \"" src "\"\n");                  \
-        ely::token    dst[16];                                                 \
-        ely::lexer    lex   = ely::lexer((src));                               \
-        ely::position start = lex.position();                                  \
+        ely::token dst[16];                                                    \
+        ely::lexer lex   = ely::lexer((src));                                  \
+        auto       start = lex.location();                                     \
         assert(!lex.empty());                                                  \
         uint32_t write = lex.scan_tokens(dst, 16);                             \
         fprintf(stderr, "  wrote %d tokens\n", write);                         \
-        ely::position end = lex.position();                                    \
-        fprintf(stderr, "  read %d characters\n", end.offset - start.offset);  \
+        auto end = lex.location();                                             \
+        fprintf(stderr, "  read %d characters\n", dst[0].size());              \
         assert(write == 1);                                                    \
         fprintf(stderr,                                                        \
                 "  received token: \"%s\"\n",                                  \
