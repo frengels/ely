@@ -23,28 +23,22 @@ typedef struct ely_datum
     ely_datum_type type;
     union
     {
-        ely_literal     lit;
+        ely::literal    lit;
         ely_list        list;
         ely::identifier ident;
     } data;
 } ely_datum;
 
-ELY_EXPORT ely_datum* ely_datum_create_literal(const ely_literal* lit);
+ELY_EXPORT ely_datum* ely_datum_create_literal(ely::literal lit);
 ELY_EXPORT ely_datum* ely_datum_create_identifier(ely::identifier ident);
 
-ELY_EXPORT ely_datum* ely_datum_create_string_literal(const char*          str,
-                                                      size_t               len,
+ELY_EXPORT ely_datum* ely_datum_create_string_literal(std::string          str,
                                                       const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_int_literal(const char*          str,
-                                                   size_t               len,
+ELY_EXPORT ely_datum* ely_datum_create_int_literal(std::string          str,
                                                    const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_dec_literal(const char*          str,
-                                                   size_t               len,
+ELY_EXPORT ely_datum* ely_datum_create_dec_literal(std::string          str,
                                                    const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_char_literal(const char*          str,
-                                                    size_t               len,
-                                                    const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_bool_literal(bool                 b,
+ELY_EXPORT ely_datum* ely_datum_create_char_literal(std::string          str,
                                                     const ely::position& pos);
 
 ELY_EXPORT ely_datum* ely_datum_create_identifier_str(std::string          str,

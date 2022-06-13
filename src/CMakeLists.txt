@@ -4,7 +4,6 @@ set(ELY_SRC
     "lex/lexer.cpp"
     "lex/token.cpp"
     "stx/datum.cpp"
-    "stx/literal.cpp"
     "stx/list.cpp"
     "stx/parser.cpp")
 

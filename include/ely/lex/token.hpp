@@ -7,7 +7,7 @@
 
 namespace ely
 {
-enum struct token_type
+enum struct token_type : unsigned char
 {
 #define X(val, x) val,
 #include "token.def"

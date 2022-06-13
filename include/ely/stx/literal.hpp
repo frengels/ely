@@ -5,41 +5,52 @@
 #include "ely/export.h"
 #include "ely/position.hpp"
 
-extern "C" {
-typedef enum ely_literal_type
+namespace ely
 {
-    ELY_LITERAL_INT,
-    ELY_LITERAL_DEC,
-    ELY_LITERAL_STRING,
-    ELY_LITERAL_CHAR,
-    ELY_LITERAL_BOOL,
-} ely_literal_type;
+enum struct literal_type : unsigned char
+{
+    integer,
+    decimal,
+    string,
+    character
+};
 
-typedef struct ely_literal
+class literal
 {
-    ely::position    pos;
-    ely_literal_type type;
-    union
+    ely::position pos_;
+    literal_type  type_;
+    std::string   str_;
+
+public:
+    literal(literal_type ty, std::string str, const ely::position& pos = {})
+        : pos_(pos), type_(ty), str_(std::move(str))
+    {}
+
+    constexpr const ely::position& pos() const
     {
-        char* str;
-        bool  b;
-    } data;
-} ely_literal;
+        return pos_;
+    }
+};
 
-ELY_EXPORT ely_literal ely_literal_create_int(const char*          str,
-                                              size_t               len,
-                                              const ely::position& pos);
-ELY_EXPORT ely_literal ely_literal_create_dec(const char*          str,
-                                              size_t               len,
-                                              const ely::position& pos);
-ELY_EXPORT ely_literal ely_literal_create_string(const char*          str,
-                                                 size_t               len,
-                                                 const ely::position& pos);
-ELY_EXPORT ely_literal ely_literal_create_char(const char*          str,
-                                               size_t               len,
-                                               const ely::position& pos);
-ELY_EXPORT ely_literal ely_literal_create_bool(bool                 b,
-                                               const ely::position& pos);
-
-ELY_EXPORT void ely_literal_destroy(ely_literal* lit);
+inline ely::literal make_int_literal(std::string str, const ely::position& pos)
+{
+    return ely::literal{literal_type::integer, std::move(str), pos};
 }
+
+inline ely::literal make_decimal_literal(std::string          str,
+                                         const ely::position& pos)
+{
+    return ely::literal{literal_type::decimal, std::move(str), pos};
+}
+
+inline ely::literal make_string_literal(std::string          str,
+                                        const ely::position& pos)
+{
+    return ely::literal{literal_type::string, std::move(str), pos};
+}
+
+inline ely::literal make_char_literal(std::string str, const ely::position& pos)
+{
+    return ely::literal{literal_type::character, std::move(str), pos};
+}
+} // namespace ely

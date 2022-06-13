@@ -6,11 +6,11 @@
 #include "ely/stx/list.hpp"
 #include "ely/stx/literal.hpp"
 
-ely_datum* ely_datum_create_literal(const ely_literal* lit)
+ely_datum* ely_datum_create_literal(ely::literal lit)
 {
     ely_datum* res = static_cast<ely_datum*>(malloc(sizeof(ely_datum)));
     res->type      = ELY_DATUM_LITERAL;
-    res->data.lit  = *lit;
+    new (&res->data.lit) ely::literal(std::move(lit));
     return res;
 }
 
@@ -23,42 +23,31 @@ ely_datum* ely_datum_create_identifier(ely::identifier ident)
     return res;
 }
 
-ely_datum* ely_datum_create_string_literal(const char*          str,
-                                           size_t               len,
+ely_datum* ely_datum_create_string_literal(std::string          str,
                                            const ely::position& pos)
 {
-    ely_literal lit = ely_literal_create_string(str, len, pos);
-    return ely_datum_create_literal(&lit);
+    return ely_datum_create_literal(
+        ely::make_string_literal(std::move(str), pos));
 }
 
-ely_datum* ely_datum_create_int_literal(const char*          str,
-                                        size_t               len,
+ely_datum* ely_datum_create_int_literal(std::string          str,
                                         const ely::position& pos)
 {
-    ely_literal lit = ely_literal_create_int(str, len, pos);
-    return ely_datum_create_literal(&lit);
+    return ely_datum_create_literal(ely::make_int_literal(std::move(str), pos));
 }
 
-ely_datum* ely_datum_create_dec_literal(const char*          str,
-                                        size_t               len,
+ely_datum* ely_datum_create_dec_literal(std::string          str,
                                         const ely::position& pos)
 {
-    ely_literal lit = ely_literal_create_dec(str, len, pos);
-    return ely_datum_create_literal(&lit);
+    return ely_datum_create_literal(
+        ely::make_decimal_literal(std::move(str), pos));
 }
 
-ely_datum* ely_datum_create_char_literal(const char*          str,
-                                         size_t               len,
+ely_datum* ely_datum_create_char_literal(std::string          str,
                                          const ely::position& pos)
 {
-    ely_literal lit = ely_literal_create_char(str, len, pos);
-    return ely_datum_create_literal(&lit);
-}
-
-ely_datum* ely_datum_create_bool_literal(bool b, const ely::position& pos)
-{
-    ely_literal lit = ely_literal_create_bool(b, pos);
-    return ely_datum_create_literal(&lit);
+    return ely_datum_create_literal(
+        ely::make_char_literal(std::move(str), pos));
 }
 
 ely_datum* ely_datum_create_identifier_str(std::string          str,
@@ -97,7 +86,7 @@ void ely_datum_destroy(ely_datum* datum)
     switch (datum->type)
     {
     case ELY_DATUM_LITERAL:
-        ely_literal_destroy(&datum->data.lit);
+        datum->data.lit.~literal();
         break;
     case ELY_DATUM_IDENTIFIER:
         datum->data.ident.~identifier();
