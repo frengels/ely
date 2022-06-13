@@ -1,12 +1,13 @@
 set(ELY_SRC
     "ilist.c"
-    "lex/lexer.c"
-    "lex/token.c"
+    "printer.c"
+    "lex/lexer.cpp"
+    "lex/token.cpp"
     "stx/datum.c"
     "stx/literal.c"
     "stx/list.c"
     "stx/identifier.c"
-    "stx/parser.c")
+    "stx/parser.cpp")
 
 include(GenerateExportHeader)
 include(CheckIPOSupported)
@@ -19,6 +20,7 @@ target_include_directories(ely PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}/exports)
 set_target_properties(ely PROPERTIES
     C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
     INTERPROCEDURAL_OPTIMIZATION ${IPO_FOUND})
 
@@ -26,7 +28,7 @@ generate_export_header(ely
     EXPORT_FILE_NAME "exports/ely/export.h")
 
 set(ELYC_SRC
-    "main.c")
+    "main.cpp")
 
 add_executable(elyc ${ELYC_SRC})
 target_link_libraries(elyc PRIVATE ely)

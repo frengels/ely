@@ -6,12 +6,7 @@
 
 #include "ely/diagnostic.h"
 #include "ely/export.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct ely_token ely_token;
+#include "ely/lex/token.hpp"
 
 typedef struct
 {
@@ -28,12 +23,8 @@ ELY_EXPORT ely_position ely_lexer_position(const ely_lexer* lex);
 ELY_EXPORT bool         ely_lexer_empty(const ely_lexer* lex);
 ELY_EXPORT const char*  ely_lexer_cursor(const ely_lexer* lex);
 
-ELY_EXPORT uint32_t ely_lexer_scan_tokens(ely_lexer* lex,
-                                          ely_token* dst,
-                                          uint32_t   dst_len);
-
-#ifdef __cplusplus
-}
-#endif
+ELY_EXPORT uint32_t ely_lexer_scan_tokens(ely_lexer*  lex,
+                                          ely::token* dst,
+                                          uint32_t    dst_len);
 
 #endif
