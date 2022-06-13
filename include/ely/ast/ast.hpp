@@ -42,8 +42,9 @@ public:
 class expression
 {
 public:
-    enum kind
+    enum expr_kind
     {
+        module_,
         let,
         begin,
         fn,
@@ -55,16 +56,42 @@ public:
     };
 
 private:
-    kind        kind_;
+    expr_kind   kind_;
     llvm::SMLoc loc_;
 
 public:
-    expression(kind k, llvm::SMLoc loc) : kind_(k), loc_(loc)
+    expression(expr_kind k, llvm::SMLoc loc) : kind_(k), loc_(loc)
     {}
+
+    enum expr_kind kind() const
+    {
+        return kind_;
+    }
 
     llvm::SMLoc location() const
     {
         return loc_;
+    }
+};
+
+class module_ : public expression
+{
+    std::vector<definition*> definitions_;
+
+public:
+    module_(std::vector<definition*> definitions, llvm::SMLoc loc)
+        : expression(expression::module_, loc),
+          definitions_(std::move(definitions))
+    {}
+
+    const std::vector<definition*>& definitions() const
+    {
+        return definitions_;
+    }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::module_;
     }
 };
 
@@ -124,6 +151,11 @@ public:
     {
         return *body_;
     }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::let;
+    }
 };
 
 class begin_expression : public expression
@@ -138,6 +170,11 @@ public:
     const std::vector<expression*>& expressions() const
     {
         return exprs_;
+    }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::begin;
     }
 };
 
@@ -157,11 +194,18 @@ public:
         return name_;
     }
 
+    type& ty() const
+    {
+        return *ty_;
+    }
+
     llvm::SMLoc location() const
     {
         return loc_;
     }
 };
+
+using var = parameter;
 
 class fn_expression : public expression
 {
@@ -192,6 +236,11 @@ public:
     {
         return body_;
     }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::fn;
+    }
 };
 
 class integer_literal : public expression
@@ -206,6 +255,11 @@ public:
     const llvm::APSInt& value() const
     {
         return val_;
+    }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::int_lit;
     }
 };
 
@@ -222,6 +276,11 @@ public:
     {
         return val_;
     }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::float_lit;
+    }
 };
 
 class if_ : public expression
@@ -235,6 +294,26 @@ public:
         : expression(expression::if_, loc), cond_(std::addressof(cond)),
           then_(std::addressof(then)), alt_(std::addressof(alt))
     {}
+
+    expression& cond()
+    {
+        return *cond_;
+    }
+
+    expression& then()
+    {
+        return *then_;
+    }
+
+    expression& alt()
+    {
+        return *alt_;
+    }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::if_;
+    }
 };
 
 class call : public expression
@@ -258,6 +337,11 @@ public:
     const std::vector<expression*>& operands() const
     {
         return operands_;
+    }
+
+    static constexpr bool classof(const expression* e)
+    {
+        return e->kind() == expression::call;
     }
 };
 } // namespace ely
