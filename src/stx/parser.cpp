@@ -80,7 +80,7 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
 
     using ely::token_type;
 
-    switch (tok.ty())
+    switch (tok.kind())
     {
     case token_type::eof:
         return;

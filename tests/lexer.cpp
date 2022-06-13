@@ -19,7 +19,7 @@
         assert(write == 1);                                                    \
         fprintf(stderr,                                                        \
                 "  received token: \"%s\"\n",                                  \
-                ely::token_type_to_string(dst[0].ty()));                       \
+                ely::token_type_to_string(dst[0].kind()));                       \
         assert(dst[0].type == typ);                                            \
     }
 

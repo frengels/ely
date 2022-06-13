@@ -32,7 +32,7 @@ public:
         : type(ty), start(start), len(len)
     {}
 
-    constexpr token_type ty() const
+    constexpr token_type kind() const
     {
         return type;
     }
