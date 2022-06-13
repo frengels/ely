@@ -32,17 +32,12 @@ typedef struct ely_datum
 ELY_EXPORT ely_datum* ely_datum_create_literal(ely::literal lit);
 ELY_EXPORT ely_datum* ely_datum_create_identifier(ely::identifier ident);
 
-ELY_EXPORT ely_datum* ely_datum_create_string_literal(std::string          str,
-                                                      const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_int_literal(std::string          str,
-                                                   const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_dec_literal(std::string          str,
-                                                   const ely::position& pos);
-ELY_EXPORT ely_datum* ely_datum_create_char_literal(std::string          str,
-                                                    const ely::position& pos);
+ELY_EXPORT ely_datum* ely_datum_create_string_literal(std::string_view str);
+ELY_EXPORT ely_datum* ely_datum_create_int_literal(std::string_view str);
+ELY_EXPORT ely_datum* ely_datum_create_dec_literal(std::string_view str);
+ELY_EXPORT ely_datum* ely_datum_create_char_literal(std::string_view str);
 
-ELY_EXPORT ely_datum* ely_datum_create_identifier_str(std::string          str,
-                                                      const ely::position& pos);
+ELY_EXPORT ely_datum* ely_datum_create_identifier_str(std::string_view str);
 
 ELY_EXPORT ely_datum* ely_datum_create_parens_list(const ely::position& pos);
 ELY_EXPORT ely_datum* ely_datum_create_bracket_list(const ely::position& pos);

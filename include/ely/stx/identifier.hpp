@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 #include "ely/export.h"
 #include "ely/position.hpp"
@@ -14,7 +15,7 @@ class ELY_EXPORT identifier
     bool          is_literal{false};
 
 public:
-    identifier(std::string str, const ely::position& pos = {})
+    identifier(std::string_view str, const ely::position& pos = {})
         : pos_(pos), str_(std::move(str))
     {}
 

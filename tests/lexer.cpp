@@ -4,23 +4,23 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define DEFINE_TEST_SINGLE_TOKEN(name, src, ty)                                \
+#define DEFINE_TEST_SINGLE_TOKEN(name, src, typ)                               \
     static inline void name()                                                  \
     {                                                                          \
         fprintf(stderr, "testing: " #name ", \"" src "\"\n");                  \
-        ely::token   dst[16];                                                  \
-        ely::lexer   lex   = ely::lexer((src));                                \
-        ely::position start = lex.position();                                   \
+        ely::token    dst[16];                                                 \
+        ely::lexer    lex   = ely::lexer((src));                               \
+        ely::position start = lex.position();                                  \
         assert(!lex.empty());                                                  \
         uint32_t write = lex.scan_tokens(dst, 16);                             \
         fprintf(stderr, "  wrote %d tokens\n", write);                         \
-        ely::position end = lex.position();                                     \
+        ely::position end = lex.position();                                    \
         fprintf(stderr, "  read %d characters\n", end.offset - start.offset);  \
         assert(write == 1);                                                    \
         fprintf(stderr,                                                        \
                 "  received token: \"%s\"\n",                                  \
-                ely::token_type_to_string(dst[0].type));                       \
-        assert(dst[0].type == ty);                                             \
+                ely::token_type_to_string(dst[0].ty()));                       \
+        assert(dst[0].type == typ);                                            \
     }
 
 #define TOKENS_LEN 512

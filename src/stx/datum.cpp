@@ -1,6 +1,7 @@
 #include "ely/stx/datum.hpp"
 
 #include <cstdlib>
+#include <string_view>
 
 #include "ely/stx/identifier.hpp"
 #include "ely/stx/list.hpp"
@@ -23,37 +24,29 @@ ely_datum* ely_datum_create_identifier(ely::identifier ident)
     return res;
 }
 
-ely_datum* ely_datum_create_string_literal(std::string          str,
-                                           const ely::position& pos)
+ely_datum* ely_datum_create_string_literal(std::string_view str)
 {
-    return ely_datum_create_literal(
-        ely::make_string_literal(std::move(str), pos));
+    return ely_datum_create_literal(ely::make_string_literal(str));
 }
 
-ely_datum* ely_datum_create_int_literal(std::string          str,
-                                        const ely::position& pos)
+ely_datum* ely_datum_create_int_literal(std::string_view str)
 {
-    return ely_datum_create_literal(ely::make_int_literal(std::move(str), pos));
+    return ely_datum_create_literal(ely::make_int_literal(str));
 }
 
-ely_datum* ely_datum_create_dec_literal(std::string          str,
-                                        const ely::position& pos)
+ely_datum* ely_datum_create_dec_literal(std::string_view str)
 {
-    return ely_datum_create_literal(
-        ely::make_decimal_literal(std::move(str), pos));
+    return ely_datum_create_literal(ely::make_decimal_literal(str));
 }
 
-ely_datum* ely_datum_create_char_literal(std::string          str,
-                                         const ely::position& pos)
+ely_datum* ely_datum_create_char_literal(std::string_view str)
 {
-    return ely_datum_create_literal(
-        ely::make_char_literal(std::move(str), pos));
+    return ely_datum_create_literal(ely::make_char_literal(str));
 }
 
-ely_datum* ely_datum_create_identifier_str(std::string          str,
-                                           const ely::position& pos)
+ely_datum* ely_datum_create_identifier_str(std::string_view str)
 {
-    return ely_datum_create_identifier(ely::identifier(std::move(str), pos));
+    return ely_datum_create_identifier(ely::identifier(str));
 }
 
 static inline ely_datum* create_list(ely_list_type ty, const ely::position& pos)

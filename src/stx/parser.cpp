@@ -80,7 +80,7 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
 
     using ely::token_type;
 
-    switch (tok.type)
+    switch (tok.ty())
     {
     case token_type::eof:
         return;
@@ -93,31 +93,21 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
     case token_type::lbrace:
         datum = parse_brace_list(parser);
         break;
-    case token_type::identifier: {
-        auto str = std::string(tok.start, tok.len);
-        datum    = ely_datum_create_identifier_str(std::move(str), tok.pos);
-    }
-    break;
-    case token_type::string_literal: {
-        auto str = std::string(tok.start, tok.len);
-        datum    = ely_datum_create_string_literal(std::move(str), tok.pos);
-    }
-    break;
-    case token_type::int_literal: {
-        auto str = std::string(tok.start, tok.len);
-        datum    = ely_datum_create_int_literal(std::move(str), tok.pos);
-    }
-    break;
-    case token_type::decimal_literal: {
-        auto str = std::string(tok.start, tok.len);
-        datum    = ely_datum_create_dec_literal(std::move(str), tok.pos);
-    }
-    break;
-    case token_type::char_literal: {
-        auto str = std::string(tok.start, tok.len);
-        datum    = ely_datum_create_char_literal(std::move(str), tok.pos);
-    }
-    break;
+    case token_type::identifier:
+        datum = ely_datum_create_identifier_str(tok.content());
+        break;
+    case token_type::string_literal:
+        datum = ely_datum_create_string_literal(tok.content());
+        break;
+    case token_type::int_literal:
+        datum = ely_datum_create_int_literal(tok.content());
+        break;
+    case token_type::decimal_literal:
+        datum = ely_datum_create_dec_literal(tok.content());
+        break;
+    case token_type::char_literal:
+        datum = ely_datum_create_char_literal(tok.content());
+        break;
     case token_type::unknown_char:
     case token_type::unterminated_string:
     default:
