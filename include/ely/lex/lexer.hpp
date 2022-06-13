@@ -2,16 +2,9 @@
 
 #include <cstdint>
 
-#include "ely/diagnostic.hpp"
 #include "ely/export.h"
 #include "ely/lex/token.hpp"
 #include "ely/position.hpp"
-
-typedef struct
-{
-    ely_diagnostic_type type;
-    const char*         msg;
-} ely_lexer_diagnostic;
 
 namespace ely
 {
