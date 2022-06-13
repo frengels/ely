@@ -10,14 +10,14 @@
 
 typedef struct ely_stx_parser
 {
-    ely_lexer*  lex;
+    ely::lexer* lex;
     ely::token* token_buf;
     uint32_t    buf_cap;
     uint32_t    buf_head;
     uint32_t    buf_tail;
 } ely_stx_parser;
 
-ely_stx_parser* ely_stx_parser_create(ely_lexer* lex)
+ely_stx_parser* ely_stx_parser_create(ely::lexer* lex)
 {
     ely_stx_parser* parser =
         static_cast<ely_stx_parser*>(malloc(sizeof(*parser)));
@@ -72,7 +72,7 @@ void ely_stx_parser_parse(ely_ilist* res_list, ely_stx_parser* parser)
     ely_ilist_init(res_list);
 
     parser->buf_tail =
-        ely_lexer_scan_tokens(parser->lex, parser->token_buf, parser->buf_cap);
+        parser->lex->scan_tokens(parser->token_buf, parser->buf_cap);
 
     ely::token tok = peek_token(parser);
 

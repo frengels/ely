@@ -11,10 +11,13 @@
 extern "C" {
 #endif
 
-typedef struct ely_lexer      ely_lexer;
+namespace ely
+{
+class lexer;
+}
 typedef struct ely_stx_parser ely_stx_parser;
 
-ELY_EXPORT ely_stx_parser* ely_stx_parser_create(ely_lexer* lex);
+ELY_EXPORT ely_stx_parser* ely_stx_parser_create(ely::lexer* lex);
 ELY_EXPORT void            ely_stx_parser_destroy(ely_stx_parser* parser);
 ELY_EXPORT void            ely_stx_parser_parse(ely_ilist*      res_list,
                                                 ely_stx_parser* parser);

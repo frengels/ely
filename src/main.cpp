@@ -9,12 +9,14 @@
 
 int main(int argc, char** argv)
 {
-    ely::token tokens_dst[TOKENS_LEN];
-    ely_lexer* lex     = ely_lexer_create("hello");
-    uint32_t   written = ely_lexer_scan_tokens(lex, tokens_dst, TOKENS_LEN);
+    ely::token  tokens_dst[TOKENS_LEN];
+    ely::lexer* lex     = new ely::lexer("hello");
+    uint32_t    written = lex->scan_tokens(tokens_dst, TOKENS_LEN);
     assert(written == 1);
     assert(tokens_dst[0].type == ely::token_type::identifier);
-    assert(ely_lexer_empty(lex));
+    assert(lex->empty());
+
+    delete lex;
     // assert(scan(NULL, "hello").type == ELY_TOKEN_IDENTIFIER);
     // fprintf(stderr, "%d\n", scan(NULL, "").type);
 

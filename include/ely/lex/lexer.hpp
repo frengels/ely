@@ -1,8 +1,6 @@
-#ifndef ELY_LEX_LEXER_H
-#define ELY_LEX_LEXER_H
+#pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstdint>
 
 #include "ely/diagnostic.h"
 #include "ely/export.h"
@@ -14,17 +12,34 @@ typedef struct
     const char*         msg;
 } ely_lexer_diagnostic;
 
-typedef struct ely_lexer ely_lexer;
+namespace ely
+{
+class ELY_EXPORT lexer
+{
+public:
+    const char* cursor;
+    uint32_t    offset;
+    uint32_t    line;
+    uint32_t    col;
 
-ELY_EXPORT ely_lexer* ely_lexer_create(const char* src);
-ELY_EXPORT void       ely_lexer_destroy(ely_lexer* lex);
+public:
+    explicit constexpr lexer(const char* src,
+                             uint32_t    offset = 0,
+                             uint32_t    line   = 1,
+                             uint32_t    col    = 1)
+        : cursor(src), offset(offset), line(line), col(col)
+    {}
 
-ELY_EXPORT ely_position ely_lexer_position(const ely_lexer* lex);
-ELY_EXPORT bool         ely_lexer_empty(const ely_lexer* lex);
-ELY_EXPORT const char*  ely_lexer_cursor(const ely_lexer* lex);
+    constexpr ely_position position() const
+    {
+        return {.offset = offset, .line = line, .col = col};
+    }
 
-ELY_EXPORT uint32_t ely_lexer_scan_tokens(ely_lexer*  lex,
-                                          ely::token* dst,
-                                          uint32_t    dst_len);
+    constexpr bool empty() const
+    {
+        return *cursor == '\0';
+    }
 
-#endif
+    uint32_t scan_tokens(ely::token* dst, uint32_t dst_len);
+};
+} // namespace ely
