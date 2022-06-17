@@ -53,6 +53,8 @@ public:
         float_lit,
         if_,
         call,
+        struct_,
+        ptr,
     };
 
 private:
@@ -63,7 +65,7 @@ public:
     expression(expr_kind k, llvm::SMLoc loc) : kind_(k), loc_(loc)
     {}
 
-    enum expr_kind kind() const
+    constexpr expr_kind kind() const
     {
         return kind_;
     }
@@ -95,32 +97,58 @@ public:
     }
 };
 
-class binding
+class parameter
 {
     llvm::SMLoc      loc_;
     std::string_view name_;
     type*            ty_;
-    expression*      init_;
 
 public:
-    binding(std::string_view name, type& ty, expression& init, llvm::SMLoc loc)
-        : loc_(loc), name_(name), ty_(std::addressof(ty)),
-          init_(std::addressof(init))
+    parameter(std::string_view name, type* ty, llvm::SMLoc loc)
+        : loc_(loc), name_(name), ty_(ty)
     {}
-
-    llvm::SMLoc location() const
-    {
-        return loc_;
-    }
 
     std::string_view name() const
     {
         return name_;
     }
 
-    const type& ty() const
+    type& ty() const
     {
         return *ty_;
+    }
+
+    llvm::SMLoc location() const
+    {
+        return loc_;
+    }
+};
+
+using var = parameter;
+
+class binding
+{
+    var*        v_;
+    expression* init_;
+
+public:
+    binding(var& v, expression& init)
+        : v_(std::addressof(v)), init_(std::addressof(init))
+    {}
+
+    llvm::SMLoc location() const
+    {
+        return v_->location();
+    }
+
+    std::string_view name() const
+    {
+        return v_->name();
+    }
+
+    const type& ty() const
+    {
+        return v_->ty();
     }
 
     const expression& init() const
@@ -177,35 +205,6 @@ public:
         return e->kind() == expression::begin;
     }
 };
-
-class parameter
-{
-    llvm::SMLoc      loc_;
-    std::string_view name_;
-    type*            ty_;
-
-public:
-    parameter(std::string_view name, type* ty, llvm::SMLoc loc)
-        : loc_(loc), name_(name), ty_(ty)
-    {}
-
-    std::string_view name() const
-    {
-        return name_;
-    }
-
-    type& ty() const
-    {
-        return *ty_;
-    }
-
-    llvm::SMLoc location() const
-    {
-        return loc_;
-    }
-};
-
-using var = parameter;
 
 class fn_expression : public expression
 {
@@ -283,14 +282,17 @@ public:
     }
 };
 
-class if_ : public expression
+class if_expression : public expression
 {
     expression* cond_;
     expression* then_;
     expression* alt_;
 
 public:
-    if_(expression& cond, expression& then, expression& alt, llvm::SMLoc loc)
+    if_expression(expression& cond,
+                  expression& then,
+                  expression& alt,
+                  llvm::SMLoc loc)
         : expression(expression::if_, loc), cond_(std::addressof(cond)),
           then_(std::addressof(then)), alt_(std::addressof(alt))
     {}
@@ -318,18 +320,16 @@ public:
 
 class call : public expression
 {
-    fn_expression*           callee_;
+    expression*              callee_;
     std::vector<expression*> operands_;
 
 public:
-    call(fn_expression&           callee,
-         std::vector<expression*> operands,
-         llvm::SMLoc              loc)
+    call(expression& callee, std::vector<expression*> operands, llvm::SMLoc loc)
         : expression(expression::call, loc), callee_(std::addressof(callee)),
           operands_(std::move(operands))
     {}
 
-    fn_expression& callee()
+    expression& callee()
     {
         return *callee_;
     }
@@ -342,6 +342,50 @@ public:
     static constexpr bool classof(const expression* e)
     {
         return e->kind() == expression::call;
+    }
+};
+
+class field
+{
+    std::string_view name_;
+    expression*      type_;
+};
+
+class struct_expression : public expression
+{
+    std::string_view    name_;
+    std::vector<field*> fields_;
+
+public:
+    struct_expression(std::string_view    name,
+                      std::vector<field*> fields,
+                      llvm::SMLoc         loc)
+        : expression(expression::struct_, loc)
+    {}
+
+    constexpr std::string_view name() const
+    {
+        return name_;
+    }
+
+    const std::vector<field*>& fields() const
+    {
+        return fields_;
+    }
+};
+
+class ptr_expression : public expression
+{
+    expression* target_;
+
+public:
+    ptr_expression(expression& target, llvm::SMLoc loc)
+        : expression(expression::ptr, loc)
+    {}
+
+    expression& target()
+    {
+        return *target_;
     }
 };
 } // namespace ely

@@ -1,8 +1,10 @@
 set(ELY_SRC
     "ilist.c"
     "printer.cpp"
+    "ast/parser.cpp"
     "lex/lexer.cpp"
     "lex/token.cpp"
+    "sema/sema.cpp"
     "stx/datum.cpp"
     "stx/list.cpp"
     "stx/parser.cpp")
@@ -12,10 +14,13 @@ include(CheckIPOSupported)
 
 check_ipo_supported(RESULT IPO_FOUND OUTPUT IPO_ERROR)
 
-add_library(ely SHARED ${ELY_SRC})
+
+add_ely_library(ely ${ELY_SRC})
 target_include_directories(ely PUBLIC
     ${PROJECT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/exports)
+target_compile_features(ely PUBLIC cxx_std_20)
+
 set_target_properties(ely PROPERTIES
     C_VISIBILITY_PRESET hidden
     CXX_VISIBILITY_PRESET hidden
@@ -25,10 +30,10 @@ set_target_properties(ely PROPERTIES
 generate_export_header(ely
     EXPORT_FILE_NAME "exports/ely/export.h")
 
-set(ELYC_SRC
-    "main.cpp")
+# set(ELYC_SRC
+#     "main.cpp")
 
-add_executable(elyc ${ELYC_SRC})
-target_link_libraries(elyc PRIVATE ely)
-set_target_properties(elyc PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION ${IPO_FOUND})
+# add_executable(elyc ${ELYC_SRC})
+# target_link_libraries(elyc PRIVATE ely)
+# set_target_properties(elyc PROPERTIES
+#     INTERPROCEDURAL_OPTIMIZATION ${IPO_FOUND})
