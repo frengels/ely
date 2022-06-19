@@ -29,7 +29,7 @@ public:
     token() = default;
 
     constexpr token(token_type ty, const char* start, std::uint32_t len)
-        : type(ty), start(start), len(len)
+        : type(ty), len(len), start(start)
     {}
 
     constexpr token_type kind() const
