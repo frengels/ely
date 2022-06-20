@@ -9,45 +9,44 @@ using namespace ely;
 
 namespace
 {
-extern "C" {
-static inline char peek_char(ely::lexer& lex)
+char peek_char(ely::lexer& lex)
 {
     return *lex.cursor;
 }
 
-static inline void advance_char(ely::lexer& lex)
+void advance_char(ely::lexer& lex)
 {
     ++lex.cursor;
 }
 
-static inline char consume_char(ely::lexer& lex)
+char consume_char(ely::lexer& lex)
 {
     char res = peek_char(lex);
     advance_char(lex);
     return res;
 }
 
-static inline bool is_digit(char ch)
+bool is_digit(char ch)
 {
     return '0' <= ch && ch <= '9';
 }
 
-static inline bool is_lower_alpha(char ch)
+bool is_lower_alpha(char ch)
 {
     return 'a' <= ch && ch <= 'z';
 }
 
-static inline bool is_upper_alpha(char ch)
+bool is_upper_alpha(char ch)
 {
     return 'A' <= ch && ch <= 'Z';
 }
 
-static inline bool is_alpha(char ch)
+bool is_alpha(char ch)
 {
     return is_lower_alpha(ch) || is_upper_alpha(ch);
 }
 
-static inline bool is_identifier_start(char ch)
+bool is_identifier_start(char ch)
 {
     switch (ch)
     {
@@ -60,19 +59,7 @@ static inline bool is_identifier_start(char ch)
     }
 }
 
-static inline bool is_newline_start(char ch)
-{
-    switch (ch)
-    {
-    case '\n':
-    case '\r':
-        return true;
-    default:
-        return false;
-    }
-}
-
-static inline bool is_identifier_continue(char ch)
+bool is_identifier_continue(char ch)
 {
     return is_identifier_start(ch) || is_digit(ch);
 }
@@ -80,7 +67,6 @@ static inline bool is_identifier_continue(char ch)
 void scan_line_comment(ely::lexer& lex, char ch)
 {
     assert(ch == ';');
-    const char* token_start = lex.cursor;
     advance_char(lex);
 
     ch = consume_char(lex);
@@ -96,9 +82,9 @@ void scan_line_comment(ely::lexer& lex, char ch)
                 advance_char(lex);
                 return;
             }
-            __attribute__((fallthrough));
+            [[fallthrough]];
         case '\n':
-            __attribute__((fallthrough));
+            [[fallthrough]];
         case '\0':
             return;
         }
@@ -247,7 +233,6 @@ ely::token scan_single(ely::lexer& lex, token_type ty)
     advance_char(lex);
     return {ty, token_start, 1};
 }
-}
 } // namespace
 
 ely::token ely::lexer::next()
@@ -261,11 +246,13 @@ ely::token ely::lexer::next()
             __builtin_unreachable();
         case ';':
             scan_line_comment(*this, ch);
+            break;
         case '\n':
         case ' ':
         case '\t':
         case '\v':
-            continue;
+            advance_char(*this);
+            break;
         case '"':
             return scan_string_lit(*this, ch);
         case '(':
