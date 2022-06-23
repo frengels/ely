@@ -18,18 +18,19 @@ enum struct token_type : unsigned char
 
 ELY_EXPORT const char* token_type_to_string(ely::token_type ty);
 
+template<typename I>
 struct token
 {
 private:
     token_type    type;  // 4 bytes
     std::uint32_t len;   // 8 bytes
-    const char*   start; // 16 bytes
+    I             start; // 16 bytes
 
 public:
     token() = default;
 
-    constexpr token(token_type ty, const char* start, std::uint32_t len)
-        : type(ty), len(len), start(start)
+    constexpr token(token_type ty, I start, std::size_t len)
+        : type(ty), len(static_cast<std::uint32_t>(len)), start(start)
     {}
 
     constexpr token_type kind() const
@@ -44,12 +45,13 @@ public:
 
     llvm::SMLoc location() const
     {
-        return llvm::SMLoc::getFromPointer(start);
+        return llvm::SMLoc::getFromPointer(std::addressof(*start));
     }
 
-    std::string_view content() const
+    constexpr std::string_view content() const
     {
-        return std::string_view{start, static_cast<std::size_t>(len)};
+        return std::string_view{std::addressof(*start),
+                                static_cast<std::size_t>(len)};
     }
 };
 } // namespace ely
