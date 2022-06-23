@@ -19,14 +19,12 @@ public:
     using const_pointer   = const value_type*;
     using reference       = value_type&;
     using const_reference = const value_type&;
-    // using iterator        = pointer;
-    // using const_iterator  = const_pointer;
     using size_type       = std::size_t;
     using difference_type = std::ptrdiff_t;
     using sentinel        = std::default_sentinel_t;
 
-    class iterator;
     class const_iterator;
+    using iterator = const_iterator;
 
 private:
     const_pointer zstr_;
@@ -78,7 +76,7 @@ public:
 };
 
 template<typename CharT, typename Traits>
-class basic_zstring_view<CharT, Traits>::iterator
+class basic_zstring_view<CharT, Traits>::const_iterator
 {
 public:
     using value_type        = CharT;
@@ -92,22 +90,24 @@ private:
     const CharT* s_;
 
 public:
-    iterator() = default;
+    const_iterator() = default;
 
-    constexpr iterator(const CharT* s) : s_(s)
+    constexpr const_iterator(const CharT* s) : s_(s)
     {}
 
-    friend bool operator==(const iterator& lhs, const iterator& rhs)  = default;
-    friend auto operator<=>(const iterator& lhs, const iterator& rhs) = default;
+    friend bool operator==(const const_iterator& lhs,
+                           const const_iterator& rhs)  = default;
+    friend auto operator<=>(const const_iterator& lhs,
+                            const const_iterator& rhs) = default;
 
-    friend constexpr bool operator==(const iterator& it,
+    friend constexpr bool operator==(const const_iterator& it,
                                      const std::default_sentinel_t&)
     {
         return !Traits::not_eof(*it);
     }
 
     friend constexpr bool operator==(const std::default_sentinel_t& s,
-                                     const iterator&                it)
+                                     const const_iterator&          it)
     {
         return it == s;
     }
@@ -122,68 +122,68 @@ public:
         return data();
     }
 
-    constexpr iterator& operator++()
+    constexpr const_iterator& operator++()
     {
         ++s_;
         return *this;
     }
 
-    constexpr iterator operator++(int)
+    constexpr const_iterator operator++(int)
     {
-        iterator res{*this};
+        const_iterator res{*this};
         ++*this;
         return res;
     }
 
-    constexpr iterator& operator--()
+    constexpr const_iterator& operator--()
     {
         --s_;
         return *this;
     }
 
-    constexpr iterator operator--(int)
+    constexpr const_iterator operator--(int)
     {
-        iterator res{*this};
+        const_iterator res{*this};
         --*this;
         return res;
     }
 
-    constexpr iterator& operator+=(difference_type offset)
+    constexpr const_iterator& operator+=(difference_type offset)
     {
         s_ += offset;
         return *this;
     }
 
-    friend constexpr iterator operator+(const iterator& it,
-                                        difference_type offset)
+    friend constexpr const_iterator operator+(const const_iterator& it,
+                                              difference_type       offset)
     {
-        iterator res{it};
+        const_iterator res{it};
         res += offset;
         return res;
     }
 
-    friend constexpr iterator operator+(difference_type offset,
-                                        const iterator& it)
+    friend constexpr const_iterator operator+(difference_type       offset,
+                                              const const_iterator& it)
     {
         return it + offset;
     }
 
-    constexpr iterator& operator-=(difference_type offset)
+    constexpr const_iterator& operator-=(difference_type offset)
     {
         s_ -= offset;
         return *this;
     }
 
-    friend constexpr iterator operator-(const iterator& it,
-                                        difference_type offset)
+    friend constexpr const_iterator operator-(const const_iterator& it,
+                                              difference_type       offset)
     {
-        iterator res{it};
+        const_iterator res{it};
         res -= offset;
         return res;
     }
 
-    friend constexpr difference_type operator-(const iterator& lhs,
-                                               const iterator& rhs)
+    friend constexpr difference_type operator-(const const_iterator& lhs,
+                                               const const_iterator& rhs)
     {
         return lhs.s_ - rhs.s_;
     }
