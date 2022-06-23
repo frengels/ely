@@ -3,11 +3,11 @@
 #include <cassert>
 #include <cstdint>
 #include <iterator>
-
-#include <llvm/Support/SMLoc.h>
+#include <ranges>
 
 #include "ely/export.h"
 #include "ely/lex/token.hpp"
+#include "ely/lex/traits.hpp"
 
 namespace ely
 {
@@ -57,30 +57,95 @@ constexpr bool is_identifier_continue(CharT ch)
     return is_identifier_start(ch) || is_digit(ch);
 }
 } // namespace detail
-template<typename I, typename S>
-class ELY_EXPORT lexer
+template<typename V>
+class lexer
 {
-    using char_type = std::iter_value_t<I>;
+    using base_iter = std::ranges::iterator_t<V>;
+    using char_type = std::iter_value_t<base_iter>;
 
 public:
-    [[no_unique_address]] I it_;
-    [[no_unique_address]] S end_;
+    class iterator;
+    using sentinel = std::default_sentinel_t;
 
 public:
-    explicit constexpr lexer(const char* src) : cursor(src)
+    [[no_unique_address]] V base_;
+
+public:
+    lexer() = default;
+
+    constexpr lexer(V base) : base_(std::move(base))
     {}
 
-    llvm::SMLoc location() const
+    constexpr V base() const&
     {
-        return llvm::SMLoc::getFromPointer(std::addressof(*it_));
+        return base_;
+    }
+
+    constexpr V base() &&
+    {
+        return std::move(base_);
     }
 
     constexpr bool empty() const
     {
-        return it_ == end_;
+        return base_.empty();
     }
 
-    constexpr ely::token<I> next()
+    constexpr iterator begin() const
+    {
+        return iterator{base_.begin(), base_.end()};
+    }
+
+    constexpr sentinel end() const
+    {
+        return std::default_sentinel;
+    }
+};
+
+template<std::ranges::range R>
+lexer(R&&) -> lexer<std::views::all_t<R>>;
+
+template<typename V>
+class lexer<V>::iterator
+{
+    using base_iter = std::ranges::iterator_t<V>;
+    using base_sent = std::ranges::sentinel_t<V>;
+
+    using char_type = std::iter_value_t<base_iter>;
+
+public:
+    using value_type        = ely::token<V>;
+    using reference         = value_type;
+    using pointer           = void;
+    using difference_type   = std::ptrdiff_t;
+    using iterator_category = std::input_iterator_tag;
+
+private:
+    [[no_unique_address]] base_iter it_;
+    [[no_unique_address]] base_sent end_;
+
+public:
+    iterator() = default;
+
+    constexpr iterator(base_iter it, base_sent end) : it_(it), end_(end)
+    {}
+
+    friend bool operator==(const iterator& lhs, const iterator& rhs)  = default;
+    friend auto operator<=>(const iterator& lhs, const iterator& rhs) = default;
+
+    friend constexpr bool operator==(const iterator& it,
+                                     const std::default_sentinel_t&)
+    {
+        return it.it_ == it.end_;
+    }
+
+    friend constexpr bool operator==(const std::default_sentinel_t& end,
+                                     const iterator&                it)
+    {
+        return it == end;
+    }
+
+    constexpr ely::token<V> operator*()
     {
         while (true)
         {
@@ -88,8 +153,6 @@ public:
 
             switch (ch)
             {
-            case '\0':
-                return {token_type::eof, it_, 0};
             case ';':
                 scan_line_comment(ch);
                 break;
@@ -105,8 +168,34 @@ public:
                 return scan_single(token_type::lparen);
             case ')':
                 return scan_single(token_type::rparen);
+            case '[':
+                return scan_single(token_type::lbracket);
+            case ']':
+                return scan_single(token_type::rbracket);
+            case '{':
+                return scan_single(token_type::lbrace);
+            case '}':
+                return scan_single(token_type::rbrace);
+            case '+':
+            case '-':
+                return scan_sign(ch);
+            default:
+                if (detail::is_identifier_start(ch))
+                {
+                    return scan_identifier(ch);
+                }
+                else if (detail::is_digit(ch))
+                {
+                    return scan_number(ch);
+                }
+                return scan_single(token_type::unknown_char);
             }
         }
+    }
+
+    constexpr iterator& operator++()
+    {
+        return *this;
     }
 
 private:
@@ -155,7 +244,7 @@ private:
         }
     }
 
-    constexpr token<I> scan_decimal(char_type ch, I token_start)
+    constexpr token<V> scan_decimal(char_type ch, base_iter token_start)
     {
         assert(ch == '.');
         advance_char();
@@ -170,16 +259,16 @@ private:
 
         return {token_type::decimal_literal,
                 token_start,
-                std::distance(token_start, it_)};
+                static_cast<std::size_t>(std::distance(token_start, it_))};
     }
 
-    constexpr token<I> scan_number_cont(char_type ch, I token_start)
+    constexpr token<V> scan_number_cont(char_type ch, base_iter token_start)
     {
-        assert(is_digit(ch));
+        assert(detail::is_digit(ch));
         advance_char();
 
         ch = peek_char();
-        while (is_digit(ch))
+        while (detail::is_digit(ch))
         {
             advance_char();
             ch = peek_char();
@@ -192,15 +281,15 @@ private:
 
         return {token_type::int_literal,
                 token_start,
-                std::distance(token_start, it_)};
+                static_cast<std::size_t>(std::distance(token_start, it_))};
     }
 
-    constexpr token<I> scan_number(char_type ch)
+    constexpr token<V> scan_number(char_type ch)
     {
         return scan_number_cont(ch, it_);
     }
 
-    constexpr token<I> scan_identifier_cont(char_type ch, I token_start)
+    constexpr token<V> scan_identifier_cont(char_type ch, base_iter token_start)
     {
         assert(detail::is_identifier_continue(ch));
         advance_char();
@@ -214,10 +303,10 @@ private:
 
         return {token_type::identifier,
                 token_start,
-                std::distance(token_start, it_)};
+                static_cast<std::size_t>(std::distance(token_start, it_))};
     }
 
-    constexpr token<I> scan_sign(char_type ch)
+    constexpr token<V> scan_sign(char_type ch)
     {
         assert(ch == '+' || ch == '-');
         const auto token_start = it_;
@@ -236,11 +325,11 @@ private:
         {
             return {token_type::identifier,
                     token_start,
-                    std::distance(token_start, it_)};
+                    static_cast<std::size_t>(std::distance(token_start, it_))};
         }
     }
 
-    constexpr token<I> scan_identifier(char_type ch)
+    constexpr token<V> scan_identifier(char_type ch)
     {
         assert(detail::is_identifier_start(ch));
         const auto token_start = it_;
@@ -255,10 +344,10 @@ private:
 
         return {token_type::identifier,
                 token_start,
-                std::distance(token_start, it_)};
+                static_cast<std::size_t>(std::distance(token_start, it_))};
     }
 
-    constexpr token<I> scan_string_lit(char_type ch)
+    constexpr token<V> scan_string_lit(char_type ch)
     {
         assert(ch == '"');
         const auto token_start = it_;
@@ -271,9 +360,10 @@ private:
         {
             if (ch == '\0')
             {
-                return {token_type::unterminated_string_literal,
-                        token_start,
-                        std::distance(token_start, lex.it_)};
+                return {
+                    token_type::unterminated_string_literal,
+                    token_start,
+                    static_cast<std::size_t>(std::distance(token_start, it_))};
             }
 
             if (ch == '\\')
@@ -292,14 +382,25 @@ private:
         advance_char();
         return {token_type::string_literal,
                 token_start,
-                std::distance(token_start, it_)};
+                static_cast<std::size_t>(std::distance(token_start, it_))};
     }
 
-    constexpr token<I> scan_single(token_type kind)
+    constexpr token<V> scan_single(token_type kind)
     {
         auto start = it_;
         advance_char();
-        return {ty, start, 1};
+        return {kind, start, 1};
     }
 };
+
+template<typename I, typename S, typename OutIt>
+constexpr OutIt copy(I it, S end, OutIt dst)
+{
+    for (; it != end; (void) ++it, ++dst)
+    {
+        *dst = *it;
+    }
+
+    return dst;
+}
 } // namespace ely

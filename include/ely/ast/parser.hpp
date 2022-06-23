@@ -8,23 +8,24 @@ namespace ely
 {
 namespace ast
 {
+template<typename I, typename S>
 class parser
 {
-    ely::lexer lex_;
-    ely::sema  sema_;
-    ely::token lookahead_;
+    ely::lexer<I, S> lex_;
+    ely::sema        sema_;
+    ely::token<I>    lookahead_;
 
 public:
-    parser(ely::lexer lex, ely::sema sem)
+    parser(ely::lexer<I, S> lex, ely::sema sem)
         : lex_(std::move(lex)), sema_(std::move(sem))
     {
         lookahead_ = lex.next();
     }
 
 private:
-    ely::token peek_token() const;
-    void       advance_token();
-    ely::token consume_token();
+    ely::token<I> peek_token() const;
+    void          advance_token();
+    ely::token<I> consume_token();
 
     module_* parse_module();
 
