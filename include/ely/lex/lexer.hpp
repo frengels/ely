@@ -64,6 +64,10 @@ class lexer
     using char_type = std::iter_value_t<base_iter>;
 
 public:
+    using value_type = ely::token;
+    using reference  = value_type;
+    using pointer    = void;
+    using size_type  = std::size_t;
     class iterator;
     using sentinel = std::default_sentinel_t;
 
