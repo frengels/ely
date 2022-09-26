@@ -26,7 +26,8 @@ namespace detail {
 constexpr bool is_num(auto ch) { return '0' <= ch && ch <= '9'; }
 
 constexpr std::string_view make_strv(const char *begin, const char *end) {
-  return std::string_view{begin, std::distance(begin, end)};
+  return std::string_view{begin,
+                          static_cast<std::size_t>(std::distance(begin, end))};
 }
 
 struct whitespace_lexer {
@@ -66,7 +67,7 @@ struct tab_lexer {
 };
 
 struct line_comment_lexer {
-  static constexpr auto start_pred = [](auto ch) { return ch == ';' };
+  static constexpr auto start_pred = [](auto ch) { return ch == ';'; };
 
   static constexpr scan_result impl(std::string_view strv) {
     auto it = std::next(strv.begin());
@@ -126,6 +127,7 @@ struct string_lexer {
         escaping = !escaping;
         continue;
       } else if (ch == '"' && !escaping) {
+        ++it;
         break;
       }
 
@@ -136,23 +138,6 @@ struct string_lexer {
             .lexeme = make_strv(strv.begin(), it)};
   }
 };
-
-constexpr scan_result lex_whitespace(std::string_view src) {
-  assert(src.front() == ' ');
-
-  auto it = std::next(src.begin());
-  while (it != src.end()) {
-    auto ch = *it;
-
-    if (ch != ' ') {
-      break;
-    }
-  }
-
-  return {.kind = token_kind::atmosphere, .lexeme = make_strv(src.begin(), it)};
-}
-
-constexpr scan_result lex_whitespace(std::string_view src) {}
 
 template <typename Lexer> struct safe_adapter {
   constexpr std::optional<scan_result> operator()(std::string_view strv) const {
@@ -171,7 +156,7 @@ constexpr scan_result lex(std::string_view src) {
   for (auto ch : src) {
     switch (ch) {
     case ' ':
-      return detail::lex_whitespace(src);
+      return detail::whitespace_lexer::impl(src);
     }
   }
 }
