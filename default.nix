@@ -1,4 +1,4 @@
-{ lib, stdenv, cmake, doctest }:
+{ lib, stdenv, cmake, ninja, doctest }:
 stdenv.mkDerivation {
   pname = "wmc";
   version = "0.0.1";
