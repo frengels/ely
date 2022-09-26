@@ -113,6 +113,47 @@ struct integer_lexer {
   }
 };
 
+struct number_lexer {
+  static constexpr auto start_pred = [](auto ch) { return is_num(ch); };
+
+private:
+  static constexpr scan_result continue_decimal(std::string_view strv,
+                                                std::string_view::iterator it) {
+    assert(*it == '.');
+    ++it;
+
+    for (; it != strv.end(); ++it) {
+      auto ch = *it;
+
+      if (!is_num(ch)) {
+        break;
+      }
+    }
+
+    return {.kind = token_kind::decimal_literal,
+            .lexeme = make_strv(strv.begin(), it)};
+  }
+
+public:
+  static constexpr scan_result impl(std::string_view strv) {
+    auto it = std::next(strv.begin());
+
+    for (; it != strv.end(); ++it) {
+      auto ch = *it;
+
+      if (ch == '.') {
+        return continue_decimal(strv, it);
+      }
+      if (!is_num(ch)) {
+        break;
+      }
+    }
+
+    return {.kind = token_kind::integer_literal,
+            .lexeme = make_strv(strv.begin(), it)};
+  }
+};
+
 struct string_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '"'; };
 
@@ -150,6 +191,10 @@ template <typename Lexer> struct safe_adapter {
 };
 } // namespace detail
 
+constexpr auto lex_whitespace =
+    detail::safe_adapter<detail::whitespace_lexer>{};
+constexpr auto lex_tabs = detail::safe_adapter<detail::tab_lexer>{};
+constexpr auto lex_number = detail::safe_adapter<detail::number_lexer>{};
 constexpr auto lex_string = detail::safe_adapter<detail::string_lexer>{};
 
 constexpr scan_result lex(std::string_view src) {
