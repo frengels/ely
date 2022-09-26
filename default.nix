@@ -1,9 +1,9 @@
-{ lib, stdenv, cmake }:
+{ lib, stdenv, cmake, doctest }:
 stdenv.mkDerivation {
   pname = "wmc";
   version = "0.0.1";
 
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = [ cmake doctest ];
   buildInputs = [];
 
   src = ./.;
