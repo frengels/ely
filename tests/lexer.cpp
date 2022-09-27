@@ -12,6 +12,12 @@ constexpr void lex_success(std::string_view strv, wmc::token_kind kind) {
   CHECK(res.lexeme == strv);
 }
 
+template<auto F>
+constexpr void lex_fail(std::string_view strv) {
+  auto opt_res = F(strv);
+  CHECK(!opt_res);
+}
+
 TEST_CASE("lexer") {
   SUBCASE("identifier") {
     SUBCASE("success") {
@@ -26,10 +32,7 @@ TEST_CASE("lexer") {
     }
 
     SUBCASE("fail") {
-      auto src = std::string_view{"hello"};
-
-      auto opt_res = wmc::lex_string(src);
-      CHECK(!opt_res);
+      lex_fail<wmc::lex_string>("hello");
     }
   }
 }
