@@ -15,6 +15,8 @@ enum class token_kind {
 
   lparen,
   rparen,
+
+  eof,
 };
 
 struct scan_result {
@@ -251,22 +253,24 @@ constexpr auto lex_number = detail::safe_adapter<detail::number_lexer>{};
 constexpr auto lex_string = detail::safe_adapter<detail::string_lexer>{};
 
 constexpr scan_result lex(std::string_view src) {
-  for (auto ch : src) {
-    switch (ch) {
-    case ' ':
-      return detail::whitespace_lexer::impl(src);
-    case '\t':
-      return detail::tab_lexer::impl(src);
-    case ';':
-      return detail::line_comment_lexer::impl(src);
-    case '"':
-      return detail::string_lexer::impl(src);
-    default:
-      if (detail::is_identifier_start(ch)) {
-        return detail::identifier_lexer::impl(ch);
-      } else if (detail::is_num(ch)) {
-        return detail::number_lexer::impl(ch);
-      }
+  if (src.empty()) {
+    return {.kind = token_kind::eof, .lexeme = {}};
+  }
+  auto ch = src.front();
+  switch (ch) {
+  case ' ':
+    return detail::whitespace_lexer::impl(src);
+  case '\t':
+    return detail::tab_lexer::impl(src);
+  case ';':
+    return detail::line_comment_lexer::impl(src);
+  case '"':
+    return detail::string_lexer::impl(src);
+  default:
+    if (detail::is_identifier_start(ch)) {
+      return detail::identifier_lexer::impl(ch);
+    } else if (detail::is_num(ch)) {
+      return detail::number_lexer::impl(ch);
     }
   }
 }
