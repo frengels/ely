@@ -25,6 +25,35 @@ struct scan_result {
 namespace detail {
 constexpr bool is_num(auto ch) { return '0' <= ch && ch <= '9'; }
 
+constexpr bool is_lower_alpha(auto ch) { return 'a' <= ch && ch <= 'z'; }
+
+constexpr bool is_upper_alpha(auto ch) { return 'A' <= ch && ch <= 'Z'; }
+
+constexpr bool is_alpha(auto ch) {
+  return is_lower_alpha(ch) || is_upper_alpha(ch);
+}
+
+constexpr bool is_special_initial(auto ch) {
+  switch (ch) {
+  case '*':
+  case '+':
+  case '-':
+  case '_':
+  case '/':
+    return true;
+  default:
+    return false;
+  }
+}
+
+constexpr bool is_identifier_start(auto ch) {
+  return is_alpha(ch) || is_special_initial(ch);
+}
+
+constexpr bool is_identifier_continue(auto ch) {
+  return is_identifier_start(ch) || is_num(ch);
+}
+
 constexpr std::string_view make_strv(const char *begin, const char *end) {
   return std::string_view{begin,
                           static_cast<std::size_t>(std::distance(begin, end))};
@@ -91,6 +120,26 @@ struct line_comment_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
+            .lexeme = make_strv(strv.begin(), it)};
+  }
+};
+
+struct identifier_lexer {
+  static constexpr auto start_pred = [](auto ch) {
+    return is_identifier_start(ch);
+  };
+
+  static constexpr scan_result impl(std::string_view strv) {
+    auto it = std::next(strv.begin());
+
+    for (; it != strv.end(); ++it) {
+      auto ch = *it;
+      if (!is_identifier_continue(ch)) {
+        break;
+      }
+    }
+
+    return {.kind = token_kind::identifier,
             .lexeme = make_strv(strv.begin(), it)};
   }
 };
@@ -194,6 +243,10 @@ template <typename Lexer> struct safe_adapter {
 constexpr auto lex_whitespace =
     detail::safe_adapter<detail::whitespace_lexer>{};
 constexpr auto lex_tabs = detail::safe_adapter<detail::tab_lexer>{};
+constexpr auto lex_line_comment =
+    detail::safe_adapter<detail::line_comment_lexer>{};
+constexpr auto lex_identifier =
+    detail::safe_adapter<detail::identifier_lexer>{};
 constexpr auto lex_number = detail::safe_adapter<detail::number_lexer>{};
 constexpr auto lex_string = detail::safe_adapter<detail::string_lexer>{};
 
