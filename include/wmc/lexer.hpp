@@ -255,6 +255,18 @@ constexpr scan_result lex(std::string_view src) {
     switch (ch) {
     case ' ':
       return detail::whitespace_lexer::impl(src);
+    case '\t':
+      return detail::tab_lexer::impl(src);
+    case ';':
+      return detail::line_comment_lexer::impl(src);
+    case '"':
+      return detail::string_lexer::impl(src);
+    default:
+      if (detail::is_identifier_start(ch)) {
+        return detail::identifier_lexer::impl(ch);
+      } else if (detail::is_num(ch)) {
+        return detail::number_lexer::impl(ch);
+      }
     }
   }
 }
