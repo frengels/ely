@@ -61,9 +61,15 @@ constexpr bool is_identifier_continue(auto ch) {
   return is_identifier_start(ch) || is_num(ch);
 }
 
-constexpr std::string_view make_strv(const char *begin, const char *end) {
-  return std::string_view{begin,
+constexpr std::string_view make_view(std::string_view::iterator begin,
+                                     std::string_view::iterator end) {
+  return std::string_view{std::to_address(begin),
                           static_cast<std::size_t>(std::distance(begin, end))};
+}
+
+template <typename V, typename I, typename S>
+constexpr V make_view(I begin, S end) {
+  return V{begin, end};
 }
 
 struct whitespace_lexer {
@@ -80,7 +86,7 @@ struct whitespace_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 };
 
@@ -98,7 +104,7 @@ struct tab_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 };
 
@@ -127,7 +133,33 @@ struct line_comment_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
+  }
+};
+
+struct newline_lexer {
+  static constexpr auto start_pred = [](auto ch) {
+    return ch == '\r' || ch == '\n';
+  };
+
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
+    auto it = src.begin();
+    switch (*it) {
+    case '\r':
+      ++it;
+      if (*it == '\n') {
+        ++it;
+      }
+      break;
+    case '\n':
+      ++it;
+      break;
+    default:
+      __builtin_unreachable();
+    }
+
+    return {.kind = token_kind::atmosphere,
+            .lexeme = detail::make_view<V>(src.begin(), it)};
   }
 };
 
@@ -136,7 +168,7 @@ struct lparen_lexer {
 
   template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     return {.kind = token_kind::lparen,
-            .lexeme = make_strv(src.begin(), std::next(src.begin()))};
+            .lexeme = make_view<V>(src.begin(), std::next(src.begin()))};
   }
 };
 
@@ -145,7 +177,7 @@ struct rparen_lexer {
 
   template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     return {.kind = token_kind::rparen,
-            .lexeme = make_strv(src.begin(), std::next(src.begin()))};
+            .lexeme = make_view<V>(src.begin(), std::next(src.begin()))};
   }
 };
 
@@ -165,7 +197,7 @@ struct identifier_lexer {
     }
 
     return {.kind = token_kind::identifier,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 };
 
@@ -183,7 +215,7 @@ struct integer_lexer {
     }
 
     return {.kind = token_kind::integer_literal,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 };
 
@@ -206,7 +238,7 @@ private:
     }
 
     return {.kind = token_kind::decimal_literal,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 
 public:
@@ -225,7 +257,7 @@ public:
     }
 
     return {.kind = token_kind::integer_literal,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 };
 
@@ -250,7 +282,7 @@ struct string_lexer {
     }
 
     return {.kind = token_kind::string_literal,
-            .lexeme = make_strv(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it)};
   }
 };
 
@@ -289,6 +321,9 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
     return detail::whitespace_lexer::impl(src);
   case '\t':
     return detail::tab_lexer::impl(src);
+  case '\r':
+  case '\n':
+    return detail::newline_lexer::impl(src);
   case ';':
     return detail::line_comment_lexer::impl(src);
   case '"':
@@ -306,7 +341,7 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
       return detail::number_lexer::impl(src);
     } else {
       return {.kind = token_kind::unknown_char,
-              .lexeme = detail::make_strv(it, std::next(it))};
+              .lexeme = detail::make_view<V>(it, std::next(it))};
     }
   }
 }
