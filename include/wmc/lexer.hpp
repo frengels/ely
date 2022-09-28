@@ -87,7 +87,7 @@ struct whitespace_lexer {
 struct tab_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '\t'; };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     auto it = std::next(src.begin());
     for (; it != src.end(); ++it) {
       auto ch = *it;
@@ -105,7 +105,7 @@ struct tab_lexer {
 struct line_comment_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == ';'; };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     auto it = std::next(src.begin());
     for (; it != src.end(); ++it) {
       auto ch = *it;
@@ -134,7 +134,7 @@ struct line_comment_lexer {
 struct lparen_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '('; };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     return {.kind = token_kind::lparen,
             .lexeme = make_strv(src.begin(), std::next(src.begin()))};
   }
@@ -143,7 +143,7 @@ struct lparen_lexer {
 struct rparen_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == ')'; };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     return {.kind = token_kind::rparen,
             .lexeme = make_strv(src.begin(), std::next(src.begin()))};
   }
@@ -154,7 +154,7 @@ struct identifier_lexer {
     return is_identifier_start(ch);
   };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     auto it = std::next(src.begin());
 
     for (; it != src.end(); ++it) {
@@ -172,7 +172,7 @@ struct identifier_lexer {
 struct integer_lexer {
   static constexpr auto start_pred = [](auto ch) { return is_num(ch); };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     auto it = std::next(src.begin());
 
     for (; it != src.end(); ++it) {
@@ -232,7 +232,7 @@ public:
 struct string_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '"'; };
 
-  template <typename V> static constexpr scan_result impl(V src) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     auto it = std::next(src.begin());
     bool escaping = false;
 
@@ -310,15 +310,4 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
     }
   }
 }
-
-class lexer_iterator {
-public:
-  using value_type = scan_result;
-  using reference = value_type;
-  using pointer = void;
-  using difference_type = std::ptrdiff_t;
-  using iterator_category = std::input_iterator_tag;
-
-private:
-};
 } // namespace wmc
