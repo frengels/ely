@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <optional>
+#include <ranges>
 #include <string_view>
 
 namespace wmc {
@@ -21,10 +22,12 @@ enum class token_kind {
   unknown_char,
 };
 
-struct scan_result {
+template <typename V> struct basic_scan_result {
   token_kind kind;
-  std::string_view lexeme;
+  V lexeme;
 };
+
+using scan_result = basic_scan_result<std::string_view>;
 
 namespace detail {
 constexpr bool is_num(auto ch) { return '0' <= ch && ch <= '9'; }
@@ -66,9 +69,9 @@ constexpr std::string_view make_strv(const char *begin, const char *end) {
 struct whitespace_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == ' '; };
 
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
-    while (it != strv.end()) {
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
+    auto it = std::next(src.begin());
+    while (it != src.end()) {
       auto ch = *it;
 
       if (ch != ' ') {
@@ -77,16 +80,16 @@ struct whitespace_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
 struct tab_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '\t'; };
 
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
-    for (; it != strv.end(); ++it) {
+  template <typename V> static constexpr scan_result impl(V src) {
+    auto it = std::next(src.begin());
+    for (; it != src.end(); ++it) {
       auto ch = *it;
 
       if (ch != '\t') {
@@ -95,21 +98,21 @@ struct tab_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
 struct line_comment_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == ';'; };
 
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
-    for (; it != strv.end(); ++it) {
+  template <typename V> static constexpr scan_result impl(V src) {
+    auto it = std::next(src.begin());
+    for (; it != src.end(); ++it) {
       auto ch = *it;
 
       if (ch == '\r') {
         ++it;
-        if (it != strv.end()) {
+        if (it != src.end()) {
           ch = *it;
           if (ch == '\n') {
             ++it;
@@ -124,25 +127,25 @@ struct line_comment_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
 struct lparen_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '('; };
 
-  static constexpr scan_result impl(std::string_view strv) {
+  template <typename V> static constexpr scan_result impl(V src) {
     return {.kind = token_kind::lparen,
-            .lexeme = make_strv(strv.begin(), std::next(strv.begin()))};
+            .lexeme = make_strv(src.begin(), std::next(src.begin()))};
   }
 };
 
 struct rparen_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == ')'; };
 
-  static constexpr scan_result impl(std::string_view strv) {
+  template <typename V> static constexpr scan_result impl(V src) {
     return {.kind = token_kind::rparen,
-            .lexeme = make_strv(strv.begin(), std::next(strv.begin()))};
+            .lexeme = make_strv(src.begin(), std::next(src.begin()))};
   }
 };
 
@@ -151,10 +154,10 @@ struct identifier_lexer {
     return is_identifier_start(ch);
   };
 
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
+  template <typename V> static constexpr scan_result impl(V src) {
+    auto it = std::next(src.begin());
 
-    for (; it != strv.end(); ++it) {
+    for (; it != src.end(); ++it) {
       auto ch = *it;
       if (!is_identifier_continue(ch)) {
         break;
@@ -162,17 +165,17 @@ struct identifier_lexer {
     }
 
     return {.kind = token_kind::identifier,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
 struct integer_lexer {
   static constexpr auto start_pred = [](auto ch) { return is_num(ch); };
 
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
+  template <typename V> static constexpr scan_result impl(V src) {
+    auto it = std::next(src.begin());
 
-    for (; it != strv.end(); ++it) {
+    for (; it != src.end(); ++it) {
       auto ch = *it;
       if (!is_num(ch)) {
         break;
@@ -180,7 +183,7 @@ struct integer_lexer {
     }
 
     return {.kind = token_kind::integer_literal,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
@@ -188,12 +191,13 @@ struct number_lexer {
   static constexpr auto start_pred = [](auto ch) { return is_num(ch); };
 
 private:
-  static constexpr scan_result continue_decimal(std::string_view strv,
-                                                std::string_view::iterator it) {
+  template <typename V>
+  static constexpr basic_scan_result<V>
+  continue_decimal(V src, std::ranges::iterator_t<V> it) {
     assert(*it == '.');
     ++it;
 
-    for (; it != strv.end(); ++it) {
+    for (; it != src.end(); ++it) {
       auto ch = *it;
 
       if (!is_num(ch)) {
@@ -202,18 +206,18 @@ private:
     }
 
     return {.kind = token_kind::decimal_literal,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 
 public:
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
+  template <typename V> static constexpr basic_scan_result<V> impl(V src) {
+    auto it = std::next(src.begin());
 
-    for (; it != strv.end(); ++it) {
+    for (; it != src.end(); ++it) {
       auto ch = *it;
 
       if (ch == '.') {
-        return continue_decimal(strv, it);
+        return continue_decimal(src, it);
       }
       if (!is_num(ch)) {
         break;
@@ -221,19 +225,18 @@ public:
     }
 
     return {.kind = token_kind::integer_literal,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
 struct string_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '"'; };
 
-  static constexpr scan_result impl(std::string_view strv) {
-    auto it = std::next(strv.begin());
-
+  template <typename V> static constexpr scan_result impl(V src) {
+    auto it = std::next(src.begin());
     bool escaping = false;
 
-    for (; it != strv.end(); ++it) {
+    for (; it != src.end(); ++it) {
       auto ch = *it;
       if (ch == '\\') {
         escaping = !escaping;
@@ -247,12 +250,13 @@ struct string_lexer {
     }
 
     return {.kind = token_kind::string_literal,
-            .lexeme = make_strv(strv.begin(), it)};
+            .lexeme = make_strv(src.begin(), it)};
   }
 };
 
 template <typename Lexer> struct safe_adapter {
-  constexpr std::optional<scan_result> operator()(std::string_view strv) const {
+  template <typename V>
+  constexpr std::optional<basic_scan_result<V>> operator()(V strv) const {
     if (strv.empty() || !Lexer::start_pred(strv.front())) {
       return std::nullopt;
     }
@@ -272,11 +276,14 @@ constexpr auto lex_identifier =
 constexpr auto lex_number = detail::safe_adapter<detail::number_lexer>{};
 constexpr auto lex_string = detail::safe_adapter<detail::string_lexer>{};
 
-constexpr scan_result lex(std::string_view src) {
-  if (src.empty()) {
+template <typename V> constexpr basic_scan_result<V> lex(V src) {
+  auto it = src.begin();
+  auto end = src.end();
+  if (it == end) {
     return {.kind = token_kind::eof, .lexeme = {}};
   }
-  auto ch = src.front();
+
+  auto ch = *it;
   switch (ch) {
   case ' ':
     return detail::whitespace_lexer::impl(src);
@@ -290,15 +297,28 @@ constexpr scan_result lex(std::string_view src) {
     return detail::lparen_lexer::impl(src);
   case ')':
     return detail::rparen_lexer::impl(src);
+  case '\0':
+    return {.kind = token_kind::eof, .lexeme = {}};
   default:
-    if (detail::is_identifier_start(ch)) {
+    if (detail::identifier_lexer::start_pred(ch)) {
       return detail::identifier_lexer::impl(src);
-    } else if (detail::is_num(ch)) {
+    } else if (detail::number_lexer::start_pred(ch)) {
       return detail::number_lexer::impl(src);
     } else {
       return {.kind = token_kind::unknown_char,
-              .lexeme = detail::make_strv(src.begin(), std::next(src.begin()))};
+              .lexeme = detail::make_strv(it, std::next(it))};
     }
   }
 }
+
+class lexer_iterator {
+public:
+  using value_type = scan_result;
+  using reference = value_type;
+  using pointer = void;
+  using difference_type = std::ptrdiff_t;
+  using iterator_category = std::input_iterator_tag;
+
+private:
+};
 } // namespace wmc
