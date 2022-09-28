@@ -1,6 +1,6 @@
 { lib, stdenv, cmake, ninja, doctest }:
 stdenv.mkDerivation {
-  pname = "wmc";
+  pname = "mlisp";
   version = "0.0.1";
 
   nativeBuildInputs = [ cmake doctest ];
@@ -9,8 +9,8 @@ stdenv.mkDerivation {
   src = ./.;
 
   cmakeFlags = [
-    "-DWMC_TESTS=ON"
-    "-DWMC_EXAMPLES=OFF"
+    "-DMLI_TESTS=ON"
+    "-DMLI_EXAMPLES=OFF"
   ];
 
   enableParallelBuilding = true;

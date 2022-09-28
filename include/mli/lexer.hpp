@@ -5,7 +5,7 @@
 #include <ranges>
 #include <string_view>
 
-namespace wmc {
+namespace mli {
 enum class token_kind {
   atmosphere,
 
@@ -345,4 +345,4 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
     }
   }
 }
-} // namespace wmc
+} // namespace mli
