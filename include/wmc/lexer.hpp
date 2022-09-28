@@ -17,6 +17,8 @@ enum class token_kind {
   rparen,
 
   eof,
+
+  unknown_char,
 };
 
 struct scan_result {
@@ -123,6 +125,24 @@ struct line_comment_lexer {
 
     return {.kind = token_kind::atmosphere,
             .lexeme = make_strv(strv.begin(), it)};
+  }
+};
+
+struct lparen_lexer {
+  static constexpr auto start_pred = [](auto ch) { return ch == '('; };
+
+  static constexpr scan_result impl(std::string_view strv) {
+    return {.kind = token_kind::lparen,
+            .lexeme = make_strv(strv.begin(), std::next(strv.begin()))};
+  }
+};
+
+struct rparen_lexer {
+  static constexpr auto start_pred = [](auto ch) { return ch == ')'; };
+
+  static constexpr scan_result impl(std::string_view strv) {
+    return {.kind = token_kind::rparen,
+            .lexeme = make_strv(strv.begin(), std::next(strv.begin()))};
   }
 };
 
@@ -266,11 +286,18 @@ constexpr scan_result lex(std::string_view src) {
     return detail::line_comment_lexer::impl(src);
   case '"':
     return detail::string_lexer::impl(src);
+  case '(':
+    return detail::lparen_lexer::impl(src);
+  case ')':
+    return detail::rparen_lexer::impl(src);
   default:
     if (detail::is_identifier_start(ch)) {
-      return detail::identifier_lexer::impl(ch);
+      return detail::identifier_lexer::impl(src);
     } else if (detail::is_num(ch)) {
-      return detail::number_lexer::impl(ch);
+      return detail::number_lexer::impl(src);
+    } else {
+      return {.kind = token_kind::unknown_char,
+              .lexeme = detail::make_strv(src.begin(), std::next(src.begin()))};
     }
   }
 }
