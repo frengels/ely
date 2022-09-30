@@ -25,6 +25,7 @@ enum class token_kind {
 template <typename V> struct basic_scan_result {
   token_kind kind;
   V lexeme;
+  V next;
 };
 
 using scan_result = basic_scan_result<std::string_view>;
@@ -86,7 +87,8 @@ struct whitespace_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -104,7 +106,8 @@ struct tab_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -133,7 +136,8 @@ struct line_comment_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -159,7 +163,8 @@ struct newline_lexer {
     }
 
     return {.kind = token_kind::atmosphere,
-            .lexeme = detail::make_view<V>(src.begin(), it)};
+            .lexeme = detail::make_view<V>(src.begin(), it),
+            .next = detail::make_view<V>(it, src.end())};
   }
 };
 
@@ -168,7 +173,8 @@ struct lparen_lexer {
 
   template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     return {.kind = token_kind::lparen,
-            .lexeme = make_view<V>(src.begin(), std::next(src.begin()))};
+            .lexeme = make_view<V>(src.begin(), std::next(src.begin())),
+            .next = make_view<V>(std::next(src.begin()), src.end())};
   }
 };
 
@@ -177,7 +183,8 @@ struct rparen_lexer {
 
   template <typename V> static constexpr basic_scan_result<V> impl(V src) {
     return {.kind = token_kind::rparen,
-            .lexeme = make_view<V>(src.begin(), std::next(src.begin()))};
+            .lexeme = make_view<V>(src.begin(), std::next(src.begin())),
+            .next = make_view<V>(std::next(src.begin()), src.end())};
   }
 };
 
@@ -197,7 +204,8 @@ struct identifier_lexer {
     }
 
     return {.kind = token_kind::identifier,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -215,7 +223,8 @@ struct integer_lexer {
     }
 
     return {.kind = token_kind::integer_literal,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -238,7 +247,8 @@ private:
     }
 
     return {.kind = token_kind::decimal_literal,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 
 public:
@@ -257,7 +267,8 @@ public:
     }
 
     return {.kind = token_kind::integer_literal,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -282,7 +293,8 @@ struct string_lexer {
     }
 
     return {.kind = token_kind::string_literal,
-            .lexeme = make_view<V>(src.begin(), it)};
+            .lexeme = make_view<V>(src.begin(), it),
+            .next = make_view<V>(it, src.end())};
   }
 };
 
@@ -312,7 +324,7 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
   auto it = src.begin();
   auto end = src.end();
   if (it == end) {
-    return {.kind = token_kind::eof, .lexeme = {}};
+    return {.kind = token_kind::eof, .lexeme = {}, .next = src};
   }
 
   auto ch = *it;
@@ -333,7 +345,7 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
   case ')':
     return detail::rparen_lexer::impl(src);
   case '\0':
-    return {.kind = token_kind::eof, .lexeme = {}};
+    return {.kind = token_kind::eof, .lexeme = {}, .next = src};
   default:
     if (detail::identifier_lexer::start_pred(ch)) {
       return detail::identifier_lexer::impl(src);
@@ -341,8 +353,123 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
       return detail::number_lexer::impl(src);
     } else {
       return {.kind = token_kind::unknown_char,
-              .lexeme = detail::make_view<V>(it, std::next(it))};
+              .lexeme = detail::make_view<V>(it, std::next(it)),
+              .next = detail::make_view<V>(std::next(it), src.end())};
     }
   }
 }
+
+struct source_position {
+  // both line and col should start at 1, line 0 means no position was given
+  uint32_t line{};
+  uint32_t col{};
+
+  source_position() = default;
+
+  constexpr source_position(uint32_t line, uint32_t col)
+      : line(line), col(col) {}
+
+  friend bool operator==(const source_position &,
+                         const source_position &) = default;
+};
+
+template <typename V> class basic_source_view {
+  V src_;
+  source_position pos_;
+
+public:
+  class iterator {
+    using it_traits = std::iterator_traits<std::ranges::iterator_t<V>>;
+
+  public:
+    using value_type = typename it_traits::value_type;
+    using reference = typename it_traits::reference;
+    using pointer = typename it_traits::pointer;
+    using difference_type = typename it_traits::difference_type;
+    using iterator_category = std::forward_iterator_tag;
+
+  private:
+    std::ranges::iterator_t<V> it_;
+    source_position pos_;
+
+  public:
+    iterator() = default;
+
+    constexpr iterator(std::ranges::iterator_t<V> it, source_position pos)
+        : it_(it), pos_(pos) {}
+
+    constexpr const source_position &pos() const { return pos_; }
+    constexpr const std::ranges::iterator_t<V> &base() const { return it_; }
+
+    friend constexpr bool operator==(const iterator &lhs, const iterator &rhs) {
+      return lhs.it_ == rhs.it_;
+    }
+
+    constexpr iterator &operator++() {
+      auto ch = *it_;
+      switch (ch) {
+      case '\n':
+        ++pos_.line;
+        pos_.col = 1;
+        break;
+      default:
+        ++pos_.col;
+        break;
+      }
+
+      ++it_;
+      return *this;
+    }
+
+    constexpr iterator operator++(int) {
+      auto tmp = *this;
+      ++*this;
+      return tmp;
+    }
+
+    constexpr std::ranges::range_reference_t<V> operator*() const {
+      return *it_;
+    }
+  };
+
+public:
+  basic_source_view() = default;
+  constexpr basic_source_view(V src) : src_(src), pos_(source_position{1, 1}) {}
+  constexpr basic_source_view(iterator first, iterator end)
+      : src_(detail::make_view<V>(first.base(), end.base())),
+        pos_(first.pos()) {}
+
+  constexpr iterator begin() const { return iterator{src_.begin(), pos()}; }
+  constexpr iterator end() const {
+    return iterator{src_.end(), source_position{}};
+  }
+
+  constexpr const source_position &pos() const { return pos_; }
+};
+
+using source_view = basic_source_view<std::string_view>;
+
+template <typename V> class basic_lexer {
+  V src_;
+
+public:
+  basic_lexer() = default;
+  explicit constexpr basic_lexer(V src) : src_(std::move(src)) {}
+
+  constexpr const V &src() const { return src_; }
+
+  constexpr basic_scan_result<V> next() {
+    basic_scan_result<V> res;
+
+    do {
+      res = lex(src_);
+      src_ = res.next;
+    } while (res.kind == token_kind::atmosphere);
+
+    return res;
+  }
+};
+
+using lexer = basic_lexer<std::string_view>;
+using pos_lexer = basic_lexer<source_view>;
 } // namespace mli

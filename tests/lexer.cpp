@@ -53,3 +53,31 @@ TEST_CASE("lexer") {
     CHECK(rp_tok.kind == mli::token_kind::rparen);
   }
 }
+
+TEST_CASE("pos_lexer") {
+  auto src = std::string_view{"hello\nworld 123\r\n()"};
+
+  auto lex = mli::pos_lexer{src};
+  auto hello_tok = lex.next();
+  CHECK(hello_tok.kind == mli::token_kind::identifier);
+  CHECK(hello_tok.lexeme.pos() == mli::source_position{1, 1});
+
+  auto world_tok = lex.next();
+  CHECK(world_tok.kind == mli::token_kind::identifier);
+  CHECK(world_tok.lexeme.pos() == mli::source_position{2, 1});
+
+  auto num_tok = lex.next();
+  CHECK(num_tok.kind == mli::token_kind::integer_literal);
+  CHECK(num_tok.lexeme.pos() == mli::source_position{2, 7});
+
+  auto lp_tok = lex.next();
+  CHECK(lp_tok.kind == mli::token_kind::lparen);
+  CHECK(lp_tok.lexeme.pos() == mli::source_position{3, 1});
+
+  auto rp_tok = lex.next();
+  CHECK(rp_tok.kind == mli::token_kind::rparen);
+  CHECK(rp_tok.lexeme.pos() == mli::source_position{3, 2});
+
+  auto eof_tok = lex.next();
+  CHECK(eof_tok.kind == mli::token_kind::eof);
+}
