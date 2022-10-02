@@ -8,8 +8,8 @@ constexpr void lex_success(std::string_view strv, mli::token_kind kind) {
   auto opt_res = F(strv);
   CHECK(opt_res);
   auto res = *opt_res;
-  CHECK(res.kind == kind);
-  CHECK(res.lexeme == strv);
+  CHECK(res.token.kind == kind);
+  CHECK(res.token.lexeme == strv);
 }
 
 template <auto F> constexpr void lex_fail(std::string_view strv) {
@@ -37,20 +37,20 @@ TEST_CASE("lexer") {
   SUBCASE("token") {
     auto src = std::string_view{"(hello world)"};
     auto lp_tok = mli::lex(src);
-    src = src.substr(lp_tok.lexeme.size());
+    src = lp_tok.next;
     auto hello_tok = mli::lex(src);
-    src = src.substr(hello_tok.lexeme.size());
+    src = hello_tok.next;
     auto ws_tok = mli::lex(src);
-    src = src.substr(ws_tok.lexeme.size());
+    src = ws_tok.next;
     auto world_tok = mli::lex(src);
-    src = src.substr(world_tok.lexeme.size());
+    src = world_tok.next;
     auto rp_tok = mli::lex(src);
 
-    CHECK(lp_tok.kind == mli::token_kind::lparen);
-    CHECK(hello_tok.kind == mli::token_kind::identifier);
-    CHECK(ws_tok.kind == mli::token_kind::atmosphere);
-    CHECK(world_tok.kind == mli::token_kind::identifier);
-    CHECK(rp_tok.kind == mli::token_kind::rparen);
+    CHECK(lp_tok.token.kind == mli::token_kind::lparen);
+    CHECK(hello_tok.token.kind == mli::token_kind::identifier);
+    CHECK(ws_tok.token.kind == mli::token_kind::atmosphere);
+    CHECK(world_tok.token.kind == mli::token_kind::identifier);
+    CHECK(rp_tok.token.kind == mli::token_kind::rparen);
   }
 }
 

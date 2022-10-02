@@ -22,9 +22,13 @@ enum class token_kind {
   unknown_char,
 };
 
-template <typename V> struct basic_scan_result {
+template <typename V> struct basic_token {
   token_kind kind;
   V lexeme;
+};
+
+template <typename V> struct basic_scan_result {
+  basic_token<V> token;
   V next;
 };
 
@@ -86,8 +90,8 @@ struct whitespace_lexer {
       }
     }
 
-    return {.kind = token_kind::atmosphere,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::atmosphere,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -105,8 +109,8 @@ struct tab_lexer {
       }
     }
 
-    return {.kind = token_kind::atmosphere,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::atmosphere,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -135,8 +139,8 @@ struct line_comment_lexer {
       }
     }
 
-    return {.kind = token_kind::atmosphere,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::atmosphere,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -162,8 +166,8 @@ struct newline_lexer {
       __builtin_unreachable();
     }
 
-    return {.kind = token_kind::atmosphere,
-            .lexeme = detail::make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::atmosphere,
+                      .lexeme = detail::make_view<V>(src.begin(), it)},
             .next = detail::make_view<V>(it, src.end())};
   }
 };
@@ -172,9 +176,10 @@ struct lparen_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == '('; };
 
   template <typename V> static constexpr basic_scan_result<V> impl(V src) {
-    return {.kind = token_kind::lparen,
-            .lexeme = make_view<V>(src.begin(), std::next(src.begin())),
-            .next = make_view<V>(std::next(src.begin()), src.end())};
+    return {
+        .token = {.kind = token_kind::lparen,
+                  .lexeme = make_view<V>(src.begin(), std::next(src.begin()))},
+        .next = make_view<V>(std::next(src.begin()), src.end())};
   }
 };
 
@@ -182,9 +187,10 @@ struct rparen_lexer {
   static constexpr auto start_pred = [](auto ch) { return ch == ')'; };
 
   template <typename V> static constexpr basic_scan_result<V> impl(V src) {
-    return {.kind = token_kind::rparen,
-            .lexeme = make_view<V>(src.begin(), std::next(src.begin())),
-            .next = make_view<V>(std::next(src.begin()), src.end())};
+    return {
+        .token = {.kind = token_kind::rparen,
+                  .lexeme = make_view<V>(src.begin(), std::next(src.begin()))},
+        .next = make_view<V>(std::next(src.begin()), src.end())};
   }
 };
 
@@ -203,8 +209,8 @@ struct identifier_lexer {
       }
     }
 
-    return {.kind = token_kind::identifier,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::identifier,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -222,8 +228,8 @@ struct integer_lexer {
       }
     }
 
-    return {.kind = token_kind::integer_literal,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::integer_literal,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -246,8 +252,8 @@ private:
       }
     }
 
-    return {.kind = token_kind::decimal_literal,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::decimal_literal,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 
@@ -266,8 +272,8 @@ public:
       }
     }
 
-    return {.kind = token_kind::integer_literal,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::integer_literal,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -292,8 +298,8 @@ struct string_lexer {
       escaping = false;
     }
 
-    return {.kind = token_kind::string_literal,
-            .lexeme = make_view<V>(src.begin(), it),
+    return {.token = {.kind = token_kind::string_literal,
+                      .lexeme = make_view<V>(src.begin(), it)},
             .next = make_view<V>(it, src.end())};
   }
 };
@@ -324,7 +330,7 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
   auto it = src.begin();
   auto end = src.end();
   if (it == end) {
-    return {.kind = token_kind::eof, .lexeme = {}, .next = src};
+    return {.token = {.kind = token_kind::eof, .lexeme = {}}, .next = src};
   }
 
   auto ch = *it;
@@ -345,15 +351,15 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
   case ')':
     return detail::rparen_lexer::impl(src);
   case '\0':
-    return {.kind = token_kind::eof, .lexeme = {}, .next = src};
+    return {.token = {.kind = token_kind::eof, .lexeme = {}}, .next = src};
   default:
     if (detail::identifier_lexer::start_pred(ch)) {
       return detail::identifier_lexer::impl(src);
     } else if (detail::number_lexer::start_pred(ch)) {
       return detail::number_lexer::impl(src);
     } else {
-      return {.kind = token_kind::unknown_char,
-              .lexeme = detail::make_view<V>(it, std::next(it)),
+      return {.token = {.kind = token_kind::unknown_char,
+                        .lexeme = detail::make_view<V>(it, std::next(it))},
               .next = detail::make_view<V>(std::next(it), src.end())};
     }
   }
@@ -450,6 +456,10 @@ public:
 using source_view = basic_source_view<std::string_view>;
 
 template <typename V> class basic_lexer {
+public:
+  using scan_result_type = basic_scan_result<V>;
+
+private:
   V src_;
 
 public:
@@ -458,15 +468,15 @@ public:
 
   constexpr const V &src() const { return src_; }
 
-  constexpr basic_scan_result<V> next() {
+  constexpr basic_token<V> next() {
     basic_scan_result<V> res;
 
     do {
       res = lex(src_);
       src_ = res.next;
-    } while (res.kind == token_kind::atmosphere);
+    } while (res.token.kind == token_kind::atmosphere);
 
-    return res;
+    return res.token;
   }
 };
 
