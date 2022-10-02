@@ -456,9 +456,6 @@ public:
 using source_view = basic_source_view<std::string_view>;
 
 template <typename V> class basic_lexer {
-public:
-  using scan_result_type = basic_scan_result<V>;
-
 private:
   V src_;
 
