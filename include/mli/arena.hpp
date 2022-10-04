@@ -21,6 +21,9 @@ public:
   ~arena_ptr() = default;
 
   constexpr T *get() const { return p_; }
+  explicit constexpr operator bool() const noexcept {
+    return static_cast<bool>(p_);
+  }
 
   friend bool operator==(const arena_ptr &, const arena_ptr &) = default;
   friend auto operator<=>(const arena_ptr &, const arena_ptr &) = default;
