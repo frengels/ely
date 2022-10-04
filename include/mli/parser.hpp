@@ -48,6 +48,19 @@ public:
   }
 
   constexpr const source_position &pos() const;
+
+  template <typename T> constexpr bool isa() const {
+    return std::holds_alternative<arena_ptr<T>>(active_);
+  }
+
+  template <typename T> constexpr arena_ptr<T> get_if() const {
+    const arena_ptr<T> *res = std::get_if<arena_ptr<T>>(&active_);
+    if (res) {
+      return *res;
+    } else {
+      return {};
+    }
+  }
 };
 
 class list {
