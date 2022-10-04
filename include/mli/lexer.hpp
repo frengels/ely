@@ -379,6 +379,11 @@ struct source_position {
 
   friend bool operator==(const source_position &,
                          const source_position &) = default;
+
+  template <typename Out>
+  friend constexpr Out &operator<<(Out &out, const source_position &pos) {
+    return out << "(position " << pos.line << ":" << pos.col << ")";
+  }
 };
 
 template <typename V> class basic_source_view {
