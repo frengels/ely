@@ -36,9 +36,12 @@ class arena {
 private:
   // TODO: store all the allocations somewhere
 public:
-  template <typename T> arena_ptr<T> allocate() { return arena_ptr<T>{new T}; }
-  template <typename T> void deallocate(arena_ptr<T> p) noexcept {}
+  arena() = default;
 
-  
+  template <typename T> arena_ptr<T> allocate() {
+    void *data = ::operator new(sizeof(T));
+    return arena_ptr<T>{static_cast<T *>(data)};
+  }
+  template <typename T> void deallocate(arena_ptr<T> p) noexcept {}
 };
 } // namespace mli
