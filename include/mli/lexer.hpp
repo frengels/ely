@@ -25,6 +25,8 @@ enum class token_kind {
 template <typename V> struct basic_token {
   token_kind kind;
   V lexeme;
+
+  constexpr operator bool() const noexcept { return kind != token_kind::eof; }
 };
 
 template <typename V> struct basic_scan_result {
