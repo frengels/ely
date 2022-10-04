@@ -16,9 +16,9 @@ TEST_CASE("parser") {
   auto num = tree.sexps()[1];
 
   CHECK(l->isa<mli::list>());
-  CHECK(l->pos() == mli::source_position{1, 1});
+  CHECK(l->pos() == mli::source_offset{0});
   CHECK(num->isa<mli::decimal_literal>());
-  CHECK(num->pos() == mli::source_position{2, 1});
+  CHECK(num->pos() == mli::source_offset{14});
 
   mli::arena_ptr<mli::list> l1 = l->get_if<mli::list>();
   CHECK(l1);

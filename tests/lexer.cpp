@@ -8,8 +8,8 @@ constexpr void lex_success(std::string_view strv, mli::token_kind kind) {
   auto opt_res = F(strv);
   CHECK(opt_res);
   auto res = *opt_res;
-  CHECK(res.token.kind == kind);
-  CHECK(res.token.lexeme == strv);
+  CHECK(res.token.kind() == kind);
+  CHECK(std::string_view{res.token.begin(), res.token.size()} == strv);
 }
 
 template <auto F> constexpr void lex_fail(std::string_view strv) {
@@ -46,37 +46,37 @@ TEST_CASE("lexer") {
     src = world_tok.next;
     auto rp_tok = mli::lex(src);
 
-    CHECK(lp_tok.token.kind == mli::token_kind::lparen);
-    CHECK(hello_tok.token.kind == mli::token_kind::identifier);
-    CHECK(ws_tok.token.kind == mli::token_kind::atmosphere);
-    CHECK(world_tok.token.kind == mli::token_kind::identifier);
-    CHECK(rp_tok.token.kind == mli::token_kind::rparen);
+    CHECK(lp_tok.token.kind() == mli::token_kind::lparen);
+    CHECK(hello_tok.token.kind() == mli::token_kind::identifier);
+    CHECK(ws_tok.token.kind() == mli::token_kind::atmosphere);
+    CHECK(world_tok.token.kind() == mli::token_kind::identifier);
+    CHECK(rp_tok.token.kind() == mli::token_kind::rparen);
   }
 }
 
 TEST_CASE("pos_lexer") {
   auto src = std::string_view{"hello\nworld 123\r\n()"};
 
-  auto lex = mli::pos_lexer{src};
+  auto lex = mli::lexer{src};
   auto hello_tok = lex.next();
   CHECK(hello_tok.kind == mli::token_kind::identifier);
-  CHECK(hello_tok.lexeme.pos() == mli::source_position{1, 1});
+  CHECK(hello_tok.offset == 0);
 
   auto world_tok = lex.next();
   CHECK(world_tok.kind == mli::token_kind::identifier);
-  CHECK(world_tok.lexeme.pos() == mli::source_position{2, 1});
+  CHECK(world_tok.offset == 6);
 
   auto num_tok = lex.next();
   CHECK(num_tok.kind == mli::token_kind::integer_literal);
-  CHECK(num_tok.lexeme.pos() == mli::source_position{2, 7});
+  CHECK(num_tok.offset == 12);
 
   auto lp_tok = lex.next();
   CHECK(lp_tok.kind == mli::token_kind::lparen);
-  CHECK(lp_tok.lexeme.pos() == mli::source_position{3, 1});
+  CHECK(lp_tok.offset == 17);
 
   auto rp_tok = lex.next();
   CHECK(rp_tok.kind == mli::token_kind::rparen);
-  CHECK(rp_tok.lexeme.pos() == mli::source_position{3, 2});
+  CHECK(rp_tok.offset == 18);
 
   auto eof_tok = lex.next();
   CHECK(eof_tok.kind == mli::token_kind::eof);

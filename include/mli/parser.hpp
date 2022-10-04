@@ -12,11 +12,11 @@
 
 namespace mli {
 struct parse_error {
-  source_position pos;
+  source_offset offset;
   std::string msg;
 
-  parse_error(std::string m, const source_position &p)
-      : pos(p), msg(std::move(m)) {}
+  parse_error(std::string m, source_offset offset = {})
+      : offset(offset), msg(std::move(m)) {}
 };
 
 class sexp;
@@ -47,7 +47,7 @@ public:
     return std::visit(static_cast<F &&>(fn), active_);
   }
 
-  constexpr const source_position &pos() const;
+  constexpr source_offset pos() const;
 
   template <typename T> constexpr bool isa() const {
     return std::holds_alternative<arena_ptr<T>>(active_);
@@ -65,17 +65,17 @@ public:
 
 class list {
   std::vector<arena_ptr<sexp>> sexps_;
-  source_position lp_pos_;
-  source_position rp_pos_;
+  source_offset lp_pos_;
+  source_offset rp_pos_;
 
 public:
-  explicit list(std::vector<arena_ptr<sexp>> sexps,
-                const source_position &lp_pos, const source_position &rp_pos)
+  explicit list(std::vector<arena_ptr<sexp>> sexps, source_offset lp_pos = {},
+                source_offset rp_pos = {})
       : sexps_(std::move(sexps)), lp_pos_(lp_pos), rp_pos_(rp_pos) {}
 
-  constexpr const source_position &pos() const { return lp_pos_; }
-  constexpr const source_position &lp_pos() const { return lp_pos_; }
-  constexpr const source_position &rp_pos() const { return rp_pos_; }
+  constexpr source_offset pos() const { return lp_pos_; }
+  constexpr source_offset lp_pos() const { return lp_pos_; }
+  constexpr source_offset rp_pos() const { return rp_pos_; }
   constexpr const auto &sexps() const { return sexps_; }
   constexpr auto &sexps() { return sexps_; }
 };
@@ -98,76 +98,75 @@ public:
 };
 
 class identifier {
-  source_position pos_;
+  source_offset pos_;
   std::string name_;
 
 public:
   identifier() = default;
 
-  identifier(std::string name, source_position pos)
+  identifier(std::string name, source_offset pos = {})
       : pos_(pos), name_(std::move(name)) {}
 
   std::string_view name() const { return static_cast<std::string_view>(name_); }
 
-  constexpr const source_position &pos() const { return pos_; }
+  constexpr source_offset pos() const { return pos_; }
 };
 
 class string_literal {
-  source_position pos_;
+  source_offset pos_;
   std::string str_;
 
 public:
   string_literal() = default;
 
-  string_literal(std::string str, source_position pos)
+  string_literal(std::string str, source_offset pos)
       : pos_(pos), str_(std::move(str)) {}
 
   std::string_view str() const { return static_cast<std::string_view>(str_); }
 
-  constexpr const source_position &pos() const { return pos_; }
+  constexpr source_offset pos() const { return pos_; }
 };
 
 class integer_literal {
-  source_position pos_;
+  source_offset pos_;
   std::string str_;
 
 public:
   integer_literal() = default;
 
-  integer_literal(std::string str, source_position pos)
+  integer_literal(std::string str, source_offset pos = {})
       : pos_(pos), str_(std::move(str)) {}
 
   std::string_view str() const { return static_cast<std::string_view>(str_); }
 
-  constexpr const source_position &pos() const { return pos_; }
+  constexpr source_offset pos() const { return pos_; }
 };
 
 class decimal_literal {
-  source_position pos_;
+  source_offset pos_;
   std::string str_;
 
 public:
   decimal_literal() = default;
 
-  decimal_literal(std::string str, source_position pos)
+  decimal_literal(std::string str, source_offset pos)
       : pos_(pos), str_(std::move(str)) {}
 
   std::string_view str() const { return static_cast<std::string_view>(str_); }
 
-  constexpr const source_position &pos() const { return pos_; }
+  constexpr source_offset pos() const { return pos_; }
 };
 
-constexpr const source_position &sexp::pos() const {
-  return this->visit(
-      [](auto p) -> const source_position & { return p->pos(); });
+constexpr source_offset sexp::pos() const {
+  return this->visit([](auto p) -> source_offset { return p->pos(); });
 }
 
 class parser {
 private:
-  using token_t = basic_token<source_view>;
+  using token_t = mli::basic_token<std::string_view>;
 
   std::string_view filename_;
-  mli::pos_lexer lex_;
+  mli::lexer lex_;
   std::vector<parse_error> errors_;
 
 public:
@@ -202,7 +201,7 @@ private:
       new (res.get()) sexp(l);
     } break;
     case token_kind::rparen:
-      errors_.emplace_back(std::string{"Unexpected `)`"}, lex_.src().pos());
+      errors_.emplace_back(std::string{"Unexpected `)`"}, tok.offset);
       goto loop;
     case token_kind::eof:
       break;
@@ -232,7 +231,7 @@ private:
 
   arena_ptr<list> parse_list(token_t tok, arena &alloc) {
     assert(tok.kind == token_kind::lparen);
-    auto lp_pos = lex_.src().pos();
+    auto lp_pos = tok.offset;
 
     auto sexps = std::vector<arena_ptr<sexp>>{};
 
@@ -240,8 +239,7 @@ private:
 
     while (tok.kind != token_kind::rparen) {
       if (!tok) {
-        errors_.emplace_back(std::string{"missing closing `)`"},
-                             lex_.src().pos());
+        errors_.emplace_back(std::string{"missing closing `)`"}, tok.offset);
         break;
       }
 
@@ -250,7 +248,7 @@ private:
       tok = lex_.next();
     }
 
-    auto rp_pos = lex_.src().pos();
+    auto rp_pos = tok.offset;
 
     arena_ptr<list> l = alloc.allocate<list>();
     new (l.get()) list(std::move(sexps), lp_pos, rp_pos);
@@ -263,7 +261,7 @@ private:
     arena_ptr<string_literal> lit = alloc.allocate<string_literal>();
 
     new (lit.get()) string_literal(
-        std::string{tok.lexeme.begin(), tok.lexeme.end()}, lex_.src().pos());
+        std::string{tok.lexeme.begin(), tok.lexeme.end()}, tok.offset);
     return lit;
   }
 
@@ -272,7 +270,7 @@ private:
     arena_ptr<integer_literal> lit = alloc.allocate<integer_literal>();
 
     new (lit.get()) integer_literal(
-        std::string{tok.lexeme.begin(), tok.lexeme.end()}, lex_.src().pos());
+        std::string{tok.lexeme.begin(), tok.lexeme.end()}, tok.offset);
     return lit;
   }
 
@@ -281,7 +279,7 @@ private:
     arena_ptr<decimal_literal> lit = alloc.allocate<decimal_literal>();
 
     new (lit.get()) decimal_literal(
-        std::string{tok.lexeme.begin(), tok.lexeme.end()}, lex_.src().pos());
+        std::string{tok.lexeme.begin(), tok.lexeme.end()}, tok.offset);
     return lit;
   }
 
@@ -290,7 +288,7 @@ private:
     arena_ptr<identifier> id = alloc.allocate<identifier>();
 
     new (id.get()) identifier(std::string{tok.lexeme.begin(), tok.lexeme.end()},
-                              lex_.src().pos());
+                              tok.offset);
     return id;
   }
 };

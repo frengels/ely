@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <compare>
 #include <optional>
 #include <ranges>
 #include <string_view>
@@ -22,11 +23,99 @@ enum class token_kind {
   unknown_char,
 };
 
-template <typename V> struct basic_token {
-  token_kind kind;
-  V lexeme;
+struct source_position {
+  // both line and col should start at 1, line 0 means no position was given
+  uint32_t line{};
+  uint32_t col{};
 
-  constexpr operator bool() const noexcept { return kind != token_kind::eof; }
+  source_position() = default;
+
+  constexpr source_position(uint32_t line, uint32_t col)
+      : line(line), col(col) {}
+
+  friend bool operator==(const source_position &,
+                         const source_position &) = default;
+
+  explicit constexpr operator bool() const noexcept { return line != 0; }
+
+  template <typename Out>
+  friend constexpr Out &operator<<(Out &out, const source_position &pos) {
+    out << "(position ";
+    if (pos.line == 0) {
+      return out << "?:?)";
+    } else {
+      out << pos.line << ":";
+    }
+
+    if (pos.col == 0) {
+      return out << "?)";
+    } else {
+      return out << pos.col << ")";
+    }
+  }
+};
+
+struct source_offset {
+  using value_type = std::uint32_t;
+
+  static constexpr value_type npos = std::numeric_limits<value_type>::max();
+
+  value_type offset_{npos};
+
+  source_offset() = default;
+
+  constexpr source_offset(value_type offs) : offset_(offs) {}
+
+  constexpr value_type value() const { return offset_; }
+  explicit constexpr operator bool() const noexcept { return offset_ != npos; }
+  constexpr operator std::uint32_t() const noexcept { return offset_; }
+
+  friend bool operator==(const source_offset &,
+                         const source_offset &) = default;
+  friend constexpr std::partial_ordering
+  operator<=>(const source_offset &lhs, const source_offset &rhs) noexcept {
+    if (!lhs || !rhs) {
+      return std::partial_ordering::unordered;
+    }
+
+    return lhs.value() <=> rhs.value();
+  }
+
+  template <typename Out>
+  friend constexpr Out &operator<<(Out &out, const source_offset &offs) {
+    out << "(offset ";
+    if (!offs) {
+      return out << "?)";
+    } else {
+      return out << offs.value() << ")";
+    }
+  }
+};
+
+template <typename V> class basic_token {
+public:
+  using iterator = std::ranges::iterator_t<V>;
+  using size_type = std::make_unsigned_t<std::ranges::range_difference_t<V>>;
+
+private:
+  token_kind kind_{token_kind::eof};
+  std::uint32_t size_{};
+  std::ranges::iterator_t<V> it_{};
+
+public:
+  basic_token() = default;
+  constexpr basic_token(token_kind kind, std::ranges::iterator_t<V> it,
+                        std::uint32_t size = 0)
+      : kind_(kind), size_(size), it_(it) {}
+
+  constexpr token_kind kind() const { return kind_; }
+  constexpr size_type size() const { return static_cast<size_type>(size_); }
+  constexpr iterator begin() const { return it_; }
+  constexpr iterator end() const { return it_ + size(); }
+
+  explicit constexpr operator bool() const noexcept {
+    return kind() != token_kind::eof;
+  }
 };
 
 template <typename V> struct basic_scan_result {
@@ -332,7 +421,7 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
   auto it = src.begin();
   auto end = src.end();
   if (it == end) {
-    return {.token = {.kind = token_kind::eof, .lexeme = {}}, .next = src};
+    return {.token = {token_kind::eof, {}, {}}, .next = src};
   }
 
   auto ch = *it;
@@ -353,124 +442,30 @@ template <typename V> constexpr basic_scan_result<V> lex(V src) {
   case ')':
     return detail::rparen_lexer::impl(src);
   case '\0':
-    return {.token = {.kind = token_kind::eof, .lexeme = {}}, .next = src};
+    return {.token = {token_kind::eof, {}, {}}, .next = src};
   default:
     if (detail::identifier_lexer::start_pred(ch)) {
       return detail::identifier_lexer::impl(src);
     } else if (detail::number_lexer::start_pred(ch)) {
       return detail::number_lexer::impl(src);
     } else {
-      return {.token = {.kind = token_kind::unknown_char,
-                        .lexeme = detail::make_view<V>(it, std::next(it))},
+      return {.token = {token_kind::unknown_char, it},
               .next = detail::make_view<V>(std::next(it), src.end())};
     }
   }
 }
 
-struct source_position {
-  // both line and col should start at 1, line 0 means no position was given
-  uint32_t line{};
-  uint32_t col{};
-
-  source_position() = default;
-
-  constexpr source_position(uint32_t line, uint32_t col)
-      : line(line), col(col) {}
-
-  friend bool operator==(const source_position &,
-                         const source_position &) = default;
-
-  template <typename Out>
-  friend constexpr Out &operator<<(Out &out, const source_position &pos) {
-    return out << "(position " << pos.line << ":" << pos.col << ")";
-  }
-};
-
-template <typename V> class basic_source_view {
-  V src_;
-  source_position pos_;
-
-public:
-  class iterator {
-    using it_traits = std::iterator_traits<std::ranges::iterator_t<V>>;
-
-  public:
-    using value_type = typename it_traits::value_type;
-    using reference = typename it_traits::reference;
-    using pointer = typename it_traits::pointer;
-    using difference_type = typename it_traits::difference_type;
-    using iterator_category = std::forward_iterator_tag;
-
-  private:
-    std::ranges::iterator_t<V> it_;
-    source_position pos_;
-
-  public:
-    iterator() = default;
-
-    constexpr iterator(std::ranges::iterator_t<V> it, source_position pos)
-        : it_(it), pos_(pos) {}
-
-    constexpr const source_position &pos() const { return pos_; }
-    constexpr const std::ranges::iterator_t<V> &base() const { return it_; }
-
-    friend constexpr bool operator==(const iterator &lhs, const iterator &rhs) {
-      return lhs.it_ == rhs.it_;
-    }
-
-    constexpr iterator &operator++() {
-      auto ch = *it_;
-      switch (ch) {
-      case '\n':
-        ++pos_.line;
-        pos_.col = 1;
-        break;
-      default:
-        ++pos_.col;
-        break;
-      }
-
-      ++it_;
-      return *this;
-    }
-
-    constexpr iterator operator++(int) {
-      auto tmp = *this;
-      ++*this;
-      return tmp;
-    }
-
-    constexpr std::ranges::range_reference_t<V> operator*() const {
-      return *it_;
-    }
-  };
-
-public:
-  basic_source_view() = default;
-  constexpr basic_source_view(V src) : src_(src), pos_(source_position{1, 1}) {}
-  constexpr basic_source_view(iterator first, iterator end)
-      : src_(detail::make_view<V>(first.base(), end.base())),
-        pos_(first.pos()) {}
-
-  constexpr iterator begin() const { return iterator{src_.begin(), pos()}; }
-  constexpr iterator end() const {
-    return iterator{src_.end(), source_position{}};
-  }
-
-  constexpr const source_position &pos() const { return pos_; }
-};
-
-using source_view = basic_source_view<std::string_view>;
-
 template <typename V> class basic_lexer {
 private:
   V src_;
+  source_offset offset_;
 
 public:
   basic_lexer() = default;
   explicit constexpr basic_lexer(V src) : src_(std::move(src)) {}
 
   constexpr const V &src() const { return src_; }
+  constexpr const source_offset &offset() const { return offset_; }
 
   constexpr basic_token<V> next() {
     basic_scan_result<V> res;
@@ -478,12 +473,11 @@ public:
     do {
       res = lex(src_);
       src_ = res.next;
-    } while (res.token.kind == token_kind::atmosphere);
+    } while (res.token.kind() == token_kind::atmosphere);
 
     return res.token;
   }
 };
 
 using lexer = basic_lexer<std::string_view>;
-using pos_lexer = basic_lexer<source_view>;
 } // namespace mli
