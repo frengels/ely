@@ -167,7 +167,7 @@ private:
 
   mli::string_view filename_;
   mli::lexer lex_;
-  source_offset offset_;
+  source_offset offset_{0};
   std::vector<parse_error> errors_;
 
 public:
