@@ -61,24 +61,30 @@ TEST_CASE("pos_lexer") {
   auto hello_tok = lex.next();
   CHECK(hello_tok.kind() == mli::token_kind::identifier);
   CHECK(hello_tok.size() == 5);
+  CHECK(hello_tok.preceding_atmosphere() == 0);
 
   auto world_tok = lex.next();
   CHECK(world_tok.kind() == mli::token_kind::identifier);
   CHECK(world_tok.size() == 5);
+  CHECK(world_tok.preceding_atmosphere() == 1);
 
   auto num_tok = lex.next();
   CHECK(num_tok.kind() == mli::token_kind::integer_literal);
   CHECK(num_tok.size() == 3);
+  CHECK(num_tok.preceding_atmosphere() == 1);
 
   auto lp_tok = lex.next();
   CHECK(lp_tok.kind() == mli::token_kind::lparen);
   CHECK(lp_tok.size() == 1);
+  CHECK(lp_tok.preceding_atmosphere() == 2);
 
   auto rp_tok = lex.next();
   CHECK(rp_tok.kind() == mli::token_kind::rparen);
   CHECK(rp_tok.size() == 1);
+  CHECK(rp_tok.preceding_atmosphere() == 0);
 
   auto eof_tok = lex.next();
   CHECK(eof_tok.kind() == mli::token_kind::eof);
   CHECK(eof_tok.size() == 0);
+  CHECK(eof_tok.preceding_atmosphere() == 0);
 }

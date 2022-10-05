@@ -82,6 +82,12 @@ struct source_offset {
     return lhs.value() <=> rhs.value();
   }
 
+  friend constexpr source_offset &operator+=(source_offset &lhs,
+                                             const value_type &rhs) {
+    lhs.offset_ += rhs;
+    return lhs;
+  }
+
   template <typename Out>
   friend constexpr Out &operator<<(Out &out, const source_offset &offs) {
     out << "(offset ";
@@ -474,7 +480,7 @@ public:
   constexpr auto begin() const { return token_.begin(); }
   constexpr auto end() const { return token_.end(); }
   constexpr std::size_t preceding_atmosphere() const {
-    return static_cast<std::size_t>(preceding_atmosphere);
+    return static_cast<std::size_t>(preceding_atmosphere_);
   }
 };
 
@@ -491,10 +497,11 @@ public:
   constexpr const source_offset &offset() const { return offset_; }
 
   constexpr basic_lex_result<V> next() {
-    basic_scan_result<V> res;
+    basic_scan_result<V> res{};
     std::uint32_t skipped = 0;
 
     do {
+      skipped += res.token.size();
       res = lex(src_);
       src_ = res.next;
     } while (res.token.kind() == token_kind::atmosphere);
