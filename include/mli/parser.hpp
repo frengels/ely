@@ -163,62 +163,73 @@ constexpr source_offset sexp::pos() const {
 
 class parser {
 private:
-  using token_t = mli::basic_token<std::string_view>;
+  using token_t = mli::basic_token<mli::string_view>;
 
-  std::string_view filename_;
+  mli::string_view filename_;
   mli::lexer lex_;
+  source_offset offset_;
   std::vector<parse_error> errors_;
 
 public:
-  parser(std::string_view filename, std::string_view src)
+  parser(mli::string_view filename, mli::string_view src)
       : filename_(filename), lex_(src) {}
 
-  explicit parser(std::string_view src) : filename_("<unknown>"), lex_(src) {}
+  explicit parser(mli::string_view src) : filename_("<unknown>"), lex_(src) {}
 
   source parse(arena &alloc) {
     auto sexps = std::vector<arena_ptr<sexp>>{};
-    auto tok = lex_.next();
+    auto [tok, tok_offset] = next_token();
 
-    while (tok.kind != token_kind::eof) {
-      arena_ptr<sexp> s = parse_sexp(tok, alloc);
+    while (tok.kind() != token_kind::eof) {
+      arena_ptr<sexp> s = parse_sexp(tok, tok_offset, alloc);
       sexps.push_back(s);
-      tok = lex_.next();
+      std::tie(tok, tok_offset) = next_token();
     }
 
     return source(std::move(sexps));
   }
 
 private:
-  arena_ptr<sexp> parse_sexp(token_t tok, arena &alloc) {
+  constexpr std::pair<token_t, source_offset> next_token() {
+    auto res = lex_.next();
+    offset_ += res.preceding_atmosphere();
+    source_offset res_offset = offset_;
+    offset_ += res.size();
+    return {res.token(), res_offset};
+  }
+
+  arena_ptr<sexp> parse_sexp(token_t tok, source_offset offset, arena &alloc) {
     arena_ptr<sexp> res = alloc.allocate<sexp>();
 
   loop:
-    switch (tok.kind) {
+    switch (tok.kind()) {
     case token_kind::atmosphere:
       __builtin_unreachable();
     case token_kind::lparen: {
-      arena_ptr<list> l = parse_list(tok, alloc);
+      arena_ptr<list> l = parse_list(tok, offset, alloc);
       new (res.get()) sexp(l);
     } break;
     case token_kind::rparen:
-      errors_.emplace_back(std::string{"Unexpected `)`"}, tok.offset);
+      errors_.emplace_back(std::string{"Unexpected `)`"}, offset);
       goto loop;
     case token_kind::eof:
       break;
     case token_kind::integer_literal: {
-      arena_ptr<integer_literal> lit = parse_integer_literal(tok, alloc);
+      arena_ptr<integer_literal> lit =
+          parse_integer_literal(tok, offset, alloc);
       new (res.get()) sexp(lit);
     } break;
     case token_kind::decimal_literal: {
-      arena_ptr<decimal_literal> lit = parse_decimal_literal(tok, alloc);
+      arena_ptr<decimal_literal> lit =
+          parse_decimal_literal(tok, offset, alloc);
       new (res.get()) sexp(lit);
     } break;
     case token_kind::string_literal: {
-      arena_ptr<string_literal> lit = parse_string_literal(tok, alloc);
+      arena_ptr<string_literal> lit = parse_string_literal(tok, offset, alloc);
       new (res.get()) sexp(lit);
     } break;
     case token_kind::identifier: {
-      arena_ptr<identifier> id = parse_identifier(tok, alloc);
+      arena_ptr<identifier> id = parse_identifier(tok, offset, alloc);
       new (res.get()) sexp(id);
     } break;
     case token_kind::unknown_char:
@@ -229,26 +240,26 @@ private:
     return res;
   }
 
-  arena_ptr<list> parse_list(token_t tok, arena &alloc) {
-    assert(tok.kind == token_kind::lparen);
-    auto lp_pos = tok.offset;
+  arena_ptr<list> parse_list(token_t tok, source_offset offset, arena &alloc) {
+    assert(tok.kind() == token_kind::lparen);
+    auto lp_pos = offset;
 
     auto sexps = std::vector<arena_ptr<sexp>>{};
 
-    tok = lex_.next();
+    std::tie(tok, offset) = next_token();
 
-    while (tok.kind != token_kind::rparen) {
+    while (tok.kind() != token_kind::rparen) {
       if (!tok) {
-        errors_.emplace_back(std::string{"missing closing `)`"}, tok.offset);
+        errors_.emplace_back(std::string{"missing closing `)`"}, offset);
         break;
       }
 
-      arena_ptr<sexp> p = parse_sexp(tok, alloc);
+      arena_ptr<sexp> p = parse_sexp(tok, offset, alloc);
       sexps.push_back(p);
-      tok = lex_.next();
+      std::tie(tok, offset) = next_token();
     }
 
-    auto rp_pos = tok.offset;
+    auto rp_pos = offset;
 
     arena_ptr<list> l = alloc.allocate<list>();
     new (l.get()) list(std::move(sexps), lp_pos, rp_pos);
@@ -256,39 +267,41 @@ private:
     return l;
   }
 
-  arena_ptr<string_literal> parse_string_literal(token_t tok, arena &alloc) {
-    assert(tok.kind == token_kind::string_literal);
+  arena_ptr<string_literal>
+  parse_string_literal(token_t tok, source_offset offset, arena &alloc) {
+    assert(tok.kind() == token_kind::string_literal);
     arena_ptr<string_literal> lit = alloc.allocate<string_literal>();
 
-    new (lit.get()) string_literal(
-        std::string{tok.lexeme.begin(), tok.lexeme.end()}, tok.offset);
+    new (lit.get()) string_literal(std::string{tok.begin(), tok.end()}, offset);
     return lit;
   }
 
-  arena_ptr<integer_literal> parse_integer_literal(token_t tok, arena &alloc) {
-    assert(tok.kind == token_kind::integer_literal);
+  arena_ptr<integer_literal>
+  parse_integer_literal(token_t tok, source_offset offset, arena &alloc) {
+    assert(tok.kind() == token_kind::integer_literal);
     arena_ptr<integer_literal> lit = alloc.allocate<integer_literal>();
 
-    new (lit.get()) integer_literal(
-        std::string{tok.lexeme.begin(), tok.lexeme.end()}, tok.offset);
+    new (lit.get())
+        integer_literal(std::string{tok.begin(), tok.end()}, offset);
     return lit;
   }
 
-  arena_ptr<decimal_literal> parse_decimal_literal(token_t tok, arena &alloc) {
-    assert(tok.kind == token_kind::decimal_literal);
+  arena_ptr<decimal_literal>
+  parse_decimal_literal(token_t tok, source_offset offset, arena &alloc) {
+    assert(tok.kind() == token_kind::decimal_literal);
     arena_ptr<decimal_literal> lit = alloc.allocate<decimal_literal>();
 
-    new (lit.get()) decimal_literal(
-        std::string{tok.lexeme.begin(), tok.lexeme.end()}, tok.offset);
+    new (lit.get())
+        decimal_literal(std::string{tok.begin(), tok.end()}, offset);
     return lit;
   }
 
-  arena_ptr<identifier> parse_identifier(token_t tok, arena &alloc) {
-    assert(tok.kind == token_kind::identifier);
+  arena_ptr<identifier> parse_identifier(token_t tok, source_offset offset,
+                                         arena &alloc) {
+    assert(tok.kind() == token_kind::identifier);
     arena_ptr<identifier> id = alloc.allocate<identifier>();
 
-    new (id.get()) identifier(std::string{tok.lexeme.begin(), tok.lexeme.end()},
-                              tok.offset);
+    new (id.get()) identifier(std::string{tok.begin(), tok.end()}, offset);
     return id;
   }
 };

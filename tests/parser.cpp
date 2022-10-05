@@ -6,7 +6,7 @@
 #include <mli/parser.hpp>
 
 TEST_CASE("parser") {
-  auto src = std::string_view{"(hello world)\n123.43"};
+  auto src = mli::string_view{"(hello world)\n123.43"};
   auto alloc = mli::arena{};
   auto p = mli::parser{src};
 
