@@ -76,6 +76,9 @@ public:
   constexpr source_offset pos() const { return lp_pos_; }
   constexpr source_offset lp_pos() const { return lp_pos_; }
   constexpr source_offset rp_pos() const { return rp_pos_; }
+  constexpr std::size_t size() const {
+    return static_cast<std::size_t>(rp_pos().value() - lp_pos().value());
+  }
   constexpr const auto &sexps() const { return sexps_; }
   constexpr auto &sexps() { return sexps_; }
 };
@@ -109,6 +112,7 @@ public:
 
   std::string_view name() const { return static_cast<std::string_view>(name_); }
 
+  std::size_t size() const { return name_.size(); }
   constexpr source_offset pos() const { return pos_; }
 };
 
@@ -138,6 +142,7 @@ public:
       : pos_(pos), str_(std::move(str)) {}
 
   std::string_view str() const { return static_cast<std::string_view>(str_); }
+  std::size_t size() const { return str_.size(); }
 
   constexpr source_offset pos() const { return pos_; }
 };
@@ -153,6 +158,7 @@ public:
       : pos_(pos), str_(std::move(str)) {}
 
   std::string_view str() const { return static_cast<std::string_view>(str_); }
+  std::size_t size() const { return str_.size(); }
 
   constexpr source_offset pos() const { return pos_; }
 };
