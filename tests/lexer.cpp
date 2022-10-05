@@ -35,7 +35,7 @@ TEST_CASE("lexer") {
   }
 
   SUBCASE("token") {
-    auto src = std::string_view{"(hello world)"};
+    auto src = mli::string_view{"(hello world)"};
     auto lp_tok = mli::lex(src);
     src = lp_tok.next;
     auto hello_tok = mli::lex(src);
@@ -55,29 +55,30 @@ TEST_CASE("lexer") {
 }
 
 TEST_CASE("pos_lexer") {
-  auto src = std::string_view{"hello\nworld 123\r\n()"};
+  auto src = mli::string_view{"hello\nworld 123\r\n()"};
 
   auto lex = mli::lexer{src};
   auto hello_tok = lex.next();
-  CHECK(hello_tok.kind == mli::token_kind::identifier);
-  CHECK(hello_tok.offset == 0);
+  CHECK(hello_tok.kind() == mli::token_kind::identifier);
+  CHECK(hello_tok.size() == 5);
 
   auto world_tok = lex.next();
-  CHECK(world_tok.kind == mli::token_kind::identifier);
-  CHECK(world_tok.offset == 6);
+  CHECK(world_tok.kind() == mli::token_kind::identifier);
+  CHECK(world_tok.size() == 5);
 
   auto num_tok = lex.next();
-  CHECK(num_tok.kind == mli::token_kind::integer_literal);
-  CHECK(num_tok.offset == 12);
+  CHECK(num_tok.kind() == mli::token_kind::integer_literal);
+  CHECK(num_tok.size() == 3);
 
   auto lp_tok = lex.next();
-  CHECK(lp_tok.kind == mli::token_kind::lparen);
-  CHECK(lp_tok.offset == 17);
+  CHECK(lp_tok.kind() == mli::token_kind::lparen);
+  CHECK(lp_tok.size() == 1);
 
   auto rp_tok = lex.next();
-  CHECK(rp_tok.kind == mli::token_kind::rparen);
-  CHECK(rp_tok.offset == 18);
+  CHECK(rp_tok.kind() == mli::token_kind::rparen);
+  CHECK(rp_tok.size() == 1);
 
   auto eof_tok = lex.next();
-  CHECK(eof_tok.kind == mli::token_kind::eof);
+  CHECK(eof_tok.kind() == mli::token_kind::eof);
+  CHECK(eof_tok.size() == 0);
 }
