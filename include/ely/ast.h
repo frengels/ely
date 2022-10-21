@@ -34,6 +34,8 @@ struct ely_node_base
 struct ely_node;
 struct ely_expr;
 struct ely_stx;
+struct ely_stx_list;
+struct ely_stx_id;
 struct ely_string_literal;
 struct ely_int_literal;
 struct ely_dec_literal;
@@ -48,6 +50,11 @@ ELY_EXPORT uint32_t ely_node_ref(void* node);
 ELY_EXPORT uint32_t ely_node_deref(void* node);
 
 ELY_EXPORT struct ely_list* ely_list_create(struct ely_context* ctx);
+ELY_EXPORT void ely_list_append(struct ely_list* list, struct ely_node* node);
+
+ELY_EXPORT struct ely_stx_list* ely_stx_list_create(struct ely_context* ctx);
+ELY_EXPORT void                 ely_stx_list_append(struct ely_stx_list* list,
+                                                    struct ely_stx*      stx);
 
 ELY_EXPORT struct ely_def* ely_def_create(struct ely_context* ctx,
                                           const char*         name,

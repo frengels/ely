@@ -71,10 +71,10 @@ struct ely_stx_list : ely_stx
         }
     }
 
-    void push_back(ely_node* node)
+    void push_back(ely_stx* stx)
     {
-        node->ref();
-        ely_ilist_append(&head, &node->link);
+        stx->ref();
+        ely_ilist_append(&head, &stx->link);
     }
 };
 
@@ -256,6 +256,21 @@ uint32_t ely_node_deref(void* n)
 ely_list* ely_list_create(ely_context* ctx)
 {
     return new ely_list(*ctx);
+}
+
+void ely_list_append(ely_list* list, ely_node* node)
+{
+    list->push_back(node);
+}
+
+ely_stx_list* ely_stx_list_create(ely_context* ctx)
+{
+    return new ely_stx_list(*ctx);
+}
+
+void ely_stx_list_append(ely_stx_list* list, ely_stx* stx)
+{
+    list->push_back(stx);
 }
 
 ely_def*
