@@ -203,6 +203,33 @@ struct ely_var : ely_expr
     }
 };
 
+struct ely_call : ely_expr
+{
+    using base = ely_expr;
+
+    ely_expr* op;
+    ely_ilist operands_head;
+
+    ely_call(ely_context& ctx) : base(ctx, ELY_NODE_CALL)
+    {}
+
+    ~ely_call()
+    {
+        ely_node_deref(op);
+        ely_expr* e;
+        ELY_ILIST_FOR_EACH(e, &operands_head, link)
+        {
+            e->deref();
+        }
+    }
+
+    void push_operand(ely_expr* operand)
+    {
+        operand->ref();
+        ely_ilist_append(&operands_head, &operand->link);
+    }
+};
+
 uint32_t ely_node::deref()
 {
     uint32_t new_ref_count = --ref_count;
@@ -234,6 +261,12 @@ uint32_t ely_node::deref()
             break;
         case ELY_NODE_VAR:
             delete static_cast<ely_var*>(this);
+            break;
+        case ELY_NODE_CALL:
+            delete static_cast<ely_call*>(this);
+            break;
+        default:
+            assert(0 && "Unhandled node type in deref");
             break;
         }
     }

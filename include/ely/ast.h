@@ -23,7 +23,8 @@ enum ely_node_kind
     ELY_NODE_LIT_STRING,
     ELY_NODE_LIT_INT,
     ELY_NODE_LIT_DEC,
-    ELY_NODE_VAR
+    ELY_NODE_VAR,
+    ELY_NODE_CALL,
 };
 
 struct ely_node_base
@@ -43,8 +44,8 @@ struct ely_literal;
 struct ely_list;
 struct ely_fn;
 struct ely_def;
-
 struct ely_var;
+struct ely_call;
 
 ELY_EXPORT uint32_t ely_node_ref(void* node);
 ELY_EXPORT uint32_t ely_node_deref(void* node);
