@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <charconv>
 
-#include "ast.hpp"
+#include "node.hpp"
 
 #include "ely/string.h"
 #include "ely/type.h"

@@ -1,6 +1,6 @@
 set(ELY_SRC
     string.cpp
-    ast.cpp
+    node.cpp
     runtime.cpp
     context.cpp)
 

@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-#include <ely/ast.h>
+#include <ely/node.h>
 #include <ely/context.h>
 #include <ely/runtime.h>
 

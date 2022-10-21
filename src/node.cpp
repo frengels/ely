@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "ast.hpp"
+#include "node.hpp"
 
 ely_node::ely_node(ely_context& ctx, ely_node_kind kind)
     : ely_node(ctx, kind, nullptr)

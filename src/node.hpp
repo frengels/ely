@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include "ely/ast.h"
 #include "ely/ilist.h"
+#include "ely/node.h"
 
 struct ely_node
 {
