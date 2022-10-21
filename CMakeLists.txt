@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(mlisp LANGUAGES CXX)
+project(mlisp LANGUAGES C CXX)
 
 set(IS_MASTER_PROJECT OFF)
 
@@ -24,6 +24,8 @@ target_include_directories(
   INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+
+add_subdirectory(src)
 
 if (MLI_TESTS)
   enable_testing()
