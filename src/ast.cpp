@@ -2,233 +2,32 @@
 
 #include <algorithm>
 
-#include "ely/ast.h"
-#include "ely/ilist.h"
+#include "ast.hpp"
 
-struct ely_node
+ely_node::ely_node(ely_context& ctx, ely_node_kind kind)
+    : ely_node(ctx, kind, nullptr)
+{}
+
+ely_node::ely_node(ely_context& ctx, ely_node_kind kind, ely_node* expanded)
+    : base{kind}, ref_count(1), ctx(std::addressof(ctx)),
+      expanded_from(expanded)
 {
-    ely_node_base base;
-    uint32_t      ref_count;
-    ely_ilist     link{};
-    ely_context*  ctx;
-    ely_node*     expanded_from;
+    if (expanded_from)
+        ely_node_ref(static_cast<void*>(expanded_from));
+}
 
-    ely_node(ely_context& ctx, ely_node_kind kind)
-        : ely_node(ctx, kind, nullptr)
-    {}
-
-    ely_node(ely_context& ctx, ely_node_kind kind, ely_node* expanded)
-        : base{kind}, ref_count(1), ctx(std::addressof(ctx)),
-          expanded_from(expanded)
-    {
-        if (expanded_from)
-            ely_node_ref(static_cast<void*>(expanded_from));
-    }
-
-    ~ely_node()
-    {
-        assert(ref_count == 0 &&
-               "may not destroy node whilst references are alive");
-        if (expanded_from)
-            ely_node_deref(static_cast<void*>(expanded_from));
-    }
-
-    uint32_t ref()
-    {
-        return ++ref_count;
-    }
-
-    uint32_t deref();
-};
-
-struct ely_expr : ely_node
+ely_node::~ely_node()
 {
-    using ely_node::ely_node;
-};
+    assert(ref_count == 0 &&
+           "may not destroy node whilst references are alive");
+    if (expanded_from)
+        ely_node_deref(static_cast<void*>(expanded_from));
+}
 
-struct ely_stx : ely_expr
+uint32_t ely_node::ref()
 {
-    using ely_expr::ely_expr;
-};
-
-struct ely_stx_list : ely_stx
-{
-    using base = ely_stx;
-
-    ely_ilist head;
-
-    ely_stx_list(ely_context& ctx) : base(ctx, ELY_NODE_STX_LIST)
-    {
-        ely_ilist_init(&head);
-    }
-
-    ~ely_stx_list()
-    {
-        ely_node* n;
-        ELY_ILIST_FOR_EACH(n, &head, link)
-        {
-            n->deref();
-        }
-    }
-
-    void push_back(ely_stx* stx)
-    {
-        stx->ref();
-        ely_ilist_append(&head, &stx->link);
-    }
-};
-
-struct ely_stx_id : ely_stx
-{
-    using base = ely_stx;
-
-    char*  name;
-    size_t len;
-
-    ely_stx_id(ely_context& ctx, const char* name, size_t len)
-        : base(ctx, ELY_NODE_STX_ID), name(new char[len + 1]), len(len)
-    {
-        std::copy(name, name + len, this->name);
-        this->name[len] = '\0';
-    }
-
-    ~ely_stx_id()
-    {
-        delete[] name;
-    }
-};
-
-struct ely_def : ely_node
-{
-    char*     name;
-    size_t    len;
-    ely_expr* init;
-
-    ely_def(ely_context& ctx, const char* name, size_t len, ely_expr* init)
-        : ely_node(ctx, ELY_NODE_DEF), name(new char[len]), len(len), init(init)
-    {
-        std::copy(name, name + len, this->name);
-        ely_node_ref(static_cast<void*>(init));
-    }
-
-    ~ely_def()
-    {
-        ely_node_deref(static_cast<void*>(init));
-        delete[] name;
-    }
-};
-
-struct ely_list : ely_expr
-{
-    using base = ely_expr;
-
-    ely_ilist head;
-
-    ely_list(ely_context& ctx) : base(ctx, ELY_NODE_LIST)
-    {
-        ely_ilist_init(&head);
-    }
-
-    ~ely_list()
-    {
-        ely_node* n;
-        ELY_ILIST_FOR_EACH(n, &head, link)
-        {
-            n->deref();
-        }
-    }
-
-    void push_back(ely_node* node)
-    {
-        node->ref();
-        ely_ilist_append(&head, &node->link);
-    }
-};
-
-struct ely_literal : ely_expr
-{
-    using base = ely_expr;
-
-    char*  str;
-    size_t len;
-
-    ely_literal(ely_context&  ctx,
-                ely_node_kind kind,
-                const char*   str,
-                size_t        len)
-        : base(ctx, kind), str(new char[len + 1]), len(len)
-    {
-        std::copy(str, str + len, this->str);
-        this->str[this->len] = '\0';
-    }
-
-    ~ely_literal()
-    {
-        delete[] str;
-    }
-};
-
-struct ely_string_literal : ely_literal
-{
-    using ely_literal::ely_literal;
-};
-
-struct ely_int_literal : ely_literal
-{
-    using ely_literal::ely_literal;
-};
-
-struct ely_dec_literal : ely_literal
-{
-    using ely_literal::ely_literal;
-};
-
-struct ely_var : ely_expr
-{
-    using base = ely_expr;
-
-    char*  name;
-    size_t len;
-
-    ely_var(ely_context& ctx, const char* name, size_t len)
-        : base(ctx, ELY_NODE_VAR), name(new char[len + 1]), len(len)
-    {
-        std::copy(name, name + len, this->name);
-        this->name[len] = '\0';
-    }
-
-    ~ely_var()
-    {
-        delete[] name;
-    }
-};
-
-struct ely_call : ely_expr
-{
-    using base = ely_expr;
-
-    ely_expr* op;
-    ely_ilist operands_head;
-
-    ely_call(ely_context& ctx) : base(ctx, ELY_NODE_CALL)
-    {}
-
-    ~ely_call()
-    {
-        ely_node_deref(op);
-        ely_expr* e;
-        ELY_ILIST_FOR_EACH(e, &operands_head, link)
-        {
-            e->deref();
-        }
-    }
-
-    void push_operand(ely_expr* operand)
-    {
-        operand->ref();
-        ely_ilist_append(&operands_head, &operand->link);
-    }
-};
+    return ++ref_count;
+}
 
 uint32_t ely_node::deref()
 {
@@ -272,6 +71,117 @@ uint32_t ely_node::deref()
     }
 
     return new_ref_count;
+}
+
+ely_stx_list::ely_stx_list(ely_context& ctx) : base(ctx, ELY_NODE_STX_LIST)
+{
+    ely_ilist_init(&head);
+}
+
+ely_stx_list::~ely_stx_list()
+{
+    ely_node* n;
+    ELY_ILIST_FOR_EACH(n, &head, link)
+    {
+        n->deref();
+    }
+}
+
+void ely_stx_list::push_back(ely_stx* stx)
+{
+    stx->ref();
+    ely_ilist_append(&head, &stx->link);
+}
+
+ely_stx_id::ely_stx_id(ely_context& ctx, const char* name, size_t len)
+    : base(ctx, ELY_NODE_STX_ID), name(new char[len + 1]), len(len)
+{
+    std::copy(name, name + len, this->name);
+    this->name[len] = '\0';
+}
+
+ely_stx_id::~ely_stx_id()
+{
+    delete[] name;
+}
+
+ely_def::ely_def(ely_context& ctx, const char* name, size_t len, ely_expr* init)
+    : ely_node(ctx, ELY_NODE_DEF), name(new char[len]), len(len), init(init)
+{
+    std::copy(name, name + len, this->name);
+    ely_node_ref(static_cast<void*>(init));
+}
+
+ely_def::~ely_def()
+{
+    ely_node_deref(static_cast<void*>(init));
+    delete[] name;
+}
+
+ely_list::ely_list(ely_context& ctx) : base(ctx, ELY_NODE_LIST)
+{
+    ely_ilist_init(&head);
+}
+
+ely_list::~ely_list()
+{
+    ely_node* n;
+    ELY_ILIST_FOR_EACH(n, &head, link)
+    {
+        n->deref();
+    }
+}
+
+void ely_list::push_back(ely_node* node)
+{
+    node->ref();
+    ely_ilist_append(&head, &node->link);
+}
+
+ely_literal::ely_literal(ely_context&  ctx,
+                         ely_node_kind kind,
+                         const char*   str,
+                         size_t        len)
+    : base(ctx, kind), str(new char[len + 1]), len(len)
+{
+    std::copy(str, str + len, this->str);
+    this->str[this->len] = '\0';
+}
+
+ely_literal::~ely_literal()
+{
+    delete[] str;
+}
+
+ely_var::ely_var(ely_context& ctx, const char* name, size_t len)
+    : base(ctx, ELY_NODE_VAR), name(new char[len + 1]), len(len)
+{
+    std::copy(name, name + len, this->name);
+    this->name[len] = '\0';
+}
+
+ely_var::~ely_var()
+{
+    delete[] name;
+}
+
+ely_call::ely_call(ely_context& ctx) : base(ctx, ELY_NODE_CALL)
+{}
+
+ely_call::~ely_call()
+{
+    ely_node_deref(op);
+    ely_expr* e;
+    ELY_ILIST_FOR_EACH(e, &operands_head, link)
+    {
+        e->deref();
+    }
+}
+
+void ely_call::push_operand(ely_expr* operand)
+{
+    operand->ref();
+    ely_ilist_append(&operands_head, &operand->link);
 }
 
 uint32_t ely_node_ref(void* n)
