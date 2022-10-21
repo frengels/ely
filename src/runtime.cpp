@@ -58,6 +58,35 @@ struct ely_value
             assert(0 && "unhandled printing case");
         }
     }
+
+    size_t to_chars(char* buf, size_t buf_len) const
+    {
+        std::to_chars_result res;
+
+        switch (kind)
+        {
+        case value_kind::dbl:
+            res = std::to_chars(
+                buf, buf + buf_len, as.d, std::chars_format::fixed);
+            break;
+        case value_kind::sint:
+            res = std::to_chars(buf, buf + buf_len, as.uval);
+            break;
+        case value_kind::uint:
+            res = std::to_chars(buf, buf + buf_len, as.uval);
+            break;
+        default:
+            assert(0 && "to_chars case not handled for ely_value");
+            break;
+        }
+
+        if (res.ec != std::errc())
+        {
+            return -1;
+        }
+
+        return res.ptr - buf;
+    }
 };
 
 struct ely_runtime
@@ -103,4 +132,9 @@ void ely_runtime_destroy(ely_runtime* rt)
 void ely_value_print(const ely_value* v, FILE* f)
 {
     v->print(f);
+}
+
+size_t ely_value_to_chars(const ely_value* v, char* str, size_t len)
+{
+    return v->to_chars(str, len);
 }
