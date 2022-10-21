@@ -25,8 +25,8 @@ ELY_EXPORT void              ely_runtime_push_def(struct ely_runtime* rt,
 
 ELY_EXPORT void   ely_value_print(const struct ely_value* v, FILE* f);
 ELY_EXPORT size_t ely_value_to_chars(const struct ely_value* v,
-                                     char*                   str,
-                                     size_t                  len);
+                                     char*                   buf,
+                                     size_t                  buf_len);
 
 #ifdef __cplusplus
 }

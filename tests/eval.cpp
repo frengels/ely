@@ -11,7 +11,7 @@ std::string_view value{"45.1343"};
 
 TEST_CASE("eval")
 {
-    SUBCASE("literal")
+    SUBCASE("decimal_literal")
     {
         constexpr auto buf_len = 32;
         char           buf[buf_len];
