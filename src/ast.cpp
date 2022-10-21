@@ -178,10 +178,31 @@ ely_call::~ely_call()
     }
 }
 
-void ely_call::push_operand(ely_expr* operand)
+ely_prim_call::ely_prim_call(ely_context& ctx, ely_prim_kind kind)
+    : base(ctx, ELY_NODE_PRIM_CALL), kind(kind)
 {
-    operand->ref();
-    ely_ilist_append(&operands_head, &operand->link);
+    ely_ilist_init(&operands_head);
+}
+
+ely_prim_call::~ely_prim_call()
+{
+    ely_expr* e;
+    ELY_ILIST_FOR_EACH(e, &operands_head, link)
+    {
+        e->deref();
+    }
+}
+
+void ely_prim_call::push_operand(ely_expr* e)
+{
+    e->ref();
+    ely_ilist_append(&operands_head, &e->link);
+}
+
+void ely_call::push_operand(ely_expr* e)
+{
+    e->ref();
+    ely_ilist_append(&operands_head, &e->link);
 }
 
 uint32_t ely_node_ref(void* n)
@@ -243,4 +264,15 @@ ely_dec_literal_create(ely_context* ctx, const char* str, size_t len)
 ely_var* ely_var_create(ely_context* ctx, const char* name, size_t len)
 {
     return new ely_var(*ctx, name, len);
+}
+
+struct ely_prim_call* ely_prim_call_create(struct ely_context* ctx,
+                                           enum ely_prim_kind  kind)
+{
+    return new ely_prim_call(*ctx, kind);
+}
+
+void ely_prim_call_push_operand(ely_prim_call* pcall, ely_expr* e)
+{
+    pcall->push_operand(e);
 }

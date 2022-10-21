@@ -25,6 +25,24 @@ enum ely_node_kind
     ELY_NODE_LIT_DEC,
     ELY_NODE_VAR,
     ELY_NODE_CALL,
+    ELY_NODE_PRIM_CALL,
+};
+
+enum ely_prim_kind
+{
+    // literal conversions
+    ELY_PRIM_F32,
+    ELY_PRIM_F64,
+
+    ELY_PRIM_U64,
+    ELY_PRIM_U32,
+    ELY_PRIM_U16,
+    ELY_PRIM_U8,
+
+    ELY_PRIM_I64,
+    ELY_PRIM_I32,
+    ELY_PRIM_I16,
+    ELY_PRIM_I8,
 };
 
 struct ely_node_base
@@ -46,6 +64,7 @@ struct ely_fn;
 struct ely_def;
 struct ely_var;
 struct ely_call;
+struct ely_prim_call;
 
 ELY_EXPORT uint32_t ely_node_ref(void* node);
 ELY_EXPORT uint32_t ely_node_deref(void* node);
@@ -73,6 +92,12 @@ ely_dec_literal_create(struct ely_context* ctx, const char* str, size_t len);
 
 ELY_EXPORT struct ely_var*
 ely_var_create(struct ely_context* ctx, const char* name, size_t len);
+
+ELY_EXPORT struct ely_prim_call* ely_prim_call_create(struct ely_context* ctx,
+                                                      enum ely_prim_kind  kind);
+
+ELY_EXPORT void ely_prim_call_push_operand(struct ely_prim_call* pcall,
+                                           ely_expr*             e);
 
 #ifdef __cplusplus
 }

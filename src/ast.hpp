@@ -128,3 +128,16 @@ struct ely_call : ely_expr
 
     void push_operand(ely_expr* operand);
 };
+
+struct ely_prim_call : ely_expr
+{
+    using base = ely_expr;
+
+    ely_prim_kind kind;
+    ely_ilist     operands_head;
+
+    ely_prim_call(ely_context& ctx, ely_prim_kind kind);
+    ~ely_prim_call();
+
+    void push_operand(ely_expr* operand);
+};
