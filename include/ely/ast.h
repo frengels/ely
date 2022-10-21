@@ -30,7 +30,7 @@ enum ely_node_kind
 
 enum ely_prim_kind
 {
-    // literal conversions
+    // conversions
     ELY_PRIM_F32,
     ELY_PRIM_F64,
 
@@ -43,6 +43,33 @@ enum ely_prim_kind
     ELY_PRIM_I32,
     ELY_PRIM_I16,
     ELY_PRIM_I8,
+
+    // integral unary ops
+    ELY_PRIM_CLZ,
+    ELY_PRIM_CTZ,
+    ELY_PRIM_POPCNT,
+
+    // integral binary ops
+    ELY_PRIM_ADD,
+    ELY_PRIM_SUB,
+    ELY_PRIM_MUL,
+    ELY_PRIM_DIV,
+    ELY_PRIM_REM,
+    ELY_PRIM_AND,
+    ELY_PRIM_OR,
+    ELY_PRIM_XOR,
+    ELY_PRIM_SHL,
+    ELY_PRIM_SHR,
+    ELY_PRIM_ROTL,
+    ELY_PRIM_ROTR,
+
+    // relops
+    ELY_PRIM_EQ,
+    ELY_PRIM_NE,
+    ELY_PRIM_LT,
+    ELY_PRIM_GT,
+    ELY_PRIM_LE,
+    ELY_PRIM_GE,
 };
 
 struct ely_node_base
