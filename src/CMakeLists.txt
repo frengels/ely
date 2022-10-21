@@ -1,4 +1,5 @@
 set(ELY_SRC
+    string.cpp
     ast.cpp
     runtime.cpp
     context.cpp)
