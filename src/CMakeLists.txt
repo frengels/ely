@@ -1,6 +1,7 @@
 set(ELY_SRC
     ast.cpp
-    runtime.cpp)
+    runtime.cpp
+    context.cpp)
 
 add_library(ely ${ELY_SRC})
 target_include_directories(
