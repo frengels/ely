@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cinttypes>
+#include <cstdarg>
 #include <cstdint>
 #include <cstdio>
 
@@ -261,6 +262,37 @@ bool binary_math_type(ely_value_kind kind)
 
 struct ely_runtime
 {
+    std::vector<ely_string> errs;
+
+    ely_runtime() = default;
+
+    int emit_err(const char* fmt, std::va_list args)
+    {
+        constexpr std::size_t buf_size         = 1024;
+        char                  buffer[buf_size] = {}; // should be large enough
+        int                   ret = std::vsnprintf(buffer, buf_size, fmt, args);
+
+        std::fputs(buffer, stderr);
+        errs.push_back(
+            ely_string_create_len(buffer, static_cast<std::size_t>(ret)));
+        return ret;
+    }
+
+    int emit_err(const char* fmt, ...)
+    {
+        std::va_list args;
+        va_start(args, fmt);
+        return emit_err(fmt, args);
+    }
+
+    void print_errs()
+    {
+        for (ely_string err : errs)
+        {
+            std::fprintf(stderr, "%s\n", err.str);
+        }
+    }
+
     ely_value* eval(ely_expr* e)
     {
         switch (e->base.kind)
@@ -384,6 +416,13 @@ ely_value* ely_runtime_eval(ely_runtime* rt, ely_expr* e)
 void ely_runtime_destroy(ely_runtime* rt)
 {
     delete rt;
+}
+
+int ely_runtime_push_err(ely_runtime* rt, const char* fmt, ...)
+{
+    std::va_list args;
+    va_start(args, fmt);
+    return rt->push_err(fmt, args);
 }
 
 void ely_value_print(const ely_value* v, FILE* f)

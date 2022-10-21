@@ -41,6 +41,8 @@ ELY_EXPORT struct ely_value* ely_runtime_eval(struct ely_runtime* rt,
 ELY_EXPORT void              ely_runtime_push_def(struct ely_runtime* rt,
                                                   const char*         name,
                                                   struct ely_value*   val);
+ELY_EXPORT int
+ely_runtime_emit_err(struct ely_runtime* rt, const char* fmt, ...);
 
 ELY_EXPORT void   ely_value_print(const struct ely_value* v, FILE* f);
 ELY_EXPORT size_t ely_value_to_chars(const struct ely_value* v,
