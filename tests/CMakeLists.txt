@@ -1,7 +1,5 @@
 set(
-  TESTS
-  lexer
-  parser)
+  TESTS)
 
 find_package(doctest REQUIRED)
 
