@@ -40,7 +40,7 @@ TEST_CASE("eval")
         ely_prim_call_push_operand(p, reinterpret_cast<ely_expr*>(e));
 
         auto* val = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(p));
-        CHECK_EQ(ely_value_get_kind(val), ELY_VALUE_SINT32);
+        CHECK_EQ(ely_value_get_kind(val), ELY_VALUE_S32);
 
         ely_runtime_destroy(rt);
         ely_context_destroy(ctx);
