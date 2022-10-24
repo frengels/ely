@@ -1,9 +1,9 @@
-{ lib, stdenv, cmake, ninja, doctest }:
+{ lib, stdenv, cmake, ninja, doctest, boost }:
 stdenv.mkDerivation {
   pname = "mlisp";
   version = "0.0.1";
 
-  nativeBuildInputs = [ cmake doctest ];
+  nativeBuildInputs = [ cmake doctest boost ];
   buildInputs = [];
 
   src = ./.;
