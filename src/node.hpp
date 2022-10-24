@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "ely/ilist.h"
 #include "ely/node.h"
+#include "ely/string.h"
 
 struct ely_node
 {
@@ -47,20 +49,22 @@ struct ely_stx_id : ely_stx
 {
     using base = ely_stx;
 
-    char*  name;
-    size_t len;
+    ely_string name;
 
-    ely_stx_id(ely_context& ctx, const char* name, size_t len);
+    ely_stx_id(ely_context& ctx, const char* name, std::size_t len);
     ~ely_stx_id();
 };
 
 struct ely_def : ely_node
 {
-    char*     name;
-    size_t    len;
-    ely_expr* init;
+    char*       name;
+    std::size_t len;
+    ely_expr*   init;
 
-    ely_def(ely_context& ctx, const char* name, size_t len, ely_expr* init);
+    ely_def(ely_context& ctx,
+            const char*  name,
+            std::size_t  len,
+            ely_expr*    init);
     ~ely_def();
 };
 
@@ -80,39 +84,100 @@ struct ely_literal : ely_expr
 {
     using base = ely_expr;
 
-    char*  str;
-    size_t len;
-
-    ely_literal(ely_context&  ctx,
-                ely_node_kind kind,
-                const char*   str,
-                size_t        len);
-    ~ely_literal();
+    ely_literal(ely_context& ctx, ely_node_kind kind);
 };
 
 struct ely_string_literal : ely_literal
 {
-    using ely_literal::ely_literal;
+    using base = ely_literal;
+
+    ely_string text;
+
+    ely_string_literal(ely_context& ctx, const char* text, std::size_t len);
+    ~ely_string_literal();
 };
 
 struct ely_int_literal : ely_literal
 {
-    using ely_literal::ely_literal;
+    using base = ely_literal;
+
+    ely_string str;
+
+    ely_int_literal(ely_context& ctx, const char* str, std::size_t len);
+    ~ely_int_literal();
 };
 
 struct ely_dec_literal : ely_literal
 {
-    using ely_literal::ely_literal;
+    using base = ely_literal;
+
+    ely_string str;
+
+    ely_dec_literal(ely_context& ctx, const char* str, std::size_t len);
+    ~ely_dec_literal();
+};
+
+struct ely_s32_literal : ely_literal
+{
+    using base = ely_literal;
+
+    std::int32_t val;
+
+    ely_s32_literal(ely_context& ctx, std::int32_t val);
+};
+
+struct ely_s64_literal : ely_literal
+{
+    using base = ely_literal;
+
+    std::int64_t val;
+
+    ely_s64_literal(ely_context& ctx, std::int64_t val);
+};
+
+struct ely_u32_literal : ely_literal
+{
+    using base = ely_literal;
+
+    std::uint32_t val;
+
+    ely_u32_literal(ely_context& ctx, std::uint32_t val);
+};
+
+struct ely_u64_literal : ely_literal
+{
+    using base = ely_literal;
+
+    std::uint64_t val;
+
+    ely_u64_literal(ely_context& ctx, std::uint64_t val);
+};
+
+struct ely_f32_literal : ely_literal
+{
+    using base = ely_literal;
+
+    float val;
+
+    ely_f32_literal(ely_context& ctx, float val);
+};
+
+struct ely_f64_literal : ely_literal
+{
+    using base = ely_literal;
+
+    double val;
+
+    ely_f64_literal(ely_context& ctx, double val);
 };
 
 struct ely_var : ely_expr
 {
     using base = ely_expr;
 
-    char*  name;
-    size_t len;
+    ely_string name;
 
-    ely_var(ely_context& ctx, const char* name, size_t len);
+    ely_var(ely_context& ctx, const char* name, std::size_t len);
     ~ely_var();
 };
 

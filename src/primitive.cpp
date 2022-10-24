@@ -8,7 +8,10 @@
 #include <boost/callable_traits/return_type.hpp>
 
 #include "ely/node.h"
+#include "ely/runtime.h"
 #include "ely/type.hpp"
+
+#include "value.hpp"
 
 namespace
 {
@@ -36,11 +39,33 @@ struct tuple_to_types
         apply_to_tuple<Tuple>::template apply<tuple_to_types_impl>::value;
 };
 
+template<auto Fn, typename Seq>
+struct adapt_impl;
+
+template<auto Fn, std::size_t... Indices>
+struct adapt_impl<Fn, std::index_sequence<Indices...>>
+{
+    using fn_t   = decltype(Fn);
+    using args_t = boost::callable_traits::args_t<fn_t>;
+    using ret_t  = boost::callable_traits::return_type_t<fn_t>;
+
+    ely_value* operator()(ely_value** args)
+    {
+        auto val =
+            Fn(args[Indices]->get<std::tuple_element_t<Indices, args_t>>()...);
+        return new ely_value(val);
+    }
+};
+
 template<auto Fn>
 struct adapt_fn
 {
+    using args_t = boost::callable_traits::args_t<decltype(Fn)>;
+
     static constexpr auto fn = [](ely_value** args) -> ely_value* {
-        return nullptr;
+        return adapt_impl<
+            Fn,
+            std::make_index_sequence<std::tuple_size_v<args_t>>>{}(args);
     };
 };
 
@@ -92,6 +117,11 @@ To cvt(From val)
 constexpr primitive_overload_set primitive_sets[] = {
     [ELY_PRIM_F32] = make_set<cvt<float, double>>(),
     [ELY_PRIM_F64] = make_set<cvt<double, float>>(),
+    [ELY_PRIM_U64] = {},
+    [ELY_PRIM_U32] = {},
+    [ELY_PRIM_S64] = {},
+    [ELY_PRIM_S32] = make_set<cvt<std::int32_t, std::int64_t>,
+                              cvt<std::int32_t, std::uint32_t>>(),
 };
 } // namespace
 
@@ -117,6 +147,7 @@ ely_fn_ptr_t select_primitive_overload(ely_prim_kind   kind,
         }
     }
 
+    assert(matches.size() != 0 && "No match found");
     assert(matches.size() == 1 && "ambiguous matches found");
     return matches[0]->fn;
 }

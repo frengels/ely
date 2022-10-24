@@ -20,9 +20,18 @@ enum ely_node_kind
     ELY_NODE_STX_LIST,
     ELY_NODE_STX_ID,
     ELY_NODE_LIST,
+
     ELY_NODE_LIT_STRING,
     ELY_NODE_LIT_INT,
     ELY_NODE_LIT_DEC,
+
+    ELY_NODE_LIT_S32,
+    ELY_NODE_LIT_S64,
+    ELY_NODE_LIT_U32,
+    ELY_NODE_LIT_U64,
+    ELY_NODE_LIT_F32,
+    ELY_NODE_LIT_F64,
+
     ELY_NODE_VAR,
     ELY_NODE_CALL,
     ELY_NODE_PRIM_CALL,
@@ -37,8 +46,8 @@ enum ely_prim_kind
     ELY_PRIM_U64,
     ELY_PRIM_U32,
 
-    ELY_PRIM_I64,
-    ELY_PRIM_I32,
+    ELY_PRIM_S64,
+    ELY_PRIM_S32,
 
     // integral unary ops
     ELY_PRIM_CLZ,
@@ -88,6 +97,13 @@ struct ely_def;
 struct ely_var;
 struct ely_call;
 struct ely_prim_call;
+// special literals which cannot be constructed from source
+struct ely_s32_literal;
+struct ely_s64_literal;
+struct ely_u32_literal;
+struct ely_u64_literal;
+struct ely_f32_literal;
+struct ely_f64_literal;
 
 ELY_EXPORT uint32_t ely_node_ref(void* node);
 ELY_EXPORT uint32_t ely_node_deref(void* node);
@@ -112,6 +128,11 @@ ELY_EXPORT struct ely_int_literal*
 ely_int_literal_create(struct ely_context* ctx, const char* str, size_t len);
 ELY_EXPORT struct ely_dec_literal*
 ely_dec_literal_create(struct ely_context* ctx, const char* str, size_t len);
+
+ELY_EXPORT struct ely_s32_literal*
+ely_s32_literal_create(struct ely_context* ctx, int32_t val);
+ELY_EXPORT struct ely_s64_literal*
+ely_s64_literal_create(struct ely_context* ctx, int64_t val);
 
 ELY_EXPORT struct ely_var*
 ely_var_create(struct ely_context* ctx, const char* name, size_t len);

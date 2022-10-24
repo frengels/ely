@@ -58,6 +58,24 @@ uint32_t ely_node::deref()
         case ELY_NODE_LIT_DEC:
             delete static_cast<ely_dec_literal*>(this);
             break;
+        case ELY_NODE_LIT_S32:
+            delete static_cast<ely_s32_literal*>(this);
+            break;
+        case ELY_NODE_LIT_S64:
+            delete static_cast<ely_s64_literal*>(this);
+            break;
+        case ELY_NODE_LIT_U32:
+            delete static_cast<ely_u32_literal*>(this);
+            break;
+        case ELY_NODE_LIT_U64:
+            delete static_cast<ely_u64_literal*>(this);
+            break;
+        case ELY_NODE_LIT_F32:
+            delete static_cast<ely_f32_literal*>(this);
+            break;
+        case ELY_NODE_LIT_F64:
+            delete static_cast<ely_f64_literal*>(this);
+            break;
         case ELY_NODE_VAR:
             delete static_cast<ely_var*>(this);
             break;
@@ -93,16 +111,13 @@ void ely_stx_list::push_back(ely_stx* stx)
     ely_ilist_append(&head, &stx->link);
 }
 
-ely_stx_id::ely_stx_id(ely_context& ctx, const char* name, size_t len)
-    : base(ctx, ELY_NODE_STX_ID), name(new char[len + 1]), len(len)
-{
-    std::copy(name, name + len, this->name);
-    this->name[len] = '\0';
-}
+ely_stx_id::ely_stx_id(ely_context& ctx, const char* name, std::size_t len)
+    : base(ctx, ELY_NODE_STX_ID), name(ely_string_create_len(name, len))
+{}
 
 ely_stx_id::~ely_stx_id()
 {
-    delete[] name;
+    ely_string_destroy(this->name);
 }
 
 ely_def::ely_def(ely_context& ctx, const char* name, size_t len, ely_expr* init)
@@ -138,31 +153,73 @@ void ely_list::push_back(ely_node* node)
     ely_ilist_append(&head, &node->link);
 }
 
-ely_literal::ely_literal(ely_context&  ctx,
-                         ely_node_kind kind,
-                         const char*   str,
-                         size_t        len)
-    : base(ctx, kind), str(new char[len + 1]), len(len)
+ely_literal::ely_literal(ely_context& ctx, ely_node_kind kind) : base(ctx, kind)
+{}
+
+ely_string_literal::ely_string_literal(ely_context& ctx,
+                                       const char*  text,
+                                       std::size_t  len)
+    : base(ctx, ELY_NODE_LIT_STRING), text(ely_string_create_len(text, len))
+{}
+
+ely_string_literal::~ely_string_literal()
 {
-    std::copy(str, str + len, this->str);
-    this->str[this->len] = '\0';
+    ely_string_destroy(this->text);
 }
 
-ely_literal::~ely_literal()
+ely_int_literal::ely_int_literal(ely_context& ctx,
+                                 const char*  str,
+                                 std::size_t  len)
+    : base(ctx, ELY_NODE_LIT_INT), str(ely_string_create_len(str, len))
+{}
+
+ely_int_literal::~ely_int_literal()
 {
-    delete[] str;
+    ely_string_destroy(str);
 }
+
+ely_dec_literal::ely_dec_literal(ely_context& ctx,
+                                 const char*  str,
+                                 std::size_t  len)
+    : base(ctx, ELY_NODE_LIT_DEC), str(ely_string_create_len(str, len))
+{}
+
+ely_dec_literal::~ely_dec_literal()
+{
+    ely_string_destroy(str);
+}
+
+ely_s32_literal::ely_s32_literal(ely_context& ctx, std::int32_t val)
+    : base(ctx, ELY_NODE_LIT_S32), val(val)
+{}
+
+ely_s64_literal::ely_s64_literal(ely_context& ctx, std::int64_t val)
+    : base(ctx, ELY_NODE_LIT_S64), val(val)
+{}
+
+ely_u32_literal::ely_u32_literal(ely_context& ctx, std::uint32_t val)
+    : base(ctx, ELY_NODE_LIT_U32), val(val)
+{}
+
+ely_u64_literal::ely_u64_literal(ely_context& ctx, std::uint64_t val)
+    : base(ctx, ELY_NODE_LIT_U64), val(val)
+{}
+
+ely_f32_literal::ely_f32_literal(ely_context& ctx, float val)
+    : base(ctx, ELY_NODE_LIT_F32), val(val)
+{}
+
+ely_f64_literal::ely_f64_literal(ely_context& ctx, double val)
+    : base(ctx, ELY_NODE_LIT_F64), val(val)
+{}
 
 ely_var::ely_var(ely_context& ctx, const char* name, size_t len)
-    : base(ctx, ELY_NODE_VAR), name(new char[len + 1]), len(len)
-{
-    std::copy(name, name + len, this->name);
-    this->name[len] = '\0';
-}
+    : base(ctx, ELY_NODE_VAR), name(ely_string_create_len(name, len))
+{}
 
 ely_var::~ely_var()
 {
-    delete[] name;
+    ely_string_destroy(name);
 }
 
 ely_call::ely_call(ely_context& ctx) : base(ctx, ELY_NODE_CALL)
@@ -246,19 +303,29 @@ ely_def_create(ely_context* ctx, char* name, size_t len, ely_expr* init)
 ely_string_literal*
 ely_string_literal_create(ely_context* ctx, const char* text, size_t len)
 {
-    return new ely_string_literal(*ctx, ELY_NODE_LIT_STRING, text, len);
+    return new ely_string_literal(*ctx, text, len);
 }
 
 ely_int_literal*
 ely_int_literal_create(ely_context* ctx, const char* str, size_t len)
 {
-    return new ely_int_literal(*ctx, ELY_NODE_LIT_INT, str, len);
+    return new ely_int_literal(*ctx, str, len);
 }
 
 ely_dec_literal*
 ely_dec_literal_create(ely_context* ctx, const char* str, size_t len)
 {
-    return new ely_dec_literal(*ctx, ELY_NODE_LIT_DEC, str, len);
+    return new ely_dec_literal(*ctx, str, len);
+}
+
+ely_s32_literal* ely_s32_literal_create(ely_context* ctx, std::int32_t val)
+{
+    return new ely_s32_literal(*ctx, val);
+}
+
+ely_s64_literal* ely_s64_literal_create(ely_context* ctx, std::int64_t val)
+{
+    return new ely_s64_literal(*ctx, val);
 }
 
 ely_var* ely_var_create(ely_context* ctx, const char* name, size_t len)
