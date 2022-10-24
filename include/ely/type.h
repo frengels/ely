@@ -14,6 +14,8 @@ enum ely_type_kind
 {
     ELY_TYPE_POISON = 0,
 
+    ELY_TYPE_VOID,
+
     ELY_TYPE_U32,
     ELY_TYPE_U64,
     ELY_TYPE_S32,
