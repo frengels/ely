@@ -2,6 +2,7 @@ set(ELY_SRC
     string.cpp
     node.cpp
     runtime.cpp
+    type.cpp
     context.cpp)
 
 add_library(ely ${ELY_SRC})
