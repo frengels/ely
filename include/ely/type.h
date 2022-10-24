@@ -14,6 +14,10 @@ enum ely_type_kind
 {
     ELY_TYPE_POISON = 0,
 
+    // an unspecified type, subject to type resolution
+    ELY_TYPE_GENERIC,
+    // ELY_TYPE_TYPE, // TODO
+
     ELY_TYPE_VOID,
 
     ELY_TYPE_U32,
@@ -45,6 +49,7 @@ ELY_ALWAYS_INLINE struct ely_type ely_type_create(enum ely_type_kind kind)
     return res;
 }
 
+ELY_EXPORT bool        ely_type_match(const ely_type* lhs, const ely_type* rhs);
 ELY_EXPORT bool        ely_type_eq(const ely_type* lhs, const ely_type* rhs);
 ELY_ALWAYS_INLINE bool ely_type_ne(const ely_type* lhs, const ely_type* rhs)
 {

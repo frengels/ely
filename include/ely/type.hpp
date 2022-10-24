@@ -11,6 +11,11 @@
 
 namespace ely
 {
+constexpr ely_type get_type_generic()
+{
+    return {ELY_TYPE_GENERIC, {}};
+}
+
 template<typename T>
 constexpr ely_type get_type()
 {
@@ -18,7 +23,7 @@ constexpr ely_type get_type()
     {
         return {ELY_TYPE_VOID, {}};
     }
-    if constexpr (std::is_same_v<std::uint32_t, T>)
+    else if constexpr (std::is_same_v<std::uint32_t, T>)
     {
         return {ELY_TYPE_U32, {}};
     }

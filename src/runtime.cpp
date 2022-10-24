@@ -10,9 +10,11 @@
 #include <charconv>
 
 #include "node.hpp"
+#include "primitive.hpp"
 
 #include "ely/string.h"
 #include "ely/type.h"
+#include "ely/type.hpp"
 
 struct ely_value
 {
@@ -80,33 +82,68 @@ struct ely_value
         }
     }
 
-    ely_type_kind type() const
+private:
+    static bool type_eq(const ely_type& lhs, const ely_type& rhs)
+    {
+        return ely_type_eq(&lhs, &rhs);
+    }
+
+public:
+    template<typename T>
+    std::enable_if_t<std::is_same_v<uint32_t, T>, uint32_t> get() const
+    {
+        assert(type_eq(type(), ely::get_type<uint32_t>()));
+        return static_cast<uint32_t>(as.uval);
+    }
+
+    template<typename T>
+    std::enable_if_t<std::is_same_v<uint64_t, T>, uint64_t> get() const
+    {
+        assert(type_eq(type(), ely::get_type<uint64_t>()));
+        return as.uval;
+    }
+
+    template<typename T>
+    std::enable_if_t<std::is_same_v<float, T>, float> get() const
+    {
+        assert(type_eq(type(), ely::get_type<float>()));
+        return as.f;
+    }
+
+    template<typename T>
+    std::enable_if_t<std::is_same_v<double, T>, double> get() const
+    {
+        assert(type_eq(type(), ely::get_type<double>()));
+        return as.d;
+    }
+
+    ely_type type() const
     {
         switch (kind)
         {
         case ELY_VALUE_POISON:
-            return ELY_TYPE_POISON;
+            return ely::get_type<void>();
         case ELY_VALUE_U64:
-            return ELY_TYPE_U64;
+            return ely::get_type<std::uint64_t>();
         case ELY_VALUE_U32:
-            return ELY_TYPE_U32;
+            return ely::get_type<std::uint32_t>();
         case ELY_VALUE_S64:
-            return ELY_TYPE_S64;
+            return ely::get_type<std::int64_t>();
         case ELY_VALUE_S32:
-            return ELY_TYPE_S32;
+            return ely::get_type<std::int32_t>();
         case ELY_VALUE_F32:
-            return ELY_TYPE_F32;
+            return ely::get_type<float>();
         case ELY_VALUE_F64:
-            return ELY_TYPE_F64;
+            return ely::get_type<double>();
         case ELY_VALUE_STRING_LIT:
-            return ELY_TYPE_STRING_LIT;
+            return {ELY_TYPE_STRING_LIT, {}};
         case ELY_VALUE_INT_LIT:
-            return ELY_TYPE_INT_LIT;
+            return {ELY_TYPE_INT_LIT, {}};
         case ELY_VALUE_DEC_LIT:
-            return ELY_TYPE_DEC_LIT;
+            return {ELY_TYPE_DEC_LIT, {}};
         default:
             assert(0 && "unreachable");
-            return ELY_TYPE_POISON;
+            return {ELY_TYPE_POISON, {}};
         }
     }
 
@@ -186,80 +223,6 @@ struct ely_value
     }
 };
 
-namespace
-{
-struct primitive_info
-{
-    uint32_t required_args : 31;
-    bool     variadic : 1;
-};
-
-primitive_info primitives[] = {
-    [ELY_PRIM_F32] = {1, false},
-    [ELY_PRIM_F64] = {1, false},
-    [ELY_PRIM_U64] = {1, false},
-    [ELY_PRIM_U32] = {1, false},
-    [ELY_PRIM_U16] = {1, false},
-    [ELY_PRIM_U8]  = {1, false},
-    [ELY_PRIM_I64] = {1, false},
-    [ELY_PRIM_I32] = {1, false},
-    [ELY_PRIM_I16] = {1, false},
-    [ELY_PRIM_I8]  = {1, false},
-};
-
-bool primitive_valid_arg_len(ely_prim_kind kind, size_t args)
-{
-    primitive_info info = primitives[kind];
-    if (args < info.required_args)
-    {
-        return false;
-    }
-    else if (args > info.required_args)
-    {
-        return info.variadic;
-    }
-
-    return true;
-}
-
-bool values_same_type(const ely_value* const* vals, size_t len)
-{
-    if (len == 0)
-    {
-        return true;
-    }
-
-    ely_value_kind expected = vals[0]->kind;
-
-    for (size_t i = 1; i != len; ++i)
-    {
-        const ely_value* val = vals[i];
-        if (val->kind != expected)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool binary_math_type(ely_value_kind kind)
-{
-    switch (kind)
-    {
-    case ELY_VALUE_F32:
-    case ELY_VALUE_F64:
-    case ELY_VALUE_S64:
-    case ELY_VALUE_S32:
-    case ELY_VALUE_U64:
-    case ELY_VALUE_U32:
-        return true;
-    default:
-        return false;
-    }
-}
-} // namespace
-
 struct ely_runtime
 {
     std::vector<ely_string> errs;
@@ -283,14 +246,6 @@ struct ely_runtime
         std::va_list args;
         va_start(args, fmt);
         return emit_err(fmt, args);
-    }
-
-    void print_errs()
-    {
-        for (ely_string err : errs)
-        {
-            std::fprintf(stderr, "%s\n", err.str);
-        }
     }
 
     ely_value* eval(ely_expr* e)
@@ -347,59 +302,15 @@ struct ely_runtime
 
     ely_value* eval_prim(ely_prim_kind kind, ely_value** args, size_t args_len)
     {
-        assert(primitive_valid_arg_len(kind, args_len));
-        switch (kind)
+        std::vector<ely_type> types;
+        types.reserve(args_len);
+        for (size_t i = 0; i != args_len; ++i)
         {
-        case ELY_PRIM_F32:
-            return do_from_chars<float>(args[0]);
-        case ELY_PRIM_F64:
-            return do_from_chars<double>(args[0]);
-        case ELY_PRIM_U64:
-            return do_from_chars<uint64_t>(args[0]);
-        case ELY_PRIM_U32:
-            return do_from_chars<uint32_t>(args[0]);
-        case ELY_PRIM_U16:
-            return do_from_chars<uint16_t>(args[0]);
-        case ELY_PRIM_U8:
-            return do_from_chars<uint8_t>(args[0]);
-        case ELY_PRIM_I64:
-            return do_from_chars<int64_t>(args[0]);
-        case ELY_PRIM_I32:
-            return do_from_chars<int32_t>(args[0]);
-        case ELY_PRIM_I16:
-            return do_from_chars<int16_t>(args[0]);
-        case ELY_PRIM_I8:
-            return do_from_chars<int8_t>(args[0]);
-        case ELY_PRIM_ADD:
-            return eval_add(args, args_len);
-        default:
-            assert(0 && "unexpected case");
-            break;
+            types.push_back(args[i]->type());
         }
-
-        return nullptr;
-    }
-
-    ely_value* eval_add(ely_value** args, size_t args_len)
-    {
-        assert(values_same_type(args, args_len));
-        assert(args_len >= 1);
-        assert(binary_math_type(args[0]->kind));
-
-        switch (args[0]->kind)
-        {}
-
-        return nullptr;
-    }
-
-    ely_value* eval_sub(ely_value** args, size_t args_len)
-    {
-        return nullptr;
-    }
-
-    ely_value* eval_mul(ely_value** args, size_t args_len)
-    {
-        return nullptr;
+        const auto& ol = select_primitive_overload(
+            kind, ely::get_type_generic(), types.data(), types.size());
+        return ol(args);
     }
 };
 
@@ -418,11 +329,11 @@ void ely_runtime_destroy(ely_runtime* rt)
     delete rt;
 }
 
-int ely_runtime_push_err(ely_runtime* rt, const char* fmt, ...)
+int ely_runtime_emit_err(ely_runtime* rt, const char* fmt, ...)
 {
     std::va_list args;
     va_start(args, fmt);
-    return rt->push_err(fmt, args);
+    return rt->emit_err(fmt, args);
 }
 
 void ely_value_print(const ely_value* v, FILE* f)
@@ -440,7 +351,7 @@ ely_value_kind ely_value_get_kind(const ely_value* v)
     return v->kind;
 }
 
-ely_type_kind ely_value_type(const ely_value* v)
+ely_type ely_value_type(const ely_value* v)
 {
     return v->type();
 }

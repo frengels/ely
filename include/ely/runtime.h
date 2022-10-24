@@ -49,7 +49,7 @@ ELY_EXPORT size_t ely_value_to_chars(const struct ely_value* v,
                                      char*                   buf,
                                      size_t                  buf_len);
 ELY_EXPORT enum ely_value_kind ely_value_get_kind(const struct ely_value* v);
-ELY_EXPORT enum ely_type_kind  ely_value_type(const struct ely_value* v);
+ELY_EXPORT struct ely_type     ely_value_type(const struct ely_value* v);
 
 #ifdef __cplusplus
 }
