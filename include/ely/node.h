@@ -36,13 +36,9 @@ enum ely_prim_kind
 
     ELY_PRIM_U64,
     ELY_PRIM_U32,
-    ELY_PRIM_U16,
-    ELY_PRIM_U8,
 
     ELY_PRIM_I64,
     ELY_PRIM_I32,
-    ELY_PRIM_I16,
-    ELY_PRIM_I8,
 
     // integral unary ops
     ELY_PRIM_CLZ,
