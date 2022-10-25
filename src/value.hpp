@@ -173,7 +173,7 @@ public:
         case ELY_VALUE_INT_LIT:
         case ELY_VALUE_DEC_LIT:
         case ELY_VALUE_STRING_LIT:
-            fprintf(f, "%s", as.lit.str);
+            fprintf(f, "%s", as.lit.s);
             break;
         default:
             assert(0 && "unhandled printing case");
@@ -207,7 +207,7 @@ public:
         case ELY_VALUE_STRING_LIT:
             if (buf_len < as.lit.len)
                 return -1;
-            std::copy(as.lit.str, as.lit.str + as.lit.len, buf);
+            std::copy(as.lit.s, as.lit.s + as.lit.len, buf);
             return as.lit.len;
             break;
         default:

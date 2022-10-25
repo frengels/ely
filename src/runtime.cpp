@@ -1,8 +1,8 @@
 #include "ely/runtime.h"
 
 #include <cassert>
-#include <cstdint>
 #include <cstdarg>
+#include <cstdint>
 
 #include <algorithm>
 #include <charconv>
@@ -46,20 +46,18 @@ struct ely_runtime
         {
         case ELY_NODE_LIT_INT: {
             ely_int_literal* ilit = static_cast<ely_int_literal*>(e);
-            return new ely_value(
-                ELY_VALUE_INT_LIT, ilit->str.str, ilit->str.len);
+            return new ely_value(ELY_VALUE_INT_LIT, ilit->str.s, ilit->str.len);
         }
         break;
         case ELY_NODE_LIT_DEC: {
             ely_dec_literal* dlit = static_cast<ely_dec_literal*>(e);
-            return new ely_value(
-                ELY_VALUE_DEC_LIT, dlit->str.str, dlit->str.len);
+            return new ely_value(ELY_VALUE_DEC_LIT, dlit->str.s, dlit->str.len);
         }
         break;
         case ELY_NODE_LIT_STRING: {
             ely_string_literal* strlit = static_cast<ely_string_literal*>(e);
             return new ely_value(
-                ELY_VALUE_STRING_LIT, strlit->text.str, strlit->text.len);
+                ELY_VALUE_STRING_LIT, strlit->text.s, strlit->text.len);
         }
         break;
         case ELY_NODE_LIT_S32: {
@@ -99,7 +97,7 @@ struct ely_runtime
         assert(arg->kind == ELY_VALUE_DEC_LIT ||
                arg->kind == ELY_VALUE_INT_LIT);
         auto res = std::from_chars(
-            arg->as.lit.str, arg->as.lit.str + arg->as.lit.len, val);
+            arg->as.lit.s, arg->as.lit.s + arg->as.lit.len, val);
         assert(res.ec == std::errc());
         return new ely_value(val);
     }
