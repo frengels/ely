@@ -34,6 +34,7 @@ enum ely_node_kind
     ELY_NODE_LIT_F64,
 
     ELY_NODE_VAR,
+    ELY_NODE_FN,
     ELY_NODE_CALL,
     ELY_NODE_PRIM_CALL,
 };
@@ -135,6 +136,8 @@ ely_s32_literal_create(struct ely_context* ctx, int32_t val);
 ELY_EXPORT struct ely_s64_literal*
 ely_s64_literal_create(struct ely_context* ctx, int64_t val);
 
+ELY_EXPORT struct ely_fn* ely_fn_create(struct ely_context* ctx, ely_expr* e);
+ELY_EXPORT void           ely_fn_push_arg(struct ely_fn* f, ely_var* v);
 ELY_EXPORT struct ely_var*
 ely_var_create(struct ely_context* ctx, const char* name, size_t len);
 ELY_EXPORT struct ely_string_view ely_var_name(const ely_var* v);

@@ -215,6 +215,28 @@ ely_f64_literal::ely_f64_literal(ely_context& ctx, double val)
     : base(ctx, ELY_NODE_LIT_F64), val(val)
 {}
 
+ely_fn::ely_fn(ely_context& ctx, ely_expr* e) : base(ctx, ELY_NODE_FN), e(e)
+{
+    ely_node_ref(e);
+}
+
+ely_fn::~ely_fn()
+{
+    ely_node_deref(e);
+
+    ely_var* v;
+    ELY_ILIST_FOR_EACH(v, &args_head, link)
+    {
+        ely_node_deref(v);
+    }
+}
+
+void ely_fn::push_arg(ely_var* v)
+{
+    ely_node_ref(v);
+    ely_ilist_append(&args_head, &v->link);
+}
+
 ely_var::ely_var(ely_context& ctx, const char* name, size_t len)
     : base(ctx, ELY_NODE_VAR), name_(ely_string_create_len(name, len))
 {}
@@ -338,6 +360,11 @@ ely_s32_literal* ely_s32_literal_create(ely_context* ctx, std::int32_t val)
 ely_s64_literal* ely_s64_literal_create(ely_context* ctx, std::int64_t val)
 {
     return new ely_s64_literal(*ctx, val);
+}
+
+ely_fn* ely_fn_create(ely_context* ctx, ely_expr* e)
+{
+    return new ely_fn(*ctx, e);
 }
 
 ely_var* ely_var_create(ely_context* ctx, const char* name, size_t len)

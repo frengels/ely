@@ -171,6 +171,18 @@ struct ely_f64_literal : ely_literal
     ely_f64_literal(ely_context& ctx, double val);
 };
 
+struct ely_fn : ely_expr
+{
+    using base = ely_expr;
+
+    ely_ilist args_head; // ely_var
+    ely_expr* e;
+
+    ely_fn(ely_context& ctx, ely_expr* e);
+    ~ely_fn();
+
+    void push_arg(ely_var* v);
+};
 
 struct ely_var : ely_expr
 {
