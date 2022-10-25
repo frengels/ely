@@ -171,14 +171,18 @@ struct ely_f64_literal : ely_literal
     ely_f64_literal(ely_context& ctx, double val);
 };
 
+
 struct ely_var : ely_expr
 {
     using base = ely_expr;
 
-    ely_string name;
+    ely_string name_;
 
     ely_var(ely_context& ctx, const char* name, std::size_t len);
     ~ely_var();
+
+    ely_string_view name() const;
+    ely_type        type() const;
 };
 
 struct ely_call : ely_expr

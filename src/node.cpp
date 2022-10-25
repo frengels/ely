@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "ely/type.hpp"
+
 #include "node.hpp"
 
 ely_node::ely_node(ely_context& ctx, ely_node_kind kind)
@@ -214,12 +216,22 @@ ely_f64_literal::ely_f64_literal(ely_context& ctx, double val)
 {}
 
 ely_var::ely_var(ely_context& ctx, const char* name, size_t len)
-    : base(ctx, ELY_NODE_VAR), name(ely_string_create_len(name, len))
+    : base(ctx, ELY_NODE_VAR), name_(ely_string_create_len(name, len))
 {}
 
 ely_var::~ely_var()
 {
-    ely_string_destroy(name);
+    ely_string_destroy(name_);
+}
+
+ely_string_view ely_var::name() const
+{
+    return ely_string_view_from_string(name_);
+}
+
+ely_type ely_var::type() const
+{
+    return ely::get_type_generic();
 }
 
 ely_call::ely_call(ely_context& ctx) : base(ctx, ELY_NODE_CALL)
@@ -331,6 +343,16 @@ ely_s64_literal* ely_s64_literal_create(ely_context* ctx, std::int64_t val)
 ely_var* ely_var_create(ely_context* ctx, const char* name, size_t len)
 {
     return new ely_var(*ctx, name, len);
+}
+
+ely_string_view ely_var_name(const ely_var* v)
+{
+    return v->name();
+}
+
+ely_type ely_var_type(const ely_var* v)
+{
+    return v->type();
 }
 
 struct ely_prim_call* ely_prim_call_create(struct ely_context* ctx,
