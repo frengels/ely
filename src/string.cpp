@@ -12,14 +12,14 @@ ely_string ely_string_create_len(const char* s, size_t len)
     ely_string res;
 
     res.len = len;
-    res.str = new char[len + 1];
-    std::copy(s, s + len, res.str);
-    res.str[len] = '\0';
+    res.s   = new char[len + 1];
+    std::copy(s, s + len, res.s);
+    res.s[len] = '\0';
 
     return res;
 }
 
 void ely_string_destroy(ely_string s)
 {
-    delete[] s.str;
+    delete[] s.s;
 }
