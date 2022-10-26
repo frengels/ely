@@ -23,7 +23,7 @@ ely_node::~ely_node()
     assert(ref_count == 0 &&
            "may not destroy node whilst references are alive");
     if (expanded_from)
-        ely_node_deref(static_cast<void*>(expanded_from));
+        ely_node_unref(static_cast<void*>(expanded_from));
 }
 
 uint32_t ely_node::ref()
@@ -131,7 +131,7 @@ ely_def::ely_def(ely_context& ctx, const char* name, size_t len, ely_expr* init)
 
 ely_def::~ely_def()
 {
-    ely_node_deref(static_cast<void*>(init));
+    ely_node_unref(static_cast<void*>(init));
     delete[] name;
 }
 
@@ -223,18 +223,18 @@ ely_let::ely_let(ely_context& ctx, ely_expr* e) : base(ctx, ELY_NODE_LET), e(e)
 
 ely_let::~ely_let()
 {
-    ely_node_deref(e);
+    ely_node_unref(e);
 
     ely_node* n; // to avoid offsetof issues
     ELY_ILIST_FOR_EACH(n, &vars_head, link)
     {
-        ely_node_deref(n);
+        ely_node_unref(n);
     }
 
     ely_expr* e;
     ELY_ILIST_FOR_EACH(e, &inits_head, link)
     {
-        ely_node_deref(e);
+        ely_node_unref(e);
     }
 }
 
@@ -255,12 +255,12 @@ ely_fn::ely_fn(ely_context& ctx, ely_expr* e) : base(ctx, ELY_NODE_FN), e(e)
 
 ely_fn::~ely_fn()
 {
-    ely_node_deref(e);
+    ely_node_unref(e);
 
     ely_node* n; // as ely_node to avoid offsetof issues
     ELY_ILIST_FOR_EACH(n, &args_head, link)
     {
-        ely_node_deref(n);
+        ely_node_unref(n);
     }
 }
 
@@ -294,7 +294,7 @@ ely_call::ely_call(ely_context& ctx) : base(ctx, ELY_NODE_CALL)
 
 ely_call::~ely_call()
 {
-    ely_node_deref(op);
+    ely_node_unref(op);
     ely_expr* e;
     ELY_ILIST_FOR_EACH(e, &operands_head, link)
     {
@@ -335,7 +335,7 @@ uint32_t ely_node_ref(void* n)
     return node->ref();
 }
 
-uint32_t ely_node_deref(void* n)
+uint32_t ely_node_unref(void* n)
 {
     ely_node* node = static_cast<ely_node*>(n);
     return node->deref();

@@ -110,7 +110,7 @@ struct ely_f32_literal;
 struct ely_f64_literal;
 
 ELY_EXPORT uint32_t ely_node_ref(void* node);
-ELY_EXPORT uint32_t ely_node_deref(void* node);
+ELY_EXPORT uint32_t ely_node_unref(void* node);
 
 ELY_EXPORT struct ely_list* ely_list_create(struct ely_context* ctx);
 ELY_EXPORT void ely_list_append(struct ely_list* list, struct ely_node* node);
