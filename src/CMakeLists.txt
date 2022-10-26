@@ -4,7 +4,8 @@ set(ELY_SRC
     primitive.cpp
     runtime.cpp
     type.cpp
-    context.cpp)
+    context.cpp
+    scope.cpp)
 
 find_package(Boost)
 
