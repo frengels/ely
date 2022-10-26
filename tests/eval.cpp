@@ -25,7 +25,7 @@ TEST_CASE("eval")
         CHECK_EQ(std::string_view{buf, len}, value);
 
         ely_runtime_destroy(rt);
-        ely_context_destroy(ctx);
+        ely_context_release(ctx);
     }
 
     SUBCASE("primitive")
@@ -58,6 +58,6 @@ TEST_CASE("eval")
         }
 
         ely_runtime_destroy(rt);
-        ely_context_destroy(ctx);
+        ely_context_release(ctx);
     }
 }

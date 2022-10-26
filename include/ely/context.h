@@ -7,10 +7,14 @@
 extern "C" {
 #endif
 
+// this context is used when creating ast nodes, for memory management,
+// representing the nodes, serializing etc
 struct ely_context;
 
 ELY_EXPORT struct ely_context* ely_context_create();
-ELY_EXPORT void                ely_context_destroy(struct ely_context* ctx);
+
+ELY_EXPORT void ely_context_acquire(struct ely_context* ctx);
+ELY_EXPORT void ely_context_release(struct ely_context* ctx);
 
 #ifdef __cplusplus
 }
