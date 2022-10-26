@@ -215,8 +215,41 @@ ely_f64_literal::ely_f64_literal(ely_context& ctx, double val)
     : base(ctx, ELY_NODE_LIT_F64), val(val)
 {}
 
+ely_let::ely_let(ely_context& ctx, ely_expr* e) : base(ctx, ELY_NODE_LET), e(e)
+{
+    ely_ilist_init(&vars_head);
+    ely_ilist_init(&inits_head);
+}
+
+ely_let::~ely_let()
+{
+    ely_node_deref(e);
+
+    ely_node* n; // to avoid offsetof issues
+    ELY_ILIST_FOR_EACH(n, &vars_head, link)
+    {
+        ely_node_deref(n);
+    }
+
+    ely_expr* e;
+    ELY_ILIST_FOR_EACH(e, &inits_head, link)
+    {
+        ely_node_deref(e);
+    }
+}
+
+void ely_let::push(ely_var* v, ely_expr* init)
+{
+    ely_node_ref(v);
+    ely_node_ref(init);
+
+    ely_ilist_append(&vars_head, &static_cast<ely_node*>(v)->link);
+    ely_ilist_append(&inits_head, &init->link);
+}
+
 ely_fn::ely_fn(ely_context& ctx, ely_expr* e) : base(ctx, ELY_NODE_FN), e(e)
 {
+    ely_ilist_init(&args_head);
     ely_node_ref(e);
 }
 
@@ -224,10 +257,10 @@ ely_fn::~ely_fn()
 {
     ely_node_deref(e);
 
-    ely_var* v;
-    ELY_ILIST_FOR_EACH(v, &args_head, link)
+    ely_node* n; // as ely_node to avoid offsetof issues
+    ELY_ILIST_FOR_EACH(n, &args_head, link)
     {
-        ely_node_deref(v);
+        ely_node_deref(n);
     }
 }
 
@@ -360,6 +393,16 @@ ely_s32_literal* ely_s32_literal_create(ely_context* ctx, std::int32_t val)
 ely_s64_literal* ely_s64_literal_create(ely_context* ctx, std::int64_t val)
 {
     return new ely_s64_literal(*ctx, val);
+}
+
+ely_let* ely_let_create(ely_context* ctx, ely_expr* e)
+{
+    return new ely_let(*ctx, e);
+}
+
+void ely_let_push(ely_let* l, ely_var* v, ely_expr* init)
+{
+    l->push(v, init);
 }
 
 ely_fn* ely_fn_create(ely_context* ctx, ely_expr* e)
