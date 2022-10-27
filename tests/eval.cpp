@@ -6,7 +6,6 @@
 #include <ely/context.h>
 #include <ely/node.h>
 #include <ely/runtime.h>
-#include <ely/value.h>
 
 std::string_view value{"45.1343"};
 

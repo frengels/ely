@@ -5,6 +5,7 @@
 
 #include "ely/config.h"
 #include "ely/type.h"
+#include "ely/value.h"
 
 #ifdef __cplusplus
 extern "C" {
