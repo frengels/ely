@@ -6,6 +6,7 @@
 #include <ely/context.h>
 #include <ely/node.h>
 #include <ely/runtime.h>
+#include <ely/value.h>
 
 std::string_view value{"45.1343"};
 
@@ -19,8 +20,8 @@ TEST_CASE("eval")
         auto* ctx = ely_context_create();
         auto* rt  = ely_runtime_create();
         auto* e   = ely_dec_literal_create(ctx, value.data(), value.size());
-        auto* v   = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(e));
-        auto  len = ely_value_to_chars(v, buf, buf_len);
+        auto  v   = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(e));
+        auto  len = ely_value_to_chars(&v, buf, buf_len);
         CHECK_NE(len, size_t(-1));
         CHECK_EQ(std::string_view{buf, len}, value);
 
@@ -41,8 +42,8 @@ TEST_CASE("eval")
             auto* e = ely_s64_literal_create(ctx, i);
             ely_prim_call_push_operand(p, reinterpret_cast<ely_expr*>(e));
 
-            auto* val = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(p));
-            CHECK_EQ(ely_value_get_kind(val), ELY_VALUE_S32);
+            auto val = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(p));
+            CHECK_EQ(val.kind, ELY_VALUE_S32);
         }
 
         SUBCASE("lit convert")
@@ -53,8 +54,8 @@ TEST_CASE("eval")
             auto* e = ely_int_literal_create(ctx, ival.data(), ival.size());
             ely_prim_call_push_operand(p, reinterpret_cast<ely_expr*>(e));
 
-            auto* val = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(p));
-            CHECK_EQ(ely_value_get_kind(val), ELY_VALUE_S32);
+            auto val = ely_runtime_eval(rt, reinterpret_cast<ely_expr*>(p));
+            CHECK_EQ(val.kind, ELY_VALUE_S32);
         }
 
         ely_runtime_destroy(rt);

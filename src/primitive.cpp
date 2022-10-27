@@ -9,9 +9,9 @@
 
 #include "ely/node.h"
 #include "ely/runtime.h"
-#include "ely/type.hpp"
-
-#include "value.hpp"
+#include "ely/value.h"
+#include "elypp/type.hpp"
+#include "elypp/value.hpp"
 
 namespace
 {
@@ -49,11 +49,11 @@ struct adapt_impl<Fn, std::index_sequence<Indices...>>
     using args_t = boost::callable_traits::args_t<fn_t>;
     using ret_t  = boost::callable_traits::return_type_t<fn_t>;
 
-    ely_value* operator()(ely_value** args)
+    ely_value operator()(ely_value* args)
     {
-        auto val =
-            Fn(args[Indices]->get<std::tuple_element_t<Indices, args_t>>()...);
-        return new ely_value(val);
+        auto val = Fn(ely::get_value<std::tuple_element_t<Indices, args_t>>(
+            ely::value(args[Indices]))...);
+        return ely::create_value(val);
     }
 };
 
@@ -62,7 +62,7 @@ struct adapt_fn
 {
     using args_t = boost::callable_traits::args_t<decltype(Fn)>;
 
-    static constexpr auto fn = [](ely_value** args) -> ely_value* {
+    static constexpr auto fn = [](ely_value* args) -> ely_value {
         return adapt_impl<
             Fn,
             std::make_index_sequence<std::tuple_size_v<args_t>>>{}(args);

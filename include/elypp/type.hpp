@@ -11,6 +11,20 @@
 
 namespace ely
 {
+class type
+{
+    ely_type impl_;
+
+public:
+    constexpr type(const ely_type& ty) : impl_(ty)
+    {}
+
+    constexpr const ely_type& impl() const
+    {
+        return impl_;
+    }
+};
+
 constexpr ely_type get_type_poison()
 {
     return {ELY_TYPE_POISON, {}};

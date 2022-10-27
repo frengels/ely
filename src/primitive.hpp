@@ -11,7 +11,7 @@
 
 struct ely_value;
 
-using ely_fn_ptr_t = ely_value* (*) (ely_value**);
+using ely_fn_ptr_t = ely_value (*)(ely_value*);
 
 struct primitive_info
 {
