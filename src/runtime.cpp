@@ -91,18 +91,6 @@ struct ely_runtime
         return ely_value_create_poison();
     }
 
-    template<typename T>
-    static constexpr ely_value* do_from_chars(ely_value* arg)
-    {
-        T val;
-        assert(arg->kind == ELY_VALUE_DEC_LIT ||
-               arg->kind == ELY_VALUE_INT_LIT);
-        auto res = std::from_chars(
-            arg->as.lit.s, arg->as.lit.s + arg->as.lit.len, val);
-        assert(res.ec == std::errc());
-        return new ely_value(val);
-    }
-
     ely_value eval_prim(ely_prim_kind kind, ely_value* args, size_t args_len)
     {
         std::vector<ely_type> types;
