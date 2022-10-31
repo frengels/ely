@@ -1,4 +1,5 @@
 set(ELY_SRC
+    arena.cpp
     string.cpp
     node.cpp
     primitive.cpp
