@@ -115,11 +115,21 @@ To cvt(From val)
 }
 
 constexpr primitive_overload_set primitive_sets[] = {
-    [ELY_PRIM_F32] = make_set<cvt<float, double>>(),
-    [ELY_PRIM_F64] = make_set<cvt<double, float>>(),
-    [ELY_PRIM_U64] = {},
-    [ELY_PRIM_U32] = {},
-    [ELY_PRIM_S64] = {},
+    [ELY_PRIM_F32] = make_set<cvt<float, double>,
+                              cvt<float, std::int32_t>,
+                              cvt<float, std::int64_t>,
+                              cvt<float, std::uint32_t>,
+                              cvt<float, std::uint64_t>>(),
+    [ELY_PRIM_F64] = make_set<cvt<double, float>,
+                              cvt<double, std::int32_t>,
+                              cvt<double, std::int64_t>,
+                              cvt<double, std::uint32_t>,
+                              cvt<double, std::uint64_t>>(),
+    [ELY_PRIM_U64] = make_set<cvt<std::uint64_t, std::uint32_t>>(),
+    [ELY_PRIM_U32] = make_set<cvt<std::uint32_t, std::uint64_t>,
+                              cvt<std::uint32_t, std::int64_t>,
+                              cvt<std::uint32_t, std::int32_t>>(),
+    [ELY_PRIM_S64] = make_set<cvt<std::int64_t, std::int32_t>>(),
     [ELY_PRIM_S32] = make_set<cvt<std::int32_t, std::int64_t>,
                               cvt<std::int32_t, std::uint32_t>>(),
 };
