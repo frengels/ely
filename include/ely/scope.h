@@ -5,6 +5,10 @@
 
 #include "ely/config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ely_scope;
 
 struct ely_value;
@@ -17,5 +21,9 @@ ELY_EXPORT void
 ely_scope_push(struct ely_scope* s, const char* name, struct ely_value* val);
 ELY_EXPORT void ely_scope_lookup(const struct ely_scope* s,
                                  struct ely_string_view  str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
