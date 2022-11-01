@@ -1,4 +1,5 @@
 set(TESTS
+  arena
   eval)
 
 find_package(doctest REQUIRED)

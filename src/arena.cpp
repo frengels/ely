@@ -14,10 +14,10 @@ struct allocation
     void*  mem;
     size_t size;
 
-    allocation(size_t sz) : mem(::operator new(sz)), size(sz)
+    ELY_ALWAYS_INLINE allocation(size_t sz) : mem(::operator new(sz)), size(sz)
     {}
 
-    ~allocation()
+    ELY_ALWAYS_INLINE ~allocation()
     {
         ::operator delete(mem, size);
     }
@@ -29,7 +29,7 @@ struct arena_chunk
     size_t       size_;
     arena_chunk* next{nullptr};
 
-    arena_chunk(size_t cap) : alloc_(cap)
+    ELY_ALWAYS_INLINE arena_chunk(size_t cap) : alloc_(cap)
     {}
 
     constexpr const void* data() const
@@ -57,7 +57,7 @@ struct arena_chunk
         return capacity() - size();
     }
 
-    void* alloc(size_t siz, size_t align)
+    ELY_ALWAYS_INLINE void* alloc(size_t siz, size_t align)
     {
         ely_arena_alloc space = alloc_maybe(align);
 
@@ -75,7 +75,7 @@ struct arena_chunk
         return space.data;
     }
 
-    ely_arena_alloc alloc_maybe(size_t align) const
+    ELY_ALWAYS_INLINE ely_arena_alloc alloc_maybe(size_t align) const
     {
         assert(align <= alignof(std::max_align_t) && "Too large alignment");
         size_t space = remaining();
@@ -93,7 +93,7 @@ struct arena_chunk
         }
     }
 
-    void alloc_claim(ely_arena_alloc alloc, std::size_t sz)
+    ELY_ALWAYS_INLINE void alloc_claim(ely_arena_alloc alloc, std::size_t sz)
     {
         std::size_t distance = static_cast<std::byte*>(alloc.data) -
                                static_cast<std::byte*>(alloc_.mem);
@@ -108,12 +108,12 @@ struct ely_arena
     arena_chunk   initial_;
     arena_chunk*  current_;
 
-    ely_arena(size_t initial_cap) : initial_(initial_cap)
+    ely_arena(size_t initial_cap) : initial_(initial_cap), current_(&initial_)
     {}
 
     ~ely_arena()
     {
-        arena_chunk* it = &initial_;
+        arena_chunk* it = initial_.next;
 
         while (it)
         {
