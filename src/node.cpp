@@ -31,7 +31,7 @@ uint32_t ely_node::ref()
     return ++ref_count;
 }
 
-uint32_t ely_node::deref()
+uint32_t ely_node::unref()
 {
     uint32_t new_ref_count = --ref_count;
 
@@ -85,7 +85,7 @@ uint32_t ely_node::deref()
             delete static_cast<ely_call*>(this);
             break;
         default:
-            assert(0 && "Unhandled node type in deref");
+            assert(0 && "Unhandled node type in unref");
             break;
         }
     }
@@ -103,7 +103,7 @@ ely_stx_list::~ely_stx_list()
     ely_node* n;
     ELY_ILIST_FOR_EACH(n, &head, link)
     {
-        n->deref();
+        n->unref();
     }
 }
 
@@ -145,7 +145,7 @@ ely_list::~ely_list()
     ely_node* n;
     ELY_ILIST_FOR_EACH(n, &head, link)
     {
-        n->deref();
+        n->unref();
     }
 }
 
@@ -298,7 +298,7 @@ ely_call::~ely_call()
     ely_expr* e;
     ELY_ILIST_FOR_EACH(e, &operands_head, link)
     {
-        e->deref();
+        e->unref();
     }
 }
 
@@ -313,7 +313,7 @@ ely_prim_call::~ely_prim_call()
     ely_expr* e;
     ELY_ILIST_FOR_EACH(e, &operands_head, link)
     {
-        e->deref();
+        e->unref();
     }
 }
 
@@ -338,7 +338,7 @@ uint32_t ely_node_ref(void* n)
 uint32_t ely_node_unref(void* n)
 {
     ely_node* node = static_cast<ely_node*>(n);
-    return node->deref();
+    return node->unref();
 }
 
 ely_list* ely_list_create(ely_context* ctx)
