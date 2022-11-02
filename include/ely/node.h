@@ -17,12 +17,14 @@ extern "C" {
 
 enum ely_node_kind
 {
-    ELY_NODE_DEF,
-    ELY_NODE_STX_LIST,
+    // stx
+    ELY_NODE_STX_FIRST = 0,
+    ELY_NODE_STX_LIST  = ELY_NODE_STX_FIRST,
     ELY_NODE_STX_ID,
-    ELY_NODE_LIST,
 
-    ELY_NODE_LIT_STRING,
+    // lits
+    ELY_NODE_LIT_FIRST,
+    ELY_NODE_LIT_STRING = ELY_NODE_LIT_FIRST,
     ELY_NODE_LIT_INT,
     ELY_NODE_LIT_DEC,
 
@@ -33,11 +35,16 @@ enum ely_node_kind
     ELY_NODE_LIT_F32,
     ELY_NODE_LIT_F64,
 
-    ELY_NODE_LET,
-    ELY_NODE_VAR,
-    ELY_NODE_FN,
-    ELY_NODE_CALL,
-    ELY_NODE_PRIM_CALL,
+    ELY_NODE_LIT_LAST,
+    ELY_NODE_STX_LAST = ELY_NODE_LIT_LAST,
+
+    ELY_NODE_LIST = 100,
+    // ELY_NODE_DEF, // replace with builtins
+    // ELY_NODE_LET,
+    // ELY_NODE_VAR,
+    // ELY_NODE_FN,
+    ELY_NODE_CALL_USER,
+    ELY_NODE_CALL_BUILTIN,
 };
 
 enum ely_prim_kind
@@ -95,11 +102,12 @@ struct ely_int_literal;
 struct ely_dec_literal;
 struct ely_literal;
 struct ely_list;
-struct ely_let;
-struct ely_fn;
-struct ely_def;
-struct ely_var;
+// struct ely_let;
+// struct ely_fn;
+// struct ely_def;
+// struct ely_var;
 struct ely_call;
+struct ely_user_call;
 struct ely_prim_call;
 // special literals which cannot be constructed from source
 struct ely_s32_literal;
