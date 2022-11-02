@@ -1,8 +1,11 @@
 #include "primitive.hpp"
 
 #include <array>
+#include <charconv>
 #include <tuple>
 #include <vector>
+
+#include <cassert>
 
 #include <boost/callable_traits/args.hpp>
 #include <boost/callable_traits/return_type.hpp>
@@ -112,6 +115,38 @@ template<typename To, typename From>
 To cvt(From val)
 {
     return static_cast<To>(val);
+}
+
+constexpr float dec_lit_to_f32(const char* s, size_t len)
+{
+    float                  f = 0.f;
+    std::from_chars_result res =
+        std::from_chars(s, s + len, f, std::chars_format::fixed);
+    assert(res.ptr == (s + len) && res.ec == std::errc() &&
+           "Unexpected error occurred parsing decimal literal");
+
+    return f;
+}
+
+constexpr double dec_lit_to_f64(const char* s, size_t len)
+{
+    double                 d = 0.0;
+    std::from_chars_result res =
+        std::from_chars(s, s + len, d, std::chars_format::fixed);
+    assert(res.ptr == (s + len) && res.ec == std::errc() &&
+           "Unexpected error occurred parsing decimal literal");
+
+    return d;
+}
+
+constexpr std::int32_t int_lit_to_s32(const char* s, size_t len)
+{
+    std::int32_t           i{};
+    std::from_chars_result res = std::from_chars(s, s + len, i, 10);
+    assert(res.ptr == (s + len) && res.ec == std::errc() &&
+           "Unexpected error occurred parsing integer literal");
+
+    return i;
 }
 
 constexpr primitive_overload_set primitive_sets[] = {
