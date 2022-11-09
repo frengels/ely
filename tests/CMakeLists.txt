@@ -1,6 +1,7 @@
 set(TESTS
   arena
-  eval)
+  eval
+  ilist)
 
 find_package(doctest REQUIRED)
 

@@ -17,13 +17,12 @@ endif()
 
 add_subdirectory(src)
 
-add_library(elypp INTERFACE)
+add_library(ely INTERFACE)
 target_include_directories(
-  elypp
+  ely
   INTERFACE
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(elypp INTERFACE ely)
 
 if (ELY_TESTS)
   enable_testing()
