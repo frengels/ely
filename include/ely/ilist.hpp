@@ -272,7 +272,7 @@ public:
         head_.prev->next = &head_;
     }
 
-    ilist&           operator=(const ilist&) = delete;
+    ilist&           operator=(const ilist&)  = delete;
     constexpr ilist& operator=(ilist&& other) = delete;
 
     ~ilist() = default;
