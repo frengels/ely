@@ -146,6 +146,15 @@ public:
         : p_(std::addressof(const_cast<ilink&>(ref)))
     {}
 
+    // using sfinae to select the conversion from non const to const iterator
+    // without overriding trivial copy
+    template<typename U,
+             typename = std::enable_if_t<is_const &&
+                                         std::is_same<U, value_type>::value>>
+    constexpr ilist_iterator(const ilist_iterator<U> it)
+        : p_(std::addressof(it.impl()))
+    {}
+
     friend constexpr bool operator==(const ilist_iterator& lhs,
                                      const ilist_iterator& rhs) noexcept
     {
@@ -194,7 +203,7 @@ public:
         return std::addressof(**this);
     }
 
-    constexpr ilink& impl()
+    constexpr ilink& impl() const
     {
         return *p_;
     }
@@ -263,7 +272,7 @@ public:
         head_.prev->next = &head_;
     }
 
-    ilist&           operator=(const ilist&)  = delete;
+    ilist&           operator=(const ilist&) = delete;
     constexpr ilist& operator=(ilist&& other) = delete;
 
     ~ilist() = default;

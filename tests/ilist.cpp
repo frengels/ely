@@ -1,3 +1,4 @@
+#include <type_traits>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
@@ -16,7 +17,8 @@ struct intrusive_element : private ely::ilink
 
 TEST_CASE("ilist")
 {
-    auto il = ely::ilist<intrusive_element>{};
+    using list_t = ely::ilist<intrusive_element>;
+    auto il      = list_t{};
 
     intrusive_element el1{5, 5.f};
     intrusive_element el2{10, 0.f};
@@ -41,5 +43,16 @@ TEST_CASE("ilist")
 
         it2 = std::next(it);
         CHECK_EQ(it2, il.end());
+
+        SUBCASE("iterator -> const_iterator")
+        {
+            auto cit = typename list_t::const_iterator{it};
+            static_assert(
+                std::is_trivially_copy_constructible<list_t::iterator>::value,
+                "should be trivially copyable");
+            static_assert(std::is_trivially_copy_constructible<
+                              list_t::const_iterator>::value,
+                          "should be trivially copyable");
+        }
     }
 }
