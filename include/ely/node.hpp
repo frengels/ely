@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <cstdint>
 
 #include "ely/ilist.hpp"
@@ -61,10 +63,16 @@ struct node_traits
     static constexpr node_kind kind = T::node_kind;
 };
 
-template<typename T, typename... Args>
-node_ptr<T> create(Args&&... args)
+template<typename T, typename Alloc, typename... Args>
+node_ptr<T> create(Alloc& alloc_, Args&&... args)
 {
-    void* p = ::operator new(sizeof(node_base) + sizeof(T));
+    using alloc_traits = std::allocator_traits<Alloc>;
+    using char_alloc_traits =
+        typename alloc_traits::template rebind_traits<char>;
+    using char_alloc_t = typename char_alloc_traits::allocator_type;
+
+    char_alloc_t alloc{alloc_};
+    void* p = char_alloc_traits::allocate(alloc, sizeof(node_base) + sizeof(T));
     new (p) node_base(node_traits<T>::kind);
     char* by_p = static_cast<char*>(p);
     by_p += sizeof(node_base);
