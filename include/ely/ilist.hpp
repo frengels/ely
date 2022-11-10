@@ -9,8 +9,12 @@ namespace ely
 {
 struct ilink
 {
-    ilink* prev;
-    ilink* next;
+    ilink* prev{};
+    ilink* next{};
+
+    ilink() = default;
+    constexpr ilink(ilink* prev, ilink* next) : prev(prev), next(next)
+    {}
 };
 
 struct ilink_access
