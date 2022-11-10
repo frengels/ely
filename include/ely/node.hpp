@@ -8,8 +8,8 @@ namespace ely
 {
 enum struct node_kind : std::uint8_t
 {
-    stx_id,
-    stx_prim_id,
+    stx_id_user,
+    stx_id_prim,
 
     stx_list,
 
@@ -27,10 +27,48 @@ enum struct node_kind : std::uint8_t
     call_prim,
 };
 
-struct node_base : private ely::ilink
+class node_base : private ely::ilink
 {
     friend ely::ilink_access;
 
-    node_kind kind;
+private:
+    node_kind kind_;
+
+public:
+    constexpr node_base(node_kind kind) : kind_(kind)
+    {}
+
+    constexpr node_kind kind() const
+    {
+        return kind_;
+    }
 };
+
+template<typename T>
+class node_ptr
+{
+    node_base* base;
+    // followed by the actual node data
+
+public:
+    constexpr node_ptr(node_base* base) : base(base)
+    {}
+};
+
+template<typename T>
+struct node_traits
+{
+    static constexpr node_kind kind = T::node_kind;
+};
+
+template<typename T, typename... Args>
+node_ptr<T> create(Args&&... args)
+{
+    void* p = ::operator new(sizeof(node_base) + sizeof(T));
+    new (p) node_base(node_traits<T>::kind);
+    char* by_p = static_cast<char*>(p);
+    by_p += sizeof(node_base);
+    new (static_cast<void*>(by_p)) T(static_cast<Args&&>(args)...);
+    return node_ptr<T>{static_cast<node_base*>(p)};
+}
 } // namespace ely
