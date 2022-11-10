@@ -33,6 +33,9 @@ enum ely_value_kind
     ELY_VALUE_STRING_LIT,
     ELY_VALUE_INT_LIT,
     ELY_VALUE_DEC_LIT,
+
+    ELY_VALUE_FN,
+    ELY_VALUE_PRIM,
 };
 
 struct ely_value
@@ -46,6 +49,8 @@ struct ely_value
         float      f;
         double     d;
         ely_string lit;
+        // TODO: how to save fn?
+        ely_string prim;
     } as;
 };
 
@@ -102,6 +107,12 @@ ely_value_create_string_literal(const char* str, size_t len)
     return {ELY_VALUE_STRING_LIT, {.lit = ely_string_create_len(str, len)}};
 }
 
+ELY_ALWAYS_INLINE struct ely_value ely_value_create_prim(const char* str,
+                                                         size_t      len)
+{
+    return {ELY_VALUE_PRIM, {.prim = ely_string_create_len(str, len)}};
+}
+
 ELY_ALWAYS_INLINE void ely_value_destroy(const struct ely_value* v)
 {
     switch (v->kind)
@@ -110,6 +121,12 @@ ELY_ALWAYS_INLINE void ely_value_destroy(const struct ely_value* v)
     case ELY_VALUE_INT_LIT:
     case ELY_VALUE_DEC_LIT:
         ely_string_destroy(v->as.lit);
+        break;
+    case ELY_VALUE_PRIM:
+        ely_string_destroy(v->as.prim);
+        break;
+    case ELY_VALUE_FN:
+        assert(0 && "Unhandled value");
         break;
     default:
         break;

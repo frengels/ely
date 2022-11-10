@@ -47,46 +47,6 @@ enum ely_node_kind
     ELY_NODE_CALL_BUILTIN,
 };
 
-enum ely_prim_kind
-{
-    // conversions
-    ELY_PRIM_F32,
-    ELY_PRIM_F64,
-
-    ELY_PRIM_U64,
-    ELY_PRIM_U32,
-
-    ELY_PRIM_S64,
-    ELY_PRIM_S32,
-
-    // integral unary ops
-    ELY_PRIM_CLZ,
-    ELY_PRIM_CTZ,
-    ELY_PRIM_POPCNT,
-
-    // integral binary ops
-    ELY_PRIM_ADD,
-    ELY_PRIM_SUB,
-    ELY_PRIM_MUL,
-    ELY_PRIM_DIV,
-    ELY_PRIM_REM,
-    ELY_PRIM_AND,
-    ELY_PRIM_OR,
-    ELY_PRIM_XOR,
-    ELY_PRIM_SHL,
-    ELY_PRIM_SHR,
-    ELY_PRIM_ROTL,
-    ELY_PRIM_ROTR,
-
-    // relops
-    ELY_PRIM_EQ,
-    ELY_PRIM_NE,
-    ELY_PRIM_LT,
-    ELY_PRIM_GT,
-    ELY_PRIM_LE,
-    ELY_PRIM_GE,
-};
-
 struct ely_node_base
 {
     uint16_t kind;
@@ -127,10 +87,22 @@ ELY_EXPORT struct ely_stx_list* ely_stx_list_create(struct ely_context* ctx);
 ELY_EXPORT void                 ely_stx_list_append(struct ely_stx_list* list,
                                                     struct ely_stx*      stx);
 
-ELY_EXPORT struct ely_def* ely_def_create(struct ely_context* ctx,
-                                          const char*         name,
-                                          size_t              len,
-                                          ely_expr*           init);
+ELY_EXPORT struct ely_prim_call*
+ely_prim_call_create(struct ely_context* ctx, const char* str, size_t len);
+ELY_EXPORT void ely_prim_call_push_arg(struct ely_prim_call* call,
+                                       struct ely_node*      n);
+
+ELY_EXPORT struct ely_prim_call* ely_def_create(struct ely_context* ctx,
+                                                const char*         name,
+                                                size_t              len,
+                                                struct ely_expr*    init)
+{
+    const char*           def_name = "def";
+    struct ely_prim_call* def =
+        ely_prim_call_create(ctx, def_name, __builtin_strlen(def_name));
+    ely_node_ref(init);
+    ely_prim_call_push_arg(def, (struct ely_node*) init);
+}
 
 ELY_EXPORT struct ely_string_literal*
 ely_string_literal_create(struct ely_context* ctx,
