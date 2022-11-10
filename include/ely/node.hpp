@@ -17,6 +17,7 @@ enum struct node_kind : std::uint8_t
 
     stx_lit_int,
     stx_lit_dec,
+    stx_lit_str,
 
     stx_lit_i32,
     stx_lit_i64,
