@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include <cstdint>
@@ -47,15 +48,76 @@ public:
     }
 };
 
-template<typename T>
-class node_ptr
+enum struct node_type
 {
-    node_base* base;
-    // followed by the actual node data
+    abstract, // something like stx or expr
+    concrete, // specific instances of stx or expr
+}
+
+template<typename T, node_type Ty>
+class node_type;
+
+template<typename T>
+class node<T, node_type::concrete> : public node_base
+{
+    [[no_unique_address]] T val_;
 
 public:
-    constexpr node_ptr(node_base* base) : base(base)
-    {}
+    constexpr T& get() & noexcept
+    {
+        return val_;
+    }
+
+    constexpr const T& get() const& noexcept
+    {
+        return val_;
+    }
+
+    constexpr T&& get() && noexcept
+    {
+        return static_cast<T&&>(val_);
+    }
+
+    constexpr const T&& get() const&& noexcept
+    {
+        return static_cast<const T&&>(val_);
+    }
+
+    template<typename F>
+    constexpr std::invoke_result_t<F, T&> visit(F&& fn) &
+    {
+        return std::invoke(static_cast<F&&>(fn), get());
+    }
+
+    template<typename F>
+    constexpr std::invoke_result_t<F, const T&> visit(F&& fn) const&
+    {
+        return std::invoke(static_cast<F&&>(fn), get());
+    }
+
+    template<typename F>
+    constexpr std::invoke_result_t<F, T&&> visit(F&& fn) &&
+    {
+        return std::invoke(static_cast<F&&>(fn), static_cast<T&&>(val_));
+    }
+
+    template<typename F>
+    constexpr std::invoke_result_t<F, const T&&> visit(F&& fn) const&&
+    {
+        return std::invoke(static_cast<F&&>(fn), static_cast<const T&&>(val_));
+    }
+};
+
+template<typename T>
+class node<T, node_type::abstract> : public node_base
+{
+public:
+    template<typename F>
+    constexpr auto visit(F&& fn) const&
+    {
+        return T::visit(static_cast<const node_base&>(*this),
+                        static_cast<F&&>(fn));
+    }
 };
 
 template<typename T>
