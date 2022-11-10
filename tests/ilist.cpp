@@ -28,12 +28,18 @@ TEST_CASE("ilist")
 
         CHECK_EQ(il.count_size(), 2);
 
-        const auto it = il.begin();
+        auto it = il.begin();
         CHECK_EQ(it->i, el1.i);
         CHECK_EQ(it->f, el1.f);
 
-        const auto it2 = std::next(it);
+        auto it2 = std::next(it);
         CHECK_EQ(it2->i, el2.i);
         CHECK_EQ(it2->f, el2.f);
+
+        it2.erase();
+        CHECK_EQ(il.count_size(), 1);
+
+        it2 = std::next(it);
+        CHECK_EQ(it2, il.end());
     }
 }
