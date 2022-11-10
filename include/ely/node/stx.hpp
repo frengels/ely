@@ -3,10 +3,11 @@
 #include <string>
 #include <string_view>
 
-#include "ely/node.hpp"
+#include "ely/ilist.hpp"
 
 namespace ely
 {
+class node;
 namespace stx
 {
 class context
@@ -16,6 +17,8 @@ class context
     uint32_t         col_;
 
 public:
+    context() = default;
+
     constexpr context(std::string_view filename, uint32_t line, uint32_t col)
         : filename_(filename), line_(line), col_(col)
     {}
@@ -41,14 +44,13 @@ public:
 
 class lit_int
 {
-public:
-    static constexpr auto node_kind = node_kind::stx_lit_int;
-
 private:
     context     ctx_;
     std::string str_;
 
 public:
+    lit_int() = default;
+
     lit_int(std::string str) : str_(std::move(str))
     {}
 
@@ -60,14 +62,13 @@ public:
 
 class lit_dec
 {
-public:
-    static constexpr auto node_kind = node_kind::stx_lit_dec;
-
 private:
     context     ctx_;
     std::string str_;
 
 public:
+    lit_dec() = default;
+
     lit_dec(std::string str) : str_(std::move(str))
     {}
 
@@ -79,14 +80,13 @@ public:
 
 class lit_string
 {
-public:
-    static constexpr auto node_kind = node_kind::stx_lit_str;
-
 private:
     context     ctx_;
     std::string str_;
 
 public:
+    lit_string() = default;
+
     lit_string(std::string str) : str_(std::move(str))
     {}
 
@@ -98,11 +98,8 @@ public:
 
 class list
 {
-public:
-    static constexpr auto node_kind = node_kind::stx_list;
-
 private:
-    ely::ilist<node_base> elements_;
+    ely::ilist<node> elements_;
 
 public:
     list() = default;
@@ -120,14 +117,13 @@ public:
 
 class id_user
 {
-public:
-    static constexpr auto node_kind = node_kind::stx_id_user;
-
 private:
     context     ctx_;
     std::string name_;
 
 public:
+    id_user() = default;
+
     id_user(std::string name) : name_(std::move(name))
     {}
 
@@ -139,15 +135,14 @@ public:
 
 class id_prim
 {
-public:
-    static constexpr auto node_kind = node_kind::stx_id_prim;
-
 private:
     context     ctx_;
     std::string name_;
 
 public:
-    id_user(std::string name) : name_(std::move(name))
+    id_prim() = default;
+
+    id_prim(std::string name) : name_(std::move(name))
     {}
 
     std::string_view name() const
@@ -156,38 +151,4 @@ public:
     }
 };
 } // namespace stx
-
-class syntax
-{
-    template<typename NodeBase,
-             typename F,
-             typename = std::enable_if_t<
-                 std::is_same_v<node_base, std::remove_cvref_t<NodeBase>>>>
-    static constexpr auto visit(NodeBase&& nb, F&& fn)
-    {
-        switch (b.kind())
-        {
-        case node_kind::stx_id_user:
-            return static_cast<const node<stx::id_user>&>(nb).visit(
-                static_cast<F&&>(fn));
-        case node_kind::stx_id_prim:
-            return static_cast<const node<stx::id_prim>&>(nb).visit(
-                static_cast<F&&>(fn));
-        case node_kind::stx_list:
-            return static_cast<const node<stx::list>&>(nb).visit(
-                static_cast<F&&>(fn));
-        case node_kind::stx_lit_int:
-            return static_cast<const node<stx::lit_int>&>(nb).visit(
-                static_cast<F&&>(fn));
-        case node_kind::stx_lit_dec:
-            return static_cast<const node<stx::lit_dec>&>(nb).visit(
-                static_cast<F&&>(fn));
-        case node_kind::stx_lit_str:
-            return static_cast<const node<stx::lit_string>&>(nb).visit(
-                static_cast<F&&>(fn));
-        default:
-            __builtin_unreachable();
-        }
-    }
-};
 } // namespace ely
