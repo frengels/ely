@@ -15,6 +15,52 @@ struct ilink
     ilink() = default;
     constexpr ilink(ilink* prev, ilink* next) : prev(prev), next(next)
     {}
+
+    constexpr ilink(ilink&& other) noexcept : prev{other.prev}, next{other.next}
+    {
+        other.next = nullptr;
+        other.prev = nullptr;
+
+        if (next && prev)
+        {
+            next->prev = this;
+            prev->next = this;
+        }
+    }
+
+    constexpr ilink& operator=(ilink&& other) noexcept
+    {
+        clear();
+
+        prev       = other.prev;
+        next       = other.next;
+        other.prev = nullptr;
+        other.next = nullptr;
+
+        if (next && prev)
+        {
+            prev->next = this;
+            next->prev = this;
+        }
+
+        return *this;
+    }
+
+    ~ilink()
+    {
+        clear();
+    }
+
+    constexpr void clear() noexcept
+    {
+        if (next && prev)
+        {
+            prev->next = next;
+            next->prev = prev;
+            prev       = nullptr;
+            next       = nullptr;
+        }
+    }
 };
 
 struct ilink_access
@@ -182,6 +228,11 @@ constexpr ilist_iterator<const T> as_const_iterator(const T& t)
     return as_iterator(t);
 }
 
+/// great care must be exercised when using an intrusive list.
+/// The list itself does not own any of the objects inside, therefore when
+/// destroying an `ilist` it will not erase the elements. Destroying the `ilist`
+/// will invalidate any access to the head of the list, therefore care must be
+/// taken to empty the `ilist` before the `ilist` gets destroyed.
 template<typename T>
 class ilist
 {
