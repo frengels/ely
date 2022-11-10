@@ -23,6 +23,7 @@ target_include_directories(
   INTERFACE
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+target_compile_features(ely INTERFACE cxx_std_20)
 
 if (ELY_TESTS)
   enable_testing()
