@@ -103,6 +103,17 @@ public:
     switch (c) {
     case ' ':
       return read_whitespace(c);
+    case '\n':
+      return token_kind::newline_lf;
+    case '\r':
+      if (it_ != end_) {
+        c = *it_;
+        if (c == '\n') {
+          ++it_;
+          return token_kind::newline_crlf;
+        }
+      }
+      return token_kind::newline_cr;
     case '(':
       return token_kind::lparen;
     case ')':
@@ -225,6 +236,9 @@ using ely::token_kind;
 using token_kind::lbrace;
 using token_kind::lbracket;
 using token_kind::lparen;
+using token_kind::newline_cr;
+using token_kind::newline_crlf;
+using token_kind::newline_lf;
 using token_kind::rbrace;
 using token_kind::rbracket;
 using token_kind::rparen;
@@ -249,4 +263,8 @@ static_assert(ranges_equal(" ", {whitespace}));
 static_assert(ranges_equal("()", {lparen, rparen}));
 static_assert(ranges_equal("[ ] ",
                            {lbracket, whitespace, rbracket, whitespace}));
+static_assert(ranges_equal("\n", {newline_lf}));
+static_assert(ranges_equal("\r", {newline_cr}));
+static_assert(ranges_equal("\r ", {newline_cr, whitespace}));
+static_assert(ranges_equal("\r\n", {newline_crlf}));
 } // namespace test
