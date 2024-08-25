@@ -21,6 +21,11 @@ enum struct token_kind {
 
   identifier,
 
+  integer_lit,
+  decimal_lit,
+  string_lit,
+
+  unterminated_string_lit,
   unknown_char,
 
   eof,
@@ -63,39 +68,26 @@ template <typename Char> constexpr bool is_identifier_continue(Char c) {
 }
 } // namespace detail
 
-template <std::input_iterator I, std::sentinel_for<I> S> class lexer_iterator {
+template <typename V> class lexer {
 
 public:
-  using iterator_type = I;
-
-  using iterator_category = std::forward_iterator_tag;
+  using view_type = V;
 
   using value_type = token_kind;
 
 private:
-  I it_;
-  S end_;
+  [[no_unique_address]] std::ranges::iterator_t<V> it_;
+  [[no_unique_address]] std::ranges::sentinel_t<V> end_;
 
 public:
-  constexpr lexer_iterator(I it, S end) : it_(it), end_(end) {}
-  template <typename V>
-  constexpr lexer_iterator(V v)
-      : lexer_iterator(std::ranges::begin(v), std::ranges::end(v)) {}
+  constexpr lexer(std::ranges::iterator_t<V> it, std::ranges::sentinel_t<V> end)
+      : it_(it), end_(end) {}
+  explicit constexpr lexer(V v)
+      : lexer(std::ranges::begin(v), std::ranges::end(v)) {}
 
-  constexpr iterator_type base() const { return it_; }
+  constexpr view_type base() const { return view_type{it_, end_}; }
 
-  constexpr lexer_iterator& operator++() {
-    // does nothing
-    return *this;
-  }
-
-  constexpr lexer_iterator operator++(int) {
-    auto ret = *this;
-    ++(*this);
-    return ret;
-  }
-
-  constexpr value_type operator*() {
+  constexpr value_type next() {
     if (it_ == end_)
       return token_kind::eof;
 
@@ -126,18 +118,19 @@ public:
       return token_kind::lbrace;
     case '}':
       return token_kind::rbrace;
+    case '"':
+      return read_string(c);
     default:
+      if (detail::is_digit(c))
+        return read_number(c);
+      if (detail::is_identifier_start(c))
+        return read_identifier(c);
       return token_kind::unknown_char;
     }
   }
 
-  friend constexpr bool operator==(const lexer_iterator& self,
-                                   const std::default_sentinel_t) {
-    return self.it_ == self.end_;
-  }
-
 private:
-  constexpr token_kind read_whitespace(std::iter_value_t<I> c) {
+  constexpr token_kind read_whitespace(std::ranges::range_value_t<V> c) {
     assert(c == ' ');
     for (; it_ != end_; ++it_) {
       if (*it_ != ' ')
@@ -146,93 +139,71 @@ private:
 
     return token_kind::whitespace;
   }
-};
 
-template <typename V> class lexer {
-  using iterator =
-      lexer_iterator<std::ranges::iterator_t<V>, std::ranges::sentinel_t<V>>;
-
-private:
-  iterator it_;
-
-public:
-  constexpr lexer(V view) : it_(view) {}
-
-  constexpr iterator begin() const { return it_; }
-
-  constexpr std::default_sentinel_t end() const {
-    return std::default_sentinel;
-  }
-};
-
-template <typename Char, typename I, typename S>
-constexpr token_kind read_identifier_continue(Char c, I& it, S end) {
-  assert(is_identifier_continue(c));
-  for (; it != end; ++it) {
-    c = *it;
-    if (!is_identifier_continue(c)) {
-      break;
+  constexpr token_kind read_identifier(std::ranges::range_value_t<V> c) {
+    assert(detail::is_identifier_start(c));
+    for (; it_ != end_; ++it_) {
+      if (!detail::is_identifier_continue(c))
+        break;
     }
-  }
 
-  return token_kind::identifier;
-}
-
-template <typename Char, typename I, typename S>
-constexpr token_kind read_identifier_start(Char c, I& it, S end) {
-  assert(is_identifier_start(c));
-  if (it == end) {
     return token_kind::identifier;
   }
-}
 
-template <typename Char, typename I, typename S>
-constexpr token_kind read_identifier(Char c, I it, S end) {
-  return read_identifier_start(c, it, end);
-}
+  constexpr token_kind read_number(std::ranges::range_value_t<V> c) {
+    assert(detail::is_digit(c));
+    for (; it_ != end_; ++it_) {
+      c = *it_;
+      if (c == '.') {
+        ++it_;
+        return read_decimal(c);
+      }
+      if (!detail::is_digit(c))
+        break;
+    }
 
-// template <typename V> constexpr lex_result<V> lex_once(V text) {
-//   auto it = text.begin();
-//   auto end = text.end();
+    return token_kind::integer_lit;
+  }
 
-//   if (it == end) {
-//     return {text, token_kind::eof};
-//   }
+  constexpr token_kind read_decimal(std::ranges::range_value_t<V> c) {
+    assert(c == '.');
+    for (; it_ != end_; ++it_) {
+      c = *it_;
+      if (!detail::is_digit(c))
+        break;
+    }
 
-//   auto c = *it++;
-//   switch (c) {
-//   case ' ':
-//     return detail::read_whitespace(c, it, end);
-//   case '\r':
-//     if (it != end) {
-//       c = *it;
-//       if (c == '\n') {
-//         ++it;
-//         return {V{it, end}, token_kind::newline_crlf};
-//       }
-//     }
-//   case '\n':
-//     return {V{it, end}, token_kind::newline_lf};
-//   case '(':
-//     return {V{it, end}, token_kind::lparen};
-//   case ')':
-//     return {V{it, end}, token_kind::rparen};
-//   case '[':
-//     return {V{it, end}, token_kind::lbracket};
-//   case ']':
-//     return {V{it, end}, token_kind::rbracket};
-//   case '{':
-//     return {V{it, end}, token_kind::lbrace};
-//   case '}':
-//     return {V{it, end}, token_kind::rbrace};
-//   default:
-//     return token_kind::unknown_char;
-//   }
-// }
+    return token_kind::decimal_lit;
+  }
+
+  constexpr token_kind read_string(std::ranges::range_value_t<V> c) {
+    assert(c == '"');
+
+    bool escaped = false;
+    for (; it_ != end_; ++it_) {
+      c = *it_;
+      if (c == '\\') {
+        escaped = !escaped;
+        continue;
+      }
+
+      if (c == '"' && !escaped) {
+        ++it_;
+        return token_kind::string_lit;
+      }
+      escaped = false;
+    }
+    return token_kind::unterminated_string_lit;
+  }
+};
 } // namespace ely
 
 namespace test {
 using ely::token_kind;
+using token_kind::decimal_lit;
+using token_kind::eof;
+using token_kind::identifier;
+using token_kind::integer_lit;
 using token_kind::lbrace;
 using token_kind::lbracket;
 using token_kind::lparen;
@@ -242,22 +213,23 @@ using token_kind::newline_lf;
 using token_kind::rbrace;
 using token_kind::rbracket;
 using token_kind::rparen;
+using token_kind::string_lit;
+using token_kind::unterminated_string_lit;
 using token_kind::whitespace;
 
 constexpr bool ranges_equal(std::string_view src,
                             std::initializer_list<ely::token_kind> ilist) {
   auto lex = ely::lexer{src};
-  auto it1 = lex.begin();
-  auto end1 = lex.end();
+  auto tok = lex.next();
   auto it2 = ilist.begin();
   auto end2 = ilist.end();
 
-  for (; it1 != end1 && it2 != end2; ++it1, ++it2) {
-    if (*it1 != *it2)
+  for (; tok != eof && it2 != end2; tok = lex.next(), ++it2) {
+    if (tok != *it2)
       return false;
   }
 
-  return it1 == end1 && it2 == end2;
+  return tok == eof && it2 == end2;
 }
 static_assert(ranges_equal(" ", {whitespace}));
 static_assert(ranges_equal("()", {lparen, rparen}));
@@ -267,4 +239,10 @@ static_assert(ranges_equal("\n", {newline_lf}));
 static_assert(ranges_equal("\r", {newline_cr}));
 static_assert(ranges_equal("\r ", {newline_cr, whitespace}));
 static_assert(ranges_equal("\r\n", {newline_crlf}));
+static_assert(ranges_equal("hello", {identifier}));
+static_assert(ranges_equal("12343", {integer_lit}));
+static_assert(ranges_equal("123.4", {decimal_lit}));
+static_assert(ranges_equal("\"hello world\"", {string_lit}));
+static_assert(ranges_equal("\"escaped\\\"world\"", {string_lit}));
+static_assert(ranges_equal("\"random\\escape\"", {string_lit}));
 } // namespace test
