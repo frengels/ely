@@ -27,7 +27,7 @@ public:
   file_stream(const file_stream&) = delete;
   file_stream& operator=(const file_stream&) = delete;
 
-  file_stream(file_stream&& fs)
+  file_stream(file_stream&& fs) noexcept
       : file_stream(fs.file_, fs.buf_start_,
                     std::distance(fs.buf_start_, fs.buf_end_)) {
     fs.file_ = nullptr;
@@ -36,7 +36,7 @@ public:
     fs.buf_cur_ = nullptr;
   }
 
-  file_stream& operator=(file_stream&& other) {
+  file_stream& operator=(file_stream&& other) noexcept {
     close();
 
     file_ = std::exchange(other.file_, nullptr);
