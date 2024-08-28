@@ -60,18 +60,15 @@ public:
     std::array<char, Num> result;
 
     // special case for 1 element
-    if constexpr (Num == 1) {
+    if (buf_cur_ + Num > buf_end_) {
+      std::copy(buf_cur_, buf_end_, result.data());
+      auto copied = std::distance(buf_cur_, buf_end_);
+      fill_buffer();
+      std::copy(buf_cur_, buf_cur_ + (Num - copied), result.data());
+      buf_cur_ += (Num - copied);
     } else {
-      if (buf_cur_ + Num > buf_end_) {
-        std::copy(buf_cur_, buf_end_, result.data());
-        auto copied = std::distance(buf_cur_, buf_end_);
-        fill_buffer();
-        std::copy(buf_cur_, buf_cur_ + (Num - copied), result.data());
-        buf_cur_ += (Num - copied);
-      } else {
-        std::copy(buf_cur_, buf_cur_ + Num, result.data());
-        buf_cur_ += Num;
-      }
+      std::copy(buf_cur_, buf_cur_ + Num, result.data());
+      buf_cur_ += Num;
     }
 
     return result;
