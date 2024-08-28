@@ -83,7 +83,6 @@ private:
   void fill_buffer() {
     auto read =
         std::fread(buf_start_, sizeof(char), buf_end_ - buf_start_, file_);
-    fprintf(stderr, "read %d chars\n", read);
     if (read < std::distance(buf_start_, buf_end_)) {
       *(buf_start_ + read) = '\0';
     }
