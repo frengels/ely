@@ -18,7 +18,9 @@ class file_stream {
 
 public:
   file_stream(FILE* f, char* buf, std::size_t buf_len)
-      : file_(f), buf_start_(buf), buf_cur_(buf), buf_end_(buf + buf_len) {}
+      : file_(f), buf_start_(buf), buf_cur_(buf), buf_end_(buf + buf_len) {
+    fill_buffer();
+  }
   file_stream(const char* p, char* buf, std::size_t buf_len)
       : file_stream(std::fopen(p, "rb"), buf, buf_len) {}
   file_stream(const std::filesystem::path& p, char* buf, std::size_t buf_len)
@@ -84,6 +86,7 @@ private:
   void fill_buffer() {
     auto read =
         std::fread(buf_start_, sizeof(char), buf_end_ - buf_start_, file_);
+    fprintf(stderr, "read %d chars\n", read);
     if (read < std::distance(buf_start_, buf_end_)) {
       *(buf_start_ + read) = '\0';
     }
