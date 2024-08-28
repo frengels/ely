@@ -34,6 +34,11 @@ int main(int argc, char** argv) {
 
   ely::file_stream char_stream{argv[1], buffer, buffer_size};
 
+  if (!char_stream) {
+    std::fprintf(stderr, "failed to open \"%s\"\n", argv[1]);
+    return EXIT_FAILURE;
+  }
+
   // print lexical tokens
   auto lex = ely::lexer<ely::file_stream>{std::move(char_stream)};
   std::string tok_buffer;
