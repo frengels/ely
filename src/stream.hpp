@@ -50,7 +50,7 @@ public:
   ~file_stream() { close(); }
 
   // returns true if the file is valid
-  operator bool() const { return !file_; }
+  operator bool() const { return file_; }
 
   char peek() { return *buf_cur_; }
   char next() { return next<1>()[0]; }
