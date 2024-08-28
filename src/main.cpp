@@ -45,7 +45,8 @@ int main(int argc, char** argv) {
   std::fputs("[\n", stdout);
   for (auto tok = lex.next(tok_buffer); tok.kind != ely::token_kind::eof;
        tok_buffer.clear(), tok = lex.next(tok_buffer)) {
-    std::fprintf(stdout, "  (token :length %" PRIu16 ")\n", tok.len);
+    std::fprintf(stdout, "  (token :kind %" PRIu16 " :length %" PRIu16 ")\n",
+                 static_cast<std::uint16_t>(tok.kind), tok.len);
   }
   std::fputs("]\n", stdout);
 }
