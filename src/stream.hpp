@@ -30,12 +30,9 @@ public:
   file_stream& operator=(const file_stream&) = delete;
 
   file_stream(file_stream&& fs) noexcept
-      : file_stream(fs.file_, fs.buf_start_,
-                    std::distance(fs.buf_start_, fs.buf_end_)) {
+      : file_(fs.file_), buf_start_(fs.buf_start_), buf_end_(fs.buf_end_),
+        buf_cur_(fs.buf_cur_) {
     fs.file_ = nullptr;
-    fs.buf_start_ = nullptr;
-    fs.buf_end_ = nullptr;
-    fs.buf_cur_ = nullptr;
   }
 
   file_stream& operator=(file_stream&& other) noexcept {
