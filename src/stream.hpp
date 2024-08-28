@@ -52,6 +52,7 @@ public:
   // returns true if the file is valid
   operator bool() const { return !file_; }
 
+  char peek() { return *buf_cur_; }
   char next() { return next<1>()[0]; }
 
   template <std::size_t Num> std::array<char, Num> next() {
