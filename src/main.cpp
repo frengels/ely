@@ -29,47 +29,10 @@ int main(int argc, char** argv) {
     return execute_lex(args);
   } else if (std::strcmp(cmd, "parse") == 0) {
     return execute_parse(args);
-  }
-
-  if (argc < 2) {
-    std::fputs("ely: missing input\n", stderr);
+  } else {
+    std::fprintf(stderr, "ely: error: unknown command \"%s\"\n", cmd);
     return EXIT_FAILURE;
   }
-
-  // open file
-  auto fdin = open(argv[1], O_RDONLY);
-  if (fdin < 0) {
-    std::fprintf(stderr, "can't open %s\n", argv[1]);
-    return EXIT_FAILURE;
-  }
-
-  // get file length
-  struct stat statbuf;
-  if (fstat(fdin, &statbuf) < 0) {
-    perror("fstat");
-    return EXIT_FAILURE;
-  }
-
-  constexpr auto buffer_size = 64 * 1024;
-  char* buffer = new char[buffer_size];
-
-  ely::file_stream char_stream{argv[1], buffer, buffer_size};
-
-  if (!char_stream) {
-    std::fprintf(stderr, "failed to open \"%s\"\n", argv[1]);
-    return EXIT_FAILURE;
-  }
-
-  // print lexical tokens
-  auto lex = ely::lexer<ely::file_stream>{std::move(char_stream)};
-  std::string tok_buffer;
-  std::fputs("[\n", stdout);
-  for (auto tok = lex.next(tok_buffer); tok.kind != ely::token_kind::eof;
-       tok_buffer.clear(), tok = lex.next(tok_buffer)) {
-    std::fprintf(stdout, "  (token :kind %s :length %" PRIu16 ")\n",
-                 token_kind_short_name(tok.kind), tok.len);
-  }
-  std::fputs("]\n", stdout);
 }
 
 std::FILE* open_output_file(const char* outfile) {
