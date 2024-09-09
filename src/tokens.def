@@ -1,0 +1,26 @@
+#ifndef TOK
+#define TOK(id, name)
+#endif
+
+TOK(whitespace)
+TOK(newline_lf)
+TOK(newline_cr)
+TOK(newline_crlf)
+
+TOK(lparen)
+TOK(rparen)
+TOK(lbracket)
+TOK(rbracket)
+TOK(lbrace)
+TOK(rbrace)
+
+TOK(identifier)
+
+TOK(integer_lit)
+TOK(decimal_lit)
+TOK(string_lit)
+
+TOK(unterminated_string_lit)
+TOK(unknown)
+
+TOK(eof)
