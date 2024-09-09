@@ -2,25 +2,28 @@
 #define TOK(id, name)
 #endif
 
-TOK(whitespace)
-TOK(newline_lf)
-TOK(newline_cr)
-TOK(newline_crlf)
+TOK(whitespace, "ws")
+TOK(tab, "\\t")
+TOK(newline_lf, "\\n")
+TOK(newline_cr, "\\r")
+TOK(newline_crlf, "\\r\\n")
 
-TOK(lparen)
-TOK(rparen)
-TOK(lbracket)
-TOK(rbracket)
-TOK(lbrace)
-TOK(rbrace)
+TOK(lparen, "(")
+TOK(rparen, ")")
+TOK(lbracket, "[")
+TOK(rbracket, "]")
+TOK(lbrace, "{")
+TOK(rbrace, "}")
 
-TOK(identifier)
+TOK(identifier, "id")
 
-TOK(integer_lit)
-TOK(decimal_lit)
-TOK(string_lit)
+TOK(integer_lit, "int")
+TOK(decimal_lit, "dec")
+TOK(string_lit, "str")
 
-TOK(unterminated_string_lit)
-TOK(unknown)
+TOK(unterminated_string_lit, "unterminated str")
+TOK(unknown, "unknown")
 
-TOK(eof)
+TOK(eof, "EOF")
+
+#undef TOK

@@ -7,15 +7,26 @@
 
 namespace ely {
 enum struct token_kind : std::uint16_t {
-#define TOK(x) x,
+#define TOK(x, _) x,
 #include "tokens.def"
 };
 
 constexpr const char* token_kind_name(token_kind k) {
   switch (k) {
-#define TOK(x)                                                                 \
+#define TOK(x, _)                                                              \
   case token_kind::x:                                                          \
     return #x;
+#include "tokens.def"
+  }
+
+  return nullptr;
+}
+
+constexpr const char* token_kind_short_name(token_kind k) {
+  switch (k) {
+#define TOK(x, name)                                                           \
+  case token_kind::x:                                                          \
+    return name;
 #include "tokens.def"
   }
 
@@ -94,6 +105,8 @@ public:
       return make_token(token_kind::eof);
     case ' ':
       return read_whitespace(c);
+    case '\t':
+      return read_tab(c);
     case '\n':
       return make_token(token_kind::newline_lf);
     case '\r':
@@ -153,6 +166,18 @@ private:
     }
 
     return {token_kind::whitespace, static_cast<std::uint16_t>(cnt)};
+  }
+
+  constexpr token read_tab(char_type c) {
+    std::size_t cnt = 1;
+
+    assert(c == '\t');
+    for (c = peek_char(); c != '\0'; c = consume_peek_char(cnt)) {
+      if (c != '\t')
+        break;
+    }
+
+    return {token_kind::tab, static_cast<std::uint16_t>(cnt)};
   }
 
   constexpr token read_identifier(char_type c) {
