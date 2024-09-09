@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "lexer.hpp"
+#include "parser.hpp"
 #include "stream.hpp"
 
 std::FILE* open_output_file(const char* outfile) {
@@ -123,4 +124,25 @@ int execute_lex(std::span<char*> args) {
   return EXIT_SUCCESS;
 }
 
-int execute_parse(std::span<char*> args) { return EXIT_SUCCESS; }
+int execute_parse(std::span<char*> args) {
+  auto in_out = parse_in_out(args);
+  if (!in_out.out_file)
+    return EXIT_FAILURE;
+
+  std::FILE* out = in_out.out_file;
+
+  constexpr auto buffer_size = 64 * 1024;
+  char buffer[buffer_size];
+  for (std::FILE* in : in_out.input_files) {
+    ely::file_stream stream(in, buffer, buffer_size);
+
+    std::string tok_buffer;
+    auto lex = ely::lexer<ely::file_stream>{std::move(stream)};
+    auto parse = ely::parser<ely::lexer<ely::file_stream>>{std::move(lex)};
+
+    for (auto node = parse.next(tok_buffer); node != nullptr;
+         node = parse.next(tok_buffer)) {
+    }
+  }
+  return EXIT_SUCCESS;
+}
