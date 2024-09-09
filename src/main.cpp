@@ -144,5 +144,7 @@ int execute_parse(std::span<char*> args) {
          node = parse.next(tok_buffer)) {
     }
   }
+
+  std::fprintf(out, "parse end\n");
   return EXIT_SUCCESS;
 }
