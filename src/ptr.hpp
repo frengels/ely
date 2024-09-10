@@ -9,7 +9,7 @@ private:
 
 public:
   ref_ptr() = default;
-  explicit constexpr ref_ptr(T* p) : p_(p) { p_->acquire(); }
+  explicit constexpr ref_ptr(T* p) : p_(p) {}
 
   constexpr ref_ptr(const ref_ptr& rp) : p_(rp.p_) { p_->acquire(); }
   constexpr ref_ptr(ref_ptr&& rp) noexcept
@@ -31,9 +31,24 @@ public:
     return *this;
   }
 
-  ~ref_ptr() {
-    if (p_)
+  ~ref_ptr() { clear(); }
+
+  constexpr void reset(T* other = nullptr) noexcept {
+    clear();
+    p_ = other;
+  }
+
+  constexpr T* release() noexcept {
+    T* res = p_;
+    p_ = nullptr;
+    return res;
+  }
+
+  constexpr void clear() noexcept {
+    if (p_) {
       p_->release();
+      p_ = nullptr;
+    }
   }
 
   friend constexpr void swap(ref_ptr& lhs, ref_ptr& rhs) noexcept {
