@@ -1,19 +1,18 @@
 #pragma once
 
 namespace ely {
-
 template <typename To, typename From> constexpr bool isa(const From& f) {
   return To::classof(f);
 }
 
 template <typename To, typename From> constexpr To* dyn_cast(From& f) {
-  if (To::classof(f))
+  if (isa<To>(f))
     return static_cast<To*>(&f);
 }
 
 template <typename To, typename From>
 constexpr const To* dyn_cast(const From& f) {
-  if (To::classof(f))
+  if (isa<To>(f))
     return static_cast<const To*>(&f);
 }
 
