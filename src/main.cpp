@@ -10,9 +10,9 @@
 #include <span>
 #include <vector>
 
-#include "lexer.hpp"
-#include "parser.hpp"
-#include "stream.hpp"
+#include "ely/lexer.hpp"
+#include "ely/parser.hpp"
+#include "ely/stream.hpp"
 
 std::FILE* open_output_file(const char* outfile) {
   if (std::strcmp("-", outfile) == 0) {
@@ -112,11 +112,10 @@ int execute_lex(std::span<char*> args) {
     auto lex = ely::lexer<ely::file_stream>{std::move(stream)};
     std::fputs("[\n", out);
 
-    std::string tok_buffer;
-    for (auto tok = lex.next(tok_buffer); tok.kind != ely::token_kind::eof;
-         tok_buffer.clear(), tok = lex.next(tok_buffer)) {
-      std::fprintf(out, "  (token :kind %s :length %" PRIu16 ")\n",
-                   ely::token_kind_short_name(tok.kind), tok.len);
+    for (auto tok = lex.next(); !ely::token_is_eof(tok); tok = lex.next()) {
+      auto str = tok.to_string();
+      std::fprintf(out, "  (token :kind %s :length %zu :content %s)\n",
+                   tok.short_name(), tok.size(), str.c_str());
     }
     std::fputs("]\n", out);
   }
@@ -136,12 +135,12 @@ int execute_parse(std::span<char*> args) {
   for (std::FILE* in : in_out.input_files) {
     ely::file_stream stream(in, buffer, buffer_size);
 
-    std::string tok_buffer;
     auto lex = ely::lexer<ely::file_stream>{std::move(stream)};
-    auto parse = ely::parser<ely::lexer<ely::file_stream>>{std::move(lex)};
+    auto parser = ely::parser();
 
-    for (auto node = parse.next(tok_buffer); node != nullptr;
-         node = parse.next(tok_buffer)) {
+    for (auto node = parser.next(lex); !node.is_eof();
+         node = parser.next(lex)) {
+          
     }
   }
 

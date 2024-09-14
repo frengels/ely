@@ -40,38 +40,48 @@ struct newline_crlf {
   static constexpr std::string to_string() { return short_name; }
 };
 
+struct rparen;
+struct rbracket;
+struct rbrace;
+
 struct lparen {
   static constexpr const char* short_name = "(";
+  using matching_end = rparen;
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
 };
 struct rparen {
   static constexpr const char* short_name = ")";
+  using matching_begin = lparen;
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
 };
 struct lbracket {
   static constexpr const char* short_name = "[";
+  using matching_end = rbracket;
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
 };
 struct rbracket {
   static constexpr const char* short_name = "]";
+  using matching_begin = lbracket;
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
 };
 struct lbrace {
   static constexpr const char* short_name = "{";
+  using matching_end = rbrace;
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
 };
 struct rbrace {
   static constexpr const char* short_name = "}";
+  using matching_begin = lbrace;
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
@@ -160,6 +170,29 @@ using token_variant =
 class token : public detail::token_variant {
 public:
   using detail::token_variant::token_variant;
+
+  constexpr bool is_eof() const {
+    return std::holds_alternative<tokens::eof>(*this);
+  }
+
+  constexpr bool is_newline() const {
+    return std::holds_alternative<tokens::newline_lf>(*this) ||
+           std::holds_alternative<tokens::newline_cr>(*this) ||
+           std::holds_alternative<tokens::newline_crlf>(*this);
+  }
+
+  constexpr bool is_atmosphere() const {
+    return is_newline() || std::holds_alternative<tokens::whitespace>(*this) ||
+           std::holds_alternative<tokens::tab>(*this);
+  }
+
+  template <typename Tok> constexpr bool ends_list() const {
+    return std::holds_alternative<typename Tok::matching_end>(*this);
+  }
+
+  template <typename Tok> constexpr bool begins_list() const {
+    return std::holds_alternative<typename Tok::matching_begin>(*this);
+  }
 
   constexpr std::size_t size() const {
     return std::visit([](const auto& t) -> std::size_t { return t.size(); },
