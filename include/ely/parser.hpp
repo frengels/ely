@@ -16,7 +16,8 @@ public:
 
   template <typename TokenStream>
   constexpr stx::sexp next(TokenStream& tokens) {
-    auto tok = tokens.next();
+    auto tok = next_skip_atmosphere(tokens);
+    assert(!tok.is_atmosphere());
 
     return std::visit([&](const auto& t) { return next_impl(tokens, t); }, tok);
   }
@@ -40,6 +41,8 @@ private:
                                       ely::tokens::lbracket>) {
       return parse_list(tokens, t);
     } else if constexpr (std::is_same_v<Token, tokens::identifier>) {
+      return parse(tokens, t);
+    } else if constexpr (std::is_same_v<Token, tokens::eof>) {
       return parse(tokens, t);
     }
 
@@ -66,6 +69,11 @@ private:
   constexpr std::shared_ptr<stx::identifier>
   parse(TokenStream& tokens, const tokens::identifier& id) {
     return std::make_shared<stx::identifier>(std::move(id.text));
+  }
+
+  template <typename TokenStream>
+  constexpr stx::eof parse(TokenStream& tokens, const tokens::eof&) {
+    return stx::eof{};
   }
 };
 } // namespace ely

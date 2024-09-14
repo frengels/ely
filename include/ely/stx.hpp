@@ -1,9 +1,13 @@
 #pragma once
 
 #include <memory>
+#include <span>
 #include <string>
 #include <variant>
 #include <vector>
+
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 namespace ely {
 namespace stx {
@@ -22,10 +26,14 @@ public:
 };
 
 namespace detail {
+template <typename T> struct is_shared_ptr : std::false_type {};
+template <typename T>
+struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
+
 using sexp_variant =
     std::variant<std::shared_ptr<stx::list>, std::shared_ptr<stx::identifier>,
                  std::shared_ptr<stx::integer_lit>, eof, unknown>;
-}
+} // namespace detail
 
 class sexp : public detail::sexp_variant {
 public:
@@ -46,6 +54,8 @@ class list {
 public:
   explicit constexpr list(std::vector<sexp>&& elements)
       : kind_(list_kind::parentheses), elements_(std::move(elements)) {}
+
+  constexpr std::span<const sexp> elements() const { return elements_; }
 };
 
 class identifier {
@@ -73,3 +83,86 @@ constexpr sexp make_sexp(Args&&... args) {
 }
 } // namespace stx
 } // namespace ely
+
+template <> struct fmt::formatter<ely::stx::eof> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::eof&, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "EOF");
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::unknown> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::unknown&, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "unknown");
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::identifier> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::identifier& id, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "identifier({})", id.text());
+  }
+};
+
+template <> struct fmt::formatter<std::shared_ptr<ely::stx::identifier>> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const std::shared_ptr<ely::stx::identifier>& id,
+                        Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "{}", *id);
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::integer_lit> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::integer_lit& ilit, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "integer_lit(TODO)");
+  }
+};
+
+template <> struct fmt::formatter<std::shared_ptr<ely::stx::integer_lit>> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const std::shared_ptr<ely::stx::integer_lit>& ilit,
+                        Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "{}", *ilit);
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::list> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::list& l, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "list({})", fmt::join(l.elements(), ", "));
+  }
+};
+
+template <> struct fmt::formatter<std::shared_ptr<ely::stx::list>> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const std::shared_ptr<ely::stx::list>& l,
+                        Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "{}", *l);
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::sexp> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::sexp& s, Ctx& ctx) const {
+    return std::visit(
+        [&]<typename T>(const T& t) {
+          if constexpr (ely::stx::detail::is_shared_ptr<T>::value) {
+            return fmt::format_to(ctx.out(), "{}", *t);
+          } else {
+            return fmt::format_to(ctx.out(), "{}", t);
+          }
+        },
+        s);
+  }
+};

@@ -10,9 +10,13 @@
 #include <span>
 #include <vector>
 
+#include <fmt/compile.h>
+#include <fmt/printf.h>
+
 #include "ely/lexer.hpp"
 #include "ely/parser.hpp"
 #include "ely/stream.hpp"
+#include "ely/stx.hpp"
 
 std::FILE* open_output_file(const char* outfile) {
   if (std::strcmp("-", outfile) == 0) {
@@ -138,9 +142,9 @@ int execute_parse(std::span<char*> args) {
     auto lex = ely::lexer<ely::file_stream>{std::move(stream)};
     auto parser = ely::parser();
 
-    for (auto node = parser.next(lex); !node.is_eof();
+    for (ely::stx::sexp node = parser.next(lex); !node.is_eof();
          node = parser.next(lex)) {
-          
+      fmt::print(out, "{}\n", node);
     }
   }
 

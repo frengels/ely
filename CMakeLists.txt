@@ -15,6 +15,7 @@ set(SRC
 
 add_library(ely INTERFACE)
 target_include_directories(ely INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(ely INTERFACE fmt::fmt)
 target_compile_features(ely INTERFACE cxx_std_20)
 set_target_properties(ely PROPERTIES CXX_EXTENSIONS OFF)
 
