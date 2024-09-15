@@ -19,7 +19,7 @@ public:
     auto tok = next_skip_atmosphere(tokens);
     assert(!tok.is_atmosphere());
 
-    return std::visit([&](const auto& t) { return next_impl(tokens, t); }, tok);
+    return std::visit([&](auto& t) { return next_impl(tokens, t); }, tok);
   }
 
 private:
@@ -35,18 +35,28 @@ private:
   }
 
   template <typename TokenStream, typename Token>
-  constexpr stx::sexp next_impl(TokenStream& tokens, const Token& t) {
+  void next_impl(TokenStream&, const Token&) = delete;
+
+  template <typename TokenStream>
+  constexpr stx::sexp next_impl(TokenStream& tokens, ely::token& tok) {
+    return std::visit(
+        [&](auto& t) -> stx::sexp { return next_impl(tokens, t); }, tok);
+  }
+
+  template <typename TokenStream, typename Token>
+  constexpr stx::sexp next_impl(TokenStream& tokens, Token& t) {
     if constexpr (detail::is_one_of_v<Token, ely::tokens::lparen,
                                       ely::tokens::lbrace,
                                       ely::tokens::lbracket>) {
       return parse_list(tokens, t);
-    } else if constexpr (std::is_same_v<Token, tokens::identifier>) {
-      return parse(tokens, t);
-    } else if constexpr (std::is_same_v<Token, tokens::eof>) {
-      return parse(tokens, t);
+    } else if constexpr (detail::is_one_of_v<
+                             Token, ely::tokens::identifier,
+                             ely::tokens::integer_lit, ely::tokens::decimal_lit,
+                             ely::tokens::string_lit, ely::tokens::eof>) {
+      return parse(tokens, std::move(t));
+    } else {
+      return stx::unknown{};
     }
-
-    return stx::unknown{};
   }
 
   template <typename TokenStream, typename LT>
@@ -66,14 +76,33 @@ private:
   }
 
   template <typename TokenStream>
-  constexpr std::shared_ptr<stx::identifier>
-  parse(TokenStream& tokens, const tokens::identifier& id) {
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::identifier&& id) {
     return std::make_shared<stx::identifier>(std::move(id.text));
+  }
+
+  template <typename TokenStream>
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::integer_lit&& ilit) {
+    return std::make_shared<stx::integer_lit>(std::move(ilit.text));
+  }
+
+  template <typename TokenStream>
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::decimal_lit&& dlit) {
+    return std::make_shared<stx::decimal_lit>(std::move(dlit.text));
+  }
+
+  template <typename TokenStream>
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::string_lit&& str_lit) {
+    return std::make_shared<stx::string_lit>(std::move(str_lit.text));
   }
 
   template <typename TokenStream>
   constexpr stx::eof parse(TokenStream& tokens, const tokens::eof&) {
     return stx::eof{};
+  }
+
+  template <typename TokenStream>
+  constexpr stx::unknown parse(TokenStream& tokens, const tokens::unknown&) {
+    return stx::unknown{};
   }
 };
 } // namespace ely

@@ -14,6 +14,8 @@ namespace stx {
 class list;
 class identifier;
 class integer_lit;
+class decimal_lit;
+class string_lit;
 
 class eof {
 public:
@@ -32,7 +34,9 @@ struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
 using sexp_variant =
     std::variant<std::shared_ptr<stx::list>, std::shared_ptr<stx::identifier>,
-                 std::shared_ptr<stx::integer_lit>, eof, unknown>;
+                 std::shared_ptr<stx::integer_lit>,
+                 std::shared_ptr<stx::decimal_lit>,
+                 std::shared_ptr<stx::string_lit>, eof, unknown>;
 } // namespace detail
 
 class sexp : public detail::sexp_variant {
@@ -40,6 +44,9 @@ public:
   using detail::sexp_variant::sexp_variant;
 
   constexpr bool is_eof() const { return std::holds_alternative<eof>(*this); }
+  constexpr bool is_list() const {
+    return std::holds_alternative<std::shared_ptr<list>>(*this);
+  }
 };
 
 enum struct list_kind {
@@ -69,11 +76,30 @@ public:
 };
 
 class integer_lit {
-  std::variant<std::int64_t, std::string> val_;
+  std::string text_;
 
 public:
-  explicit constexpr integer_lit(std::int64_t val)
-      : val_(std::in_place_type<std::int64_t>, val) {}
+  explicit constexpr integer_lit(std::string&& text) : text_(std::move(text)) {}
+
+  constexpr std::string_view text() const { return text_; }
+};
+
+class decimal_lit {
+  std::string text_;
+
+public:
+  explicit constexpr decimal_lit(std::string&& text) : text_(std::move(text)) {}
+
+  constexpr std::string_view text() const { return text_; }
+};
+
+class string_lit {
+  std::string text_;
+
+public:
+  explicit constexpr string_lit(std::string&& text) : text_(std::move(text)) {}
+
+  constexpr std::string_view text() const { return text_; }
 };
 
 template <typename Stx, typename... Args>
@@ -108,29 +134,27 @@ template <> struct fmt::formatter<ely::stx::identifier> {
   }
 };
 
-template <> struct fmt::formatter<std::shared_ptr<ely::stx::identifier>> {
-  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
-  template <typename Ctx>
-  constexpr auto format(const std::shared_ptr<ely::stx::identifier>& id,
-                        Ctx& ctx) const {
-    return fmt::format_to(ctx.out(), "{}", *id);
-  }
-};
-
 template <> struct fmt::formatter<ely::stx::integer_lit> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
   constexpr auto format(const ely::stx::integer_lit& ilit, Ctx& ctx) const {
-    return fmt::format_to(ctx.out(), "integer_lit(TODO)");
+    return fmt::format_to(ctx.out(), "integer_lit({})", ilit.text());
   }
 };
 
-template <> struct fmt::formatter<std::shared_ptr<ely::stx::integer_lit>> {
+template <> struct fmt::formatter<ely::stx::decimal_lit> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
-  constexpr auto format(const std::shared_ptr<ely::stx::integer_lit>& ilit,
-                        Ctx& ctx) const {
-    return fmt::format_to(ctx.out(), "{}", *ilit);
+  constexpr auto format(const ely::stx::decimal_lit& dlit, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "decimal_lit({})", dlit.text());
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::string_lit> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::string_lit& str_lit, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "string_lit({})", str_lit.text());
   }
 };
 
@@ -139,15 +163,6 @@ template <> struct fmt::formatter<ely::stx::list> {
   template <typename Ctx>
   constexpr auto format(const ely::stx::list& l, Ctx& ctx) const {
     return fmt::format_to(ctx.out(), "list({})", fmt::join(l.elements(), ", "));
-  }
-};
-
-template <> struct fmt::formatter<std::shared_ptr<ely::stx::list>> {
-  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
-  template <typename Ctx>
-  constexpr auto format(const std::shared_ptr<ely::stx::list>& l,
-                        Ctx& ctx) const {
-    return fmt::format_to(ctx.out(), "{}", *l);
   }
 };
 
