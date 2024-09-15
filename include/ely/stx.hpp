@@ -16,6 +16,7 @@ class identifier;
 class integer_lit;
 class decimal_lit;
 class string_lit;
+class unterminated_string_lit;
 
 class eof {
 public:
@@ -36,7 +37,8 @@ using sexp_variant =
     std::variant<std::shared_ptr<stx::list>, std::shared_ptr<stx::identifier>,
                  std::shared_ptr<stx::integer_lit>,
                  std::shared_ptr<stx::decimal_lit>,
-                 std::shared_ptr<stx::string_lit>, eof, unknown>;
+                 std::shared_ptr<stx::string_lit>,
+                 std::shared_ptr<stx::unterminated_string_lit>, eof, unknown>;
 } // namespace detail
 
 class sexp : public detail::sexp_variant {
@@ -102,6 +104,16 @@ public:
   constexpr std::string_view text() const { return text_; }
 };
 
+class unterminated_string_lit {
+  std::string text_;
+
+public:
+  explicit constexpr unterminated_string_lit(std::string&& text)
+      : text_(std::move(text)) {}
+
+  constexpr std::string_view text() const { return text_; }
+};
+
 template <typename Stx, typename... Args>
 constexpr sexp make_sexp(Args&&... args) {
   return sexp(std::in_place_type<std::shared_ptr<Stx>>,
@@ -158,7 +170,18 @@ template <> struct fmt::formatter<ely::stx::string_lit> {
   }
 };
 
-template <> struct fmt::formatter<ely::stx::list> {
+template <> struct fmt::formatter<ely::stx::unterminated_string_lit> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::unterminated_string_lit& str_lit,
+                        Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "unterminated_string_lit({})",
+                          str_lit.text());
+  }
+};
+
+template <>
+struct fmt::formatter<ely::stx::list> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
   constexpr auto format(const ely::stx::list& l, Ctx& ctx) const {

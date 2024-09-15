@@ -52,7 +52,9 @@ private:
     } else if constexpr (detail::is_one_of_v<
                              Token, ely::tokens::identifier,
                              ely::tokens::integer_lit, ely::tokens::decimal_lit,
-                             ely::tokens::string_lit, ely::tokens::eof>) {
+                             ely::tokens::string_lit,
+                             ely::tokens::unterminated_string_lit,
+                             ely::tokens::eof>) {
       return parse(tokens, std::move(t));
     } else {
       return stx::unknown{};
@@ -93,6 +95,13 @@ private:
   template <typename TokenStream>
   constexpr stx::sexp parse(TokenStream& tokens, tokens::string_lit&& str_lit) {
     return std::make_shared<stx::string_lit>(std::move(str_lit.text));
+  }
+
+  template <typename TokenStream>
+  constexpr stx::sexp parse(TokenStream& tokens,
+                            tokens::unterminated_string_lit&& ustr_lit) {
+    return std::make_shared<stx::unterminated_string_lit>(
+        std::move(ustr_lit.text));
   }
 
   template <typename TokenStream>
