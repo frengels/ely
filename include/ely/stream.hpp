@@ -57,11 +57,17 @@ public:
     std::array<char_type, N> result;
 
     if (buf_cur_ + N > buf_end_) {
-      std::copy(buf_cur_, buf_end_, result.begin());
-      auto copied = std::distance(buf_cur_, buf_end_);
-      fill_buffer(buf_start_, buf_end_);
-      std::copy(buf_cur_, buf_cur_ + (N - copied), result.begin());
-      buf_cur_ += (N - copied);
+      if constexpr (N == 1) {
+        fill_buffer(buf_start_, buf_end_);
+        std::copy(buf_cur_, buf_cur_ + N, result.begin());
+        buf_cur_ += N;
+      } else {
+        std::copy(buf_cur_, buf_end_, result.begin());
+        auto copied = std::distance(buf_cur_, buf_end_);
+        fill_buffer(buf_start_, buf_end_);
+        std::copy(buf_cur_, buf_cur_ + (N - copied), result.begin());
+        buf_cur_ += (N - copied);
+      }
     } else {
       std::copy(buf_cur_, buf_cur_ + N, result.data());
       buf_cur_ += N;
