@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <span>
 #include <string>
 #include <variant>
@@ -11,60 +10,18 @@
 
 namespace ely {
 namespace stx {
-class list;
-class identifier;
-class integer_lit;
-class decimal_lit;
-class string_lit;
-class unterminated_string_lit;
-
-class eof {
-public:
-  eof() = default;
-};
-
-class unknown {
-public:
-  unknown() = default;
-};
-
-namespace detail {
-template <typename T> struct is_shared_ptr : std::false_type {};
-template <typename T>
-struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
-
-using sexp_variant =
-    std::variant<std::shared_ptr<stx::list>, std::shared_ptr<stx::identifier>,
-                 std::shared_ptr<stx::integer_lit>,
-                 std::shared_ptr<stx::decimal_lit>,
-                 std::shared_ptr<stx::string_lit>,
-                 std::shared_ptr<stx::unterminated_string_lit>, eof, unknown>;
-} // namespace detail
-
-class sexp : public detail::sexp_variant {
-public:
-  using detail::sexp_variant::sexp_variant;
-
-  constexpr bool is_eof() const { return std::holds_alternative<eof>(*this); }
-  constexpr bool is_list() const {
-    return std::holds_alternative<std::shared_ptr<list>>(*this);
-  }
-};
-
-enum struct list_kind {
-  parentheses,
-  brackets,
-  braces,
-};
+class sexp;
 class list {
-  list_kind kind_;
   std::vector<sexp> elements_;
 
 public:
   explicit constexpr list(std::vector<sexp>&& elements)
-      : kind_(list_kind::parentheses), elements_(std::move(elements)) {}
+      : elements_(std::move(elements)) {}
 
-  constexpr std::span<const sexp> elements() const { return elements_; }
+  template <typename It>
+  constexpr list(It begin, It end) : elements_(begin, end) {}
+
+  constexpr std::span<const sexp> elements() const;
 };
 
 class identifier {
@@ -114,11 +71,41 @@ public:
   constexpr std::string_view text() const { return text_; }
 };
 
+class eof {
+public:
+  eof() = default;
+};
+
+class unknown {
+public:
+  unknown() = default;
+};
+
+namespace detail {
+using sexp_variant =
+    std::variant<stx::list, stx::identifier, stx::integer_lit, stx::decimal_lit,
+                 stx::string_lit, stx::unterminated_string_lit, eof, unknown>;
+} // namespace detail
+
+class sexp : public detail::sexp_variant {
+public:
+  using detail::sexp_variant::sexp_variant;
+
+  constexpr bool is_eof() const { return std::holds_alternative<eof>(*this); }
+  constexpr bool is_list() const { return std::holds_alternative<list>(*this); }
+
+  constexpr bool is_identifier() const {
+    return std::holds_alternative<identifier>(*this);
+  }
+};
+
 template <typename Stx, typename... Args>
 constexpr sexp make_sexp(Args&&... args) {
-  return sexp(std::in_place_type<std::shared_ptr<Stx>>,
-              std::make_shared<Stx>(static_cast<Args&&>(args)...));
+  return sexp(std::in_place_type<Stx>, static_cast<Args&&>(args)...);
 }
+
+constexpr std::span<const sexp> list::elements() const { return elements_; }
+
 } // namespace stx
 } // namespace ely
 
@@ -180,8 +167,7 @@ template <> struct fmt::formatter<ely::stx::unterminated_string_lit> {
   }
 };
 
-template <>
-struct fmt::formatter<ely::stx::list> {
+template <> struct fmt::formatter<ely::stx::list> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
   constexpr auto format(const ely::stx::list& l, Ctx& ctx) const {
@@ -195,11 +181,7 @@ template <> struct fmt::formatter<ely::stx::sexp> {
   constexpr auto format(const ely::stx::sexp& s, Ctx& ctx) const {
     return std::visit(
         [&]<typename T>(const T& t) {
-          if constexpr (ely::stx::detail::is_shared_ptr<T>::value) {
-            return fmt::format_to(ctx.out(), "{}", *t);
-          } else {
-            return fmt::format_to(ctx.out(), "{}", t);
-          }
+          return fmt::format_to(ctx.out(), "{}", t);
         },
         s);
   }

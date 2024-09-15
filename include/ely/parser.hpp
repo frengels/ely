@@ -62,7 +62,7 @@ private:
   }
 
   template <typename TokenStream, typename LT>
-  constexpr std::shared_ptr<stx::list> parse_list(TokenStream& tokens, LT) {
+  constexpr stx::list parse_list(TokenStream& tokens, LT) {
     std::vector<stx::sexp> elements;
 
     auto tok = next_skip_atmosphere(tokens);
@@ -74,34 +74,33 @@ private:
       assert(!tok.is_atmosphere());
     }
 
-    return std::make_shared<stx::list>(std::move(elements));
+    return stx::list(std::move(elements));
   }
 
   template <typename TokenStream>
   constexpr stx::sexp parse(TokenStream& tokens, tokens::identifier&& id) {
-    return std::make_shared<stx::identifier>(std::move(id.text));
+    return stx::identifier(std::move(id.text));
   }
 
   template <typename TokenStream>
   constexpr stx::sexp parse(TokenStream& tokens, tokens::integer_lit&& ilit) {
-    return std::make_shared<stx::integer_lit>(std::move(ilit.text));
+    return stx::integer_lit(std::move(ilit.text));
   }
 
   template <typename TokenStream>
   constexpr stx::sexp parse(TokenStream& tokens, tokens::decimal_lit&& dlit) {
-    return std::make_shared<stx::decimal_lit>(std::move(dlit.text));
+    return stx::decimal_lit(std::move(dlit.text));
   }
 
   template <typename TokenStream>
   constexpr stx::sexp parse(TokenStream& tokens, tokens::string_lit&& str_lit) {
-    return std::make_shared<stx::string_lit>(std::move(str_lit.text));
+    return stx::string_lit(std::move(str_lit.text));
   }
 
   template <typename TokenStream>
   constexpr stx::sexp parse(TokenStream& tokens,
                             tokens::unterminated_string_lit&& ustr_lit) {
-    return std::make_shared<stx::unterminated_string_lit>(
-        std::move(ustr_lit.text));
+    return stx::unterminated_string_lit(std::move(ustr_lit.text));
   }
 
   template <typename TokenStream>
