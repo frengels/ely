@@ -15,6 +15,7 @@ class list {
   std::vector<sexp> elements_;
 
 public:
+  list() = default;
   explicit constexpr list(std::vector<sexp>&& elements)
       : elements_(std::move(elements)) {}
 
@@ -22,6 +23,16 @@ public:
   constexpr list(It begin, It end) : elements_(begin, end) {}
 
   constexpr std::span<const sexp> elements() const;
+  constexpr const sexp& head() const;
+  constexpr std::span<const sexp> tail() const;
+
+  template <typename... Args> constexpr sexp& emplace_front(Args&&... args) {
+    return *elements_.emplace(elements_.begin(), static_cast<Args&&>(args)...);
+  }
+
+  template <typename... Args> constexpr sexp& emplace_back(Args&&... args) {
+    return elements_.emplace_back(static_cast<Args&&>(args)...);
+  }
 };
 
 class identifier {
@@ -83,20 +94,43 @@ public:
 
 namespace detail {
 using sexp_variant =
-    std::variant<stx::list, stx::identifier, stx::integer_lit, stx::decimal_lit,
-                 stx::string_lit, stx::unterminated_string_lit, eof, unknown>;
+    std::variant<unknown, eof, stx::list, stx::identifier, stx::integer_lit,
+                 stx::decimal_lit, stx::string_lit,
+                 stx::unterminated_string_lit>;
 } // namespace detail
 
 class sexp : public detail::sexp_variant {
 public:
   using detail::sexp_variant::sexp_variant;
 
-  constexpr bool is_eof() const { return std::holds_alternative<eof>(*this); }
-  constexpr bool is_list() const { return std::holds_alternative<list>(*this); }
+  constexpr sexp() : detail::sexp_variant(std::in_place_type<unknown>) {}
 
-  constexpr bool is_identifier() const {
-    return std::holds_alternative<identifier>(*this);
+  template <typename T> constexpr bool isa() const {
+    return std::holds_alternative<T>(*this);
   }
+
+  constexpr bool is_eof() const { return isa<eof>(); }
+  constexpr bool is_list() const { return isa<list>(); }
+  constexpr bool is_identifier() const { return isa<identifier>(); }
+
+  template <typename T> constexpr const T* as() const {
+    return std::visit(
+        []<typename U>(const U& u) -> const T* {
+          if constexpr (std::is_same_v<U, T>) {
+            return std::addressof(u);
+          } else {
+            return nullptr;
+          }
+        },
+        *this);
+  }
+
+  template <typename T> constexpr T* as() {
+    return const_cast<T*>(const_cast<const sexp&>(*this).as<T>());
+  }
+
+  constexpr const stx::list* as_list() const { return as<stx::list>(); }
+  constexpr stx::list* as_list() { return as<stx::list>(); }
 };
 
 template <typename Stx, typename... Args>
@@ -105,7 +139,10 @@ constexpr sexp make_sexp(Args&&... args) {
 }
 
 constexpr std::span<const sexp> list::elements() const { return elements_; }
-
+constexpr const sexp& list::head() const { return elements().front(); }
+constexpr std::span<const sexp> list::tail() const {
+  return elements().subspan(1);
+}
 } // namespace stx
 } // namespace ely
 

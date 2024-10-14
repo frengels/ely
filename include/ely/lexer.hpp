@@ -85,6 +85,14 @@ public:
       return make_token<tokens::lbrace>();
     case '}':
       return make_token<tokens::rbrace>();
+    case '\'':
+      return make_token<tokens::quote>();
+    case '`':
+      return make_token<tokens::quasiquote>();
+    case ',':
+      return read_unquote(c);
+    case '#':
+      return read_syntax(c);
     case '"':
       return read_string(c);
     default:
@@ -144,6 +152,40 @@ private:
       return tokens::newline_crlf{};
     }
     return tokens::newline_cr{};
+  }
+
+  constexpr token read_unquote(char_type c) {
+    assert(c == ',');
+    c = peek_char();
+    if (c == '@') {
+      consume_char();
+      return tokens::unquote_splicing{};
+    }
+
+    return tokens::unquote{};
+  }
+
+  constexpr token read_syntax(char_type c) {
+    assert(c == '#');
+    c = peek_char();
+    switch (c) {
+    case '\'':
+      consume_char();
+      return tokens::syntax{};
+    case '`':
+      consume_char();
+      return tokens::quasisyntax{};
+    case ',':
+      consume_char();
+      c = peek_char();
+      if (c == '@') {
+        consume_char();
+        return tokens::unsyntax_splicing{};
+      }
+      return tokens::unsyntax{};
+    default:
+      return tokens::unknown{};
+    }
   }
 
   constexpr tokens::identifier read_identifier(char_type c) {

@@ -4,6 +4,10 @@
 #include <variant>
 
 namespace ely {
+namespace detail {
+template <typename T, typename... Us>
+inline constexpr bool is_one_of_v = (std::is_same_v<T, Us> || ...);
+}
 namespace tokens {
 struct whitespace {
   static constexpr const char* short_name = "ws";
@@ -87,6 +91,56 @@ struct rbrace {
   static constexpr std::string to_string() { return short_name; }
 };
 
+struct quote {
+  static constexpr const char* short_name = "'";
+
+  static constexpr std::size_t size() { return 1; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct quasiquote {
+  static constexpr const char* short_name = "`";
+
+  static constexpr std::size_t size() { return 1; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct unquote {
+  static constexpr const char* short_name = ",";
+  static constexpr std::size_t size() { return 1; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct unquote_splicing {
+  static constexpr const char* short_name = ",@";
+  static constexpr std::size_t size() { return 2; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct syntax {
+  static constexpr const char* short_name = "#'";
+  static constexpr std::size_t size() { return 2; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct quasisyntax {
+  static constexpr const char* short_name = "#`";
+  static constexpr std::size_t size() { return 2; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct unsyntax {
+  static constexpr const char* short_name = "#,";
+  static constexpr std::size_t size() { return 2; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
+struct unsyntax_splicing {
+  static constexpr const char* short_name = "#,@";
+  static constexpr std::size_t size() { return 3; }
+  static constexpr std::string to_string() { return short_name; }
+};
+
 struct identifier {
   static constexpr const char* short_name = "id";
 
@@ -155,6 +209,24 @@ struct eof {
   static constexpr std::size_t size() { return 0; }
   static constexpr std::string to_string() { return {}; }
 };
+
+template <typename T> inline constexpr bool is_eof_v = std::is_same_v<T, eof>;
+
+template <typename T>
+inline constexpr bool is_list_start_v =
+    detail::is_one_of_v<T, lparen, lbrace, lbracket>;
+
+template <typename T>
+inline constexpr bool is_list_end_v =
+    detail::is_one_of_v<T, rparen, rbrace, rbracket>;
+
+template <typename T>
+inline constexpr bool is_newline_v =
+    detail::is_one_of_v<T, newline_lf, newline_cr, newline_crlf>;
+
+template <typename T>
+inline constexpr bool is_atmosphere_v =
+    is_newline_v<T> || detail::is_one_of_v<T, whitespace, tab>;
 } // namespace tokens
 
 namespace detail {
@@ -162,7 +234,10 @@ using token_variant =
     std::variant<tokens::whitespace, tokens::tab, tokens::newline_lf,
                  tokens::newline_cr, tokens::newline_crlf, tokens::lparen,
                  tokens::rparen, tokens::lbracket, tokens::rbracket,
-                 tokens::lbrace, tokens::rbrace, tokens::identifier,
+                 tokens::lbrace, tokens::rbrace, tokens::quote,
+                 tokens::quasiquote, tokens::unquote, tokens::unquote_splicing,
+                 tokens::syntax, tokens::quasisyntax, tokens::unsyntax,
+                 tokens::unsyntax_splicing, tokens::identifier,
                  tokens::integer_lit, tokens::decimal_lit, tokens::string_lit,
                  tokens::unterminated_string_lit, tokens::unknown, tokens::eof>;
 }
@@ -172,18 +247,18 @@ public:
   using detail::token_variant::token_variant;
 
   constexpr bool is_eof() const {
-    return std::holds_alternative<tokens::eof>(*this);
+    return std::visit([]<typename T>(const T&) { return tokens::is_eof_v<T>; },
+                      *this);
   }
 
   constexpr bool is_newline() const {
-    return std::holds_alternative<tokens::newline_lf>(*this) ||
-           std::holds_alternative<tokens::newline_cr>(*this) ||
-           std::holds_alternative<tokens::newline_crlf>(*this);
+    return std::visit(
+        []<typename T>(const T&) { return tokens::is_newline_v<T>; }, *this);
   }
 
   constexpr bool is_atmosphere() const {
-    return is_newline() || std::holds_alternative<tokens::whitespace>(*this) ||
-           std::holds_alternative<tokens::tab>(*this);
+    return std::visit(
+        []<typename T>(const T&) { return tokens::is_atmosphere_v<T>; }, *this);
   }
 
   template <typename Tok> constexpr bool ends_list() const {
