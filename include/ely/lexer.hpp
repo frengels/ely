@@ -62,14 +62,20 @@ private:
 public:
   explicit constexpr lexer(const stream_type& stream, ely::token* buf,
                            std::size_t buf_len)
-      : stream_(stream), buf_start_(buf), buf_cur_(buf),
+      : stream_(stream), buf_start_(buf), buf_cur_(buf + buf_len),
         buf_end_(buf + buf_len) {}
   explicit constexpr lexer(stream_type&& stream, ely::token* buf,
                            std::size_t buf_len)
-      : stream_(std::move(stream)), buf_start_(buf), buf_cur_(buf),
+      : stream_(std::move(stream)), buf_start_(buf), buf_cur_(buf + buf_len),
         buf_end_(buf + buf_len) {}
 
   constexpr stream_type base() const { return stream_; }
+
+  value_type peek() {
+    if (buf_cur_ == buf_end_)
+      fill_buffer(buf_start_, buf_end_);
+    return *buf_cur_;
+  }
 
   value_type next() { return next_n<1>()[0]; }
 
