@@ -48,18 +48,56 @@ public:
 
   using value_type = ely::token;
 
+  static constexpr std::size_t buffer_len = 64;
+
 private:
   stream_type stream_;
+
+  ely::token* buf_start_;
+  ely::token* buf_end_;
+  ely::token* buf_cur_;
 
   using char_type = decltype(stream_.next());
 
 public:
-  explicit constexpr lexer(const stream_type& stream) : stream_(stream) {}
-  explicit constexpr lexer(stream_type&& stream) : stream_(std::move(stream)) {}
+  explicit constexpr lexer(const stream_type& stream, ely::token* buf,
+                           std::size_t buf_len)
+      : stream_(stream), buf_start_(buf), buf_cur_(buf),
+        buf_end_(buf + buf_len) {}
+  explicit constexpr lexer(stream_type&& stream, ely::token* buf,
+                           std::size_t buf_len)
+      : stream_(std::move(stream)), buf_start_(buf), buf_cur_(buf),
+        buf_end_(buf + buf_len) {}
 
   constexpr stream_type base() const { return stream_; }
 
-  value_type next() {
+  value_type next() { return next_n<1>()[0]; }
+
+  template <std::size_t N> std::array<value_type, N> next_n() {
+    std::array<value_type, N> result;
+
+    if (buf_cur_ + N > buf_end_) {
+      if constexpr (N == 1) {
+        fill_buffer(buf_start_, buf_end_);
+        std::copy(buf_cur_, buf_cur_ + N, result.begin());
+        buf_cur_ += N;
+      } else {
+        std::copy(buf_cur_, buf_end_, result.begin());
+        auto copied = std::distance(buf_cur_, buf_end_);
+        fill_buffer(buf_start_, buf_end_);
+        std::copy(buf_cur_, buf_cur_ + (N - copied), result.begin());
+        buf_cur_ += (N - copied);
+      }
+    } else {
+      std::copy(buf_cur_, buf_cur_ + N, result.data());
+      buf_cur_ += N;
+    }
+
+    return result;
+  }
+
+private:
+  value_type next_impl() {
     auto c = stream_.next();
 
     switch (c) {
@@ -89,6 +127,8 @@ public:
       return make_token<tokens::quote>();
     case '`':
       return make_token<tokens::quasiquote>();
+    case '/':
+      return make_token<tokens::slash>();
     case ',':
       return read_unquote(c);
     case '#':
@@ -105,7 +145,16 @@ public:
     }
   }
 
-private:
+  void fill_buffer(ely::token* start, ely::token* end) {
+    for (auto it = start; it != end; ++it) {
+      *it = next_impl();
+      if (it->is_eof())
+        break;
+    }
+
+    buf_cur_ = start;
+  }
+
   template <typename T, typename... Args>
   constexpr value_type make_token(Args&&... args) {
     return value_type(std::in_place_type<T>, static_cast<Args&&>(args)...);

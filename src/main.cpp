@@ -110,10 +110,13 @@ int execute_lex(std::span<char*> args) {
 
   constexpr auto buffer_size = 64 * 1024;
   char buffer[buffer_size];
+  constexpr auto token_buffer_size = 64;
+  ely::token token_buffer[token_buffer_size];
   for (std::FILE* input_file : in_out.input_files) {
     ely::file_stream stream{input_file, buffer, buffer_size};
 
-    auto lex = ely::lexer<ely::file_stream>{std::move(stream)};
+    auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
+                                            token_buffer_size};
     std::fputs("[\n", out);
 
     for (auto tok = lex.next(); !ely::token_is_eof(tok); tok = lex.next()) {
@@ -136,10 +139,13 @@ int execute_parse(std::span<char*> args) {
 
   constexpr auto buffer_size = 64 * 1024;
   char buffer[buffer_size];
+  constexpr auto token_buffer_size = 64;
+  ely::token token_buffer[token_buffer_size];
   for (std::FILE* in : in_out.input_files) {
     ely::file_stream stream(in, buffer, buffer_size);
 
-    auto lex = ely::lexer<ely::file_stream>{std::move(stream)};
+    auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
+                                            token_buffer_size};
     auto parser = ely::parser();
 
     for (ely::stx::sexp node = parser.next(lex); !node.is_eof();

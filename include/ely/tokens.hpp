@@ -93,6 +93,7 @@ struct rbrace {
 
 struct quote {
   static constexpr const char* short_name = "'";
+  static constexpr const char* symbol = "quote";
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
@@ -100,6 +101,7 @@ struct quote {
 
 struct quasiquote {
   static constexpr const char* short_name = "`";
+  static constexpr const char* symbol = "quasiquote";
 
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
@@ -107,36 +109,42 @@ struct quasiquote {
 
 struct unquote {
   static constexpr const char* short_name = ",";
+  static constexpr const char* symbol = "unquote";
   static constexpr std::size_t size() { return 1; }
   static constexpr std::string to_string() { return short_name; }
 };
 
 struct unquote_splicing {
   static constexpr const char* short_name = ",@";
+  static constexpr const char* symbol = "unquote-splicing";
   static constexpr std::size_t size() { return 2; }
   static constexpr std::string to_string() { return short_name; }
 };
 
 struct syntax {
   static constexpr const char* short_name = "#'";
+  static constexpr const char* symbol = "syntax";
   static constexpr std::size_t size() { return 2; }
   static constexpr std::string to_string() { return short_name; }
 };
 
 struct quasisyntax {
   static constexpr const char* short_name = "#`";
+  static constexpr const char* symbol = "quasisyntax";
   static constexpr std::size_t size() { return 2; }
   static constexpr std::string to_string() { return short_name; }
 };
 
 struct unsyntax {
   static constexpr const char* short_name = "#,";
+  static constexpr const char* symbol = "unsyntax";
   static constexpr std::size_t size() { return 2; }
   static constexpr std::string to_string() { return short_name; }
 };
 
 struct unsyntax_splicing {
   static constexpr const char* short_name = "#,@";
+  static constexpr const char* symbol = "unsyntax-splicing";
   static constexpr std::size_t size() { return 3; }
   static constexpr std::string to_string() { return short_name; }
 };
@@ -148,6 +156,13 @@ struct identifier {
 
   constexpr std::size_t size() const { return text.size(); }
   constexpr std::string to_string() const { return text; }
+};
+
+struct slash {
+  static constexpr const char* short_name = "/";
+
+  constexpr std::size_t size() const { return 1; }
+  constexpr std::string to_string() const { return short_name; }
 };
 
 struct integer_lit {
@@ -237,7 +252,7 @@ using token_variant =
                  tokens::lbrace, tokens::rbrace, tokens::quote,
                  tokens::quasiquote, tokens::unquote, tokens::unquote_splicing,
                  tokens::syntax, tokens::quasisyntax, tokens::unsyntax,
-                 tokens::unsyntax_splicing, tokens::identifier,
+                 tokens::unsyntax_splicing, tokens::identifier, tokens::slash,
                  tokens::integer_lit, tokens::decimal_lit, tokens::string_lit,
                  tokens::unterminated_string_lit, tokens::unknown, tokens::eof>;
 }

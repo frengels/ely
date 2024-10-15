@@ -40,30 +40,38 @@ private:
 
   template <typename TokenStream, typename Token>
   constexpr stx::sexp next_impl(TokenStream& tokens, Token&& t) {
-    if constexpr (tokens::is_list_start_v<std::remove_cvref_t<Token>>) {
-      return parse_list(tokens, static_cast<Token&&>(t));
-    } else if constexpr (!tokens::is_atmosphere_v<std::remove_cvref_t<Token>> &&
-                         !tokens::is_list_end_v<std::remove_cvref_t<Token>>) {
+    if constexpr (!tokens::is_atmosphere_v<std::remove_cvref_t<Token>> &&
+                  !tokens::is_list_end_v<std::remove_cvref_t<Token>>) {
       return parse(tokens, static_cast<Token&&>(t));
     } else {
       return stx::unknown{};
     }
   }
 
-  template <typename TokenStream, typename LT>
-  stx::list parse_list(TokenStream& tokens, LT) {
+  template <typename TokenStream>
+  stx::sexp parse(TokenStream& tokens, ely::tokens::lparen) {
     std::vector<stx::sexp> elements;
 
     auto tok = next_skip_atmosphere(tokens);
     assert(!tok.is_atmosphere());
 
-    while (!(tok.is_eof() || tok.template ends_list<LT>())) {
+    while (!(tok.is_eof() || tok.template ends_list<ely::tokens::lparen>())) {
       elements.push_back(next_impl_token(tokens, std::move(tok)));
       tok = next_skip_atmosphere(tokens);
       assert(!tok.is_atmosphere());
     }
 
-    return stx::list(std::move(elements));
+    return stx::sexp(std::in_place_type<stx::list>, std::move(elements));
+  }
+
+  template <typename TokenStream>
+  stx::sexp parse(TokenStream& tokens, ely::tokens::lbrace) {
+    return stx::unknown{};
+  }
+
+  template <typename TokenStream>
+  stx::sexp parse(TokenStream& tokens, ely::tokens::lbracket) {
+    return stx::unknown{};
   }
 
   template <typename TokenStream>
@@ -72,53 +80,65 @@ private:
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::quote) {
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::slash) {
+    return stx::unknown{};
+  }
+
+  template <typename TokenStream, typename Prefix>
+  constexpr stx::sexp parse_prefix(TokenStream& tokens, Prefix) {
     auto exp = next(tokens);
 
     if (auto* l = exp.template as<stx::list>()) {
-      l->emplace_front(ely::stx::identifier{"quote"});
+      l->emplace_front(ely::stx::identifier(Prefix::symbol));
       return *l;
     } else {
       std::vector<stx::sexp> elements{};
-      elements.emplace_back(std::in_place_type<ely::stx::identifier>, "quote");
+      elements.emplace_back(std::in_place_type<ely::stx::identifier>,
+                            Prefix::symbol);
       elements.emplace_back(std::move(exp));
       return stx::list(std::move(elements));
     }
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::unquote) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::quote q) {
+    return parse_prefix(tokens, q);
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::quasiquote) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::unquote uq) {
+    return parse_prefix(tokens, uq);
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::unquote_splicing) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::quasiquote qq) {
+    return parse_prefix(tokens, qq);
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::syntax) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::unquote_splicing uqs) {
+    return parse_prefix(tokens, uqs);
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::quasisyntax) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::syntax s) {
+    return parse_prefix(tokens, s);
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::unsyntax) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::quasisyntax qs) {
+    return parse_prefix(tokens, qs);
   }
 
   template <typename TokenStream>
-  constexpr stx::sexp parse(TokenStream& tokens, tokens::unsyntax_splicing) {
-    return {};
+  constexpr stx::sexp parse(TokenStream& tokens, tokens::unsyntax us) {
+    return parse_prefix(tokens, us);
+  }
+
+  template <typename TokenStream>
+  constexpr stx::sexp parse(TokenStream& tokens,
+                            tokens::unsyntax_splicing uss) {
+    return parse_prefix(tokens, uss);
   }
 
   template <typename TokenStream>

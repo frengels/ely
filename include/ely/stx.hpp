@@ -45,6 +45,19 @@ public:
   constexpr std::string_view text() const { return text_; }
 };
 
+class path {
+  std::vector<sexp> elements_;
+
+public:
+  explicit path(std::vector<sexp> elements) : elements_(std::move(elements)) {}
+
+  constexpr std::span<const sexp> elements() const;
+
+  template <typename... Args> constexpr sexp& emplace_back(Args&&... args) {
+    return elements_.emplace_back(static_cast<Args&&>(args)...);
+  }
+};
+
 class integer_lit {
   std::string text_;
 
@@ -143,6 +156,8 @@ constexpr const sexp& list::head() const { return elements().front(); }
 constexpr std::span<const sexp> list::tail() const {
   return elements().subspan(1);
 }
+
+constexpr std::span<const sexp> path::elements() const { return elements_; }
 } // namespace stx
 } // namespace ely
 
@@ -167,6 +182,14 @@ template <> struct fmt::formatter<ely::stx::identifier> {
   template <typename Ctx>
   constexpr auto format(const ely::stx::identifier& id, Ctx& ctx) const {
     return fmt::format_to(ctx.out(), "identifier({})", id.text());
+  }
+};
+
+template <> struct fmt::formatter<ely::stx::path> {
+  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Ctx>
+  constexpr auto format(const ely::stx::path& p, Ctx& ctx) const {
+    return fmt::format_to(ctx.out(), "path({})", fmt::join(p.elements(), ", "));
   }
 };
 
