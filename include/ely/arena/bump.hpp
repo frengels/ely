@@ -75,22 +75,13 @@ public:
 };
 } // namespace impl
 
-template <typename Alloc = std::allocator<std::byte>> class bump {
+class bump {
 public:
   template <typename T> using ptr_type = bump_ptr<T>;
-
-  using allocator_type =
-      typename std::allocator_traits<Alloc>::template rebind_alloc<std::byte>;
-  using alloc_traits = std::allocator_traits<allocator_type>;
-
-  static_assert(impl::allocates_ordinary_pointers<allocator_type, std::byte>,
-                "ely::arena::bump<Alloc> cannot handle allocators which "
-                "don't return ordinary pointers.");
 
 private:
   static constexpr std::size_t block_capacity = 32 * 1024 * 1024;
 
-  [[no_unique_address]] allocator_type alloc_;
   impl::bump_block* current_;
 
 public:
@@ -99,9 +90,10 @@ public:
   ~bump() {
     while (current_) {
       impl::bump_block* work = std::exchange(current_, current_->prev());
-      std::size_t capacity = work->capacity_bytes();
+      std::size_t block_size =
+          work->capacity_bytes() + sizeof(impl::bump_block);
       std::destroy_at(work);
-      alloc_traits::deallocate(alloc_, (std::byte*)work, capacity);
+      ::operator delete((void*)work, block_size);
     }
   }
 
@@ -109,12 +101,9 @@ public:
   std::enable_if_t<!std::is_array_v<T>, bump_ptr<T>> make(Args&&... args) {
     static_assert(std::is_trivially_destructible_v<T>,
                   "ely::arena::bump doesn't destroy objects, this is unsafe.");
-    using alloc_t = typename alloc_traits::template rebind_alloc<T>;
-    using alloc_t_traits = std::allocator_traits<alloc_t>;
 
     T* p = static_cast<T*>(allocate(sizeof(T), alignof(T)));
-    alloc_t alloc{alloc_};
-    alloc_t_traits::construct(alloc, p, static_cast<Args&&>(args)...);
+    std::construct_at(p, static_cast<Args&&>(args)...);
     return bump_ptr<T>{p};
   }
 
@@ -128,12 +117,8 @@ public:
         static_cast<type_t*>(allocate(sizeof(type_t) * n, alignof(type_t)));
 
     if constexpr (!std::is_trivially_constructible_v<type_t>) {
-      using alloc_t = typename alloc_traits::template rebind_alloc<type_t>;
-      using alloc_traits = std::allocator_traits<alloc_t>;
-
-      alloc_t alloc{alloc_};
       for (std::size_t i = 0; i != n; ++i)
-        alloc_traits::construct(alloc, p + i);
+        std::construct_at(p + i);
     }
 
     return bump_ptr<T>(p);
@@ -145,9 +130,8 @@ private:
       // need to allocate new block
       auto* old_current = current_;
       std::size_t this_block_capacity = std::max(sz, block_capacity);
-      std::byte* allocation = alloc_traits::allocate(
-          alloc_, sizeof(impl::bump_block) + this_block_capacity);
-
+      void* allocation =
+          ::operator new(sizeof(impl::bump_block) + this_block_capacity);
       current_ = std::construct_at((impl::bump_block*)allocation, current_,
                                    this_block_capacity);
     }

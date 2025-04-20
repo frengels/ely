@@ -75,13 +75,13 @@ void shared_arena() {
 }
 
 void bump_arena() {
-  test_arena<ely::arena::bump<std::allocator<std::byte>>>();
+  test_arena<ely::arena::bump>();
   fmt::println("ely/arena/bump - SUCCESS");
 
-  test_array_arena<ely::arena::bump<std::allocator<std::byte>>, int>();
+  test_array_arena<ely::arena::bump, int>();
   fmt::println("ely/arena/array/bump/int - SUCCESS");
 
-  test_array_arena<ely::arena::bump<std::allocator<std::byte>>, float>();
+  test_array_arena<ely::arena::bump, float>();
   fmt::println("ely/arena/array/bump/float - SUCCESS");
 }
 
