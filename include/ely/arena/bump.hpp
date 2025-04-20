@@ -2,21 +2,23 @@
 
 #include <cassert>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace ely {
 namespace arena {
 template <typename T> class bump_ptr {
+  using element_type = std::remove_extent_t<T>;
 
 private:
-  T* p_;
+  element_type* p_;
 
 public:
-  explicit constexpr bump_ptr(T* p) : p_(p) {}
+  explicit constexpr bump_ptr(element_type* p) : p_(p) {}
 
-  constexpr T* get() const noexcept { return p_; }
-  constexpr T* operator->() const noexcept { return get(); }
-  constexpr T& operator*() const noexcept { return *get(); }
+  constexpr element_type* get() const noexcept { return p_; }
+  constexpr element_type* operator->() const noexcept { return get(); }
+  constexpr element_type& operator*() const noexcept { return *get(); }
 
   constexpr operator bool() const noexcept { return p_; }
 };
@@ -104,7 +106,7 @@ public:
   }
 
   template <typename T, typename... Args>
-  constexpr bump_ptr<T> make(Args&&... args) {
+  std::enable_if_t<!std::is_array_v<T>, bump_ptr<T>> make(Args&&... args) {
     static_assert(std::is_trivially_destructible_v<T>,
                   "ely::arena::bump doesn't destroy objects, this is unsafe.");
     using alloc_t = typename alloc_traits::template rebind_alloc<T>;
@@ -114,6 +116,27 @@ public:
     alloc_t alloc{alloc_};
     alloc_t_traits::construct(alloc, p, static_cast<Args&&>(args)...);
     return bump_ptr<T>{p};
+  }
+
+  template <typename T>
+  std::enable_if_t<std::is_unbounded_array_v<T>, bump_ptr<T>>
+  make(std::size_t n) {
+    using type_t = std::remove_extent_t<T>;
+    static_assert(std::is_trivially_destructible_v<type_t>,
+                  "ely::arena::bump doesn't destroy objects, this is unsafe.");
+    type_t* p =
+        static_cast<type_t*>(allocate(sizeof(type_t) * n, alignof(type_t)));
+
+    if constexpr (!std::is_trivially_constructible_v<type_t>) {
+      using alloc_t = typename alloc_traits::template rebind_alloc<type_t>;
+      using alloc_traits = std::allocator_traits<alloc_t>;
+
+      alloc_t alloc{alloc_};
+      for (std::size_t i = 0; i != n; ++i)
+        alloc_traits::construct(alloc, p + i);
+    }
+
+    return bump_ptr<T>(p);
   }
 
 private:
