@@ -124,6 +124,14 @@ public:
     return bump_ptr<T>(p);
   }
 
+  template <typename T>
+  std::enable_if_t<std::is_bounded_array_v<T>, bump_ptr<T>> make() {
+    using type_t = std::remove_extent_t<T>;
+    static_assert(std::is_trivially_destructible_v<type_t>,
+                  "ely::arena::bump doesn't destroy objects, this is unsafe.");
+    return bump_ptr<T>(make<type_t[]>(std::extent_v<T>).get());
+  }
+
 private:
   void check_current(std::size_t sz, std::size_t align) {
     if (!current_ || !current_->can_allocate(sz, align)) {
