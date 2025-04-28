@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <span>
 #include <type_traits>
 
 namespace ely {
@@ -75,6 +77,13 @@ public:
   constexpr std::enable_if_t<std::is_bounded_array_v<T>, forever_ptr<T>>
   make_for_overwrite() const {
     return forever_ptr<T>(new T);
+  }
+
+  template <typename T> constexpr std::span<T> copy(T* first, T* last) {
+    std::size_t n = last - first;
+    T* p = std::to_address(make_for_overwrite<T[]>(n));
+    std::copy(first, last, p);
+    return {p, n};
   }
 };
 } // namespace arena

@@ -39,6 +39,12 @@ template <typename Arena, typename T> void test_array_arena() {
   T count{};
   std::for_each(std::to_address(arr), std::to_address(arr) + arr_size,
                 [&](const T& i) { assert(i == count++); });
+
+  std::span<T> copied =
+      a.copy(std::to_address(arr), std::to_address(arr) + arr_size);
+  count = {};
+  std::for_each(copied.begin(), copied.end(),
+                [&](const T& i) { assert(i == count++); });
 }
 
 template <typename Arena, typename T> void test_array_arena_nontriv() {

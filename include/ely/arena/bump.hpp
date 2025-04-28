@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cassert>
+#include <iterator>
 #include <memory>
+#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -28,7 +30,17 @@ template <typename Alloc, typename T>
 inline constexpr bool allocates_ordinary_pointers =
     std::is_same_v<typename std::allocator_traits<Alloc>::pointer, T*>;
 
+struct align_result {
+  void* p;
+  std::size_t space;
+
+  constexpr operator bool() const noexcept { return p != nullptr; }
+};
+
 class bump_block {
+public:
+  static constexpr std::size_t block_capacity = 32 * 1024 * 1024;
+
 private:
   bump_block* prev_;
   std::size_t space_;
@@ -49,28 +61,83 @@ public:
 
   constexpr bump_block* prev() const { return prev_; }
 
-  bool can_allocate(std::size_t sz, std::size_t align) const {
-    if (remaining_bytes() < sz)
-      return false;
-
-    void* data_p = const_cast<void*>(static_cast<const void*>(data()));
+  align_result can_align_to(std::size_t sz, std::size_t align) const {
+    void* data_p = std::bit_cast<void*>(data());
     std::size_t space = remaining_bytes();
-    return std::align(align, sz, data_p, space);
+    void* p = std::align(align, sz, data_p, space);
+    return {.p = p, .space = space};
+  }
+
+  bool align_to(std::size_t sz, std::size_t align) {
+    align_result ar = can_align_to(sz, align);
+    if (ar) {
+      space_ = ar.space;
+      return true;
+    }
+
+    return false;
   }
 
   [[nodiscard]] void* allocate(std::size_t sz, std::size_t align) {
-    assert(can_allocate(sz, align));
-    void* data_v = static_cast<void*>(data());
-    size_t space = remaining_bytes();
-    if (void* res =
-            std::align(static_cast<std::size_t>(align), sz, data_v, space);
-        res) {
-      space -= sz;
-      space_ = space;
-      return res;
+    bool align_success = align_to(sz, align);
+    assert(align_success &&
+           "Should've ensured there's enough space in this block");
+    return std::bit_cast<void*>(data() + size_bytes());
+  }
+
+  bool can_allocate(std::size_t sz, std::size_t align) const {
+    return can_align_to(sz, align);
+  }
+
+  // returns first out
+  template <typename T, typename F>
+  std::span<T> copy(T* first, T* last, F new_block) {
+    std::size_t n = last - first;
+    std::size_t n_bytes = sizeof(T) * n;
+
+    if (can_allocate(n_bytes, alignof(T))) {
+      T* start = (T*)allocate(n_bytes, alignof(T));
+      T* end = std::copy(first, last, start);
+      return {start, end};
+    } else {
+      auto* block = new_block(this, n_bytes);
+      return block->copy(first, last, new_block);
+    }
+  }
+
+  template <typename It, typename F>
+  void try_copy(It first, It last, F new_block) {
+    using it_traits = std::iterator_traits<It>;
+    using value_t = typename it_traits::value_type;
+
+    void* p = align_to(sizeof(value_t), alignof(value_t));
+    if (!p) {
+      impl::bump_block* block = new_block(this);
+      block->try_copy(first, last, new_block);
+      return;
     }
 
-    return nullptr;
+    std::size_t remaining = remaining_bytes() / sizeof(value_t);
+    value_t* pstart = static_cast<value_t>(p);
+    value_t* pcurr = pstart;
+    for (std::size_t i = 0; i != remaining; ++i) {
+      std::construct_at(pcurr++, *first++);
+      if (first == last) {
+        impl::bump_block* block = new_block(this);
+        block->try_copy(pstart, pcurr, new_block);
+        block->try_copy(first, last, new_block);
+        return;
+      }
+    }
+  }
+
+  static bump_block* create(bump_block* prev, std::size_t min_cap) {
+    auto this_block_capacity = std::max(min_cap, block_capacity);
+
+    void* block_alloc =
+        ::operator new(sizeof(bump_block) + this_block_capacity);
+    return std::construct_at((impl::bump_block*)block_alloc, prev,
+                             this_block_capacity);
   }
 };
 } // namespace impl
@@ -80,8 +147,16 @@ public:
   template <typename T> using ptr_type = bump_ptr<T>;
 
 private:
-  static constexpr std::size_t block_capacity = 32 * 1024 * 1024;
+  struct new_block_fn {
+    bump* self;
 
+    impl::bump_block* operator()(impl::bump_block* b, std::size_t capacity) {
+      self->current_ = impl::bump_block::create(b, capacity);
+      return self->current_;
+    }
+  };
+
+private:
   impl::bump_block* current_;
 
 public:
@@ -132,16 +207,15 @@ public:
     return bump_ptr<T>(make<type_t[]>(std::extent_v<T>).get());
   }
 
+  template <typename T> std::span<T> copy(T* first, T* last) {
+    return current_->copy(first, last, new_block_fn{this});
+  }
+
 private:
   void check_current(std::size_t sz, std::size_t align) {
     if (!current_ || !current_->can_allocate(sz, align)) {
       // need to allocate new block
-      auto* old_current = current_;
-      std::size_t this_block_capacity = std::max(sz, block_capacity);
-      void* allocation =
-          ::operator new(sizeof(impl::bump_block) + this_block_capacity);
-      current_ = std::construct_at((impl::bump_block*)allocation, current_,
-                                   this_block_capacity);
+      current_ = impl::bump_block::create(current_, sz);
     }
   }
 
