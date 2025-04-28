@@ -21,6 +21,9 @@ public:
   constexpr element_type* get() const noexcept { return p_; }
   constexpr element_type* operator->() const noexcept { return get(); }
   constexpr element_type& operator*() const noexcept { return *get(); }
+  constexpr element_type& operator[](std::size_t idx) const noexcept {
+    return p_[idx];
+  }
 
   constexpr operator bool() const noexcept { return p_; }
 };
@@ -191,10 +194,8 @@ public:
     type_t* p =
         static_cast<type_t*>(allocate(sizeof(type_t) * n, alignof(type_t)));
 
-    if constexpr (!std::is_trivially_constructible_v<type_t>) {
-      for (std::size_t i = 0; i != n; ++i)
-        std::construct_at(p + i);
-    }
+    for (std::size_t i = 0; i != n; ++i)
+      std::construct_at(p + i);
 
     return bump_ptr<T>(p);
   }
