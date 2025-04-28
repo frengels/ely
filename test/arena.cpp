@@ -9,6 +9,8 @@
 #include <ely/arena/shared.hpp>
 #include <ely/arena/string.hpp>
 
+#include "support.hpp"
+
 struct not_simple {
   int val;
 
@@ -40,11 +42,18 @@ template <typename Arena, typename T> void test_array_arena() {
   std::for_each(std::to_address(arr), std::to_address(arr) + arr_size,
                 [&](const T& i) { assert(i == count++); });
 
+  // copying data
   std::span<T> copied =
       a.copy(std::to_address(arr), std::to_address(arr) + arr_size);
   count = {};
   std::for_each(copied.begin(), copied.end(),
                 [&](const T& i) { assert(i == count++); });
+
+  // large allocation (4GiB)
+  constexpr auto huge_alloc = 1024 * 1024 * 1024;
+  arr = a.template make<T[]>(huge_alloc);
+  arr[huge_alloc - 1] = {};
+  // try write last element
 }
 
 template <typename Arena, typename T> void test_array_arena_nontriv() {
@@ -93,7 +102,9 @@ void bump_arena() {
 
 void arena() {
   shared_arena();
+#if !TEST_HAS_ADDRESS_SANITIZER
   forever_arena();
+#endif
   bump_arena();
 
   fmt::println("ely/arena - SUCCESS");

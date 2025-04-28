@@ -5,6 +5,8 @@ set(ELY_TEST_FILES
 function(make_test target)
     string(CONCAT target_src ${target} ".cpp")
     add_executable(${target} ${target_src})
+    target_compile_options(${target} PRIVATE -fsanitize=address)
+    target_link_options(${target} PRIVATE -fsanitize=address)
     add_test(NAME ${target} COMMAND ${target})
 endfunction()
 

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(Ely LANGUAGES CXX)
 
 option(ELY_ENABLE_TESTS "Enable tests" ON)
+option(ELY_TEST_SANITIZE_ADDRESS "enable address sanitizer for tests" ON)
 
 include(FetchContent)
 
