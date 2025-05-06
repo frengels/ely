@@ -22,12 +22,27 @@ template <typename CharT> constexpr bool is_alpha(CharT c) {
   return is_lower_alpha(c) || is_upper_alpha(c);
 }
 
+template <typename CharT> constexpr bool is_special_identifier_start(CharT c) {
+  switch (c) {
+  case '.':
+  case '-':
+  case '+':
+  case '*':
+  case '=':
+  case '<':
+  case '>':
+    return true;
+  default:
+    return false;
+  }
+}
+
 template <typename CharT> constexpr bool is_identifier_start(CharT c) {
   switch (c) {
   case '_':
     return true;
   default:
-    return is_alpha(c);
+    return is_alpha(c) || is_special_identifier_start(c);
   }
 }
 
