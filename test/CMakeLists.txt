@@ -1,5 +1,6 @@
 set(ELY_TEST_FILES
     arena
+    interner
 )
 
 function(make_test target)
@@ -7,6 +8,7 @@ function(make_test target)
     add_executable(${target} ${target_src})
     target_compile_options(${target} PRIVATE -fsanitize=address)
     target_link_options(${target} PRIVATE -fsanitize=address)
+    target_compile_definitions(${target} PRIVATE ELY_DBG_VERBOSE=1)
     add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
