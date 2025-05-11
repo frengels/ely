@@ -13,6 +13,8 @@
 #include <fmt/compile.h>
 #include <fmt/printf.h>
 
+#include "ely/arena/dumb_typed.hpp"
+#include "ely/expander.hpp"
 #include "ely/lexer.hpp"
 #include "ely/parser.hpp"
 #include "ely/stream.hpp"
@@ -80,6 +82,7 @@ in_out_files parse_in_out(std::span<char*> args) {
 
 int execute_lex(std::span<char*> args);
 int execute_parse(std::span<char*> args);
+int execute_expand(std::span<char*> args);
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -94,6 +97,8 @@ int main(int argc, char** argv) {
     return execute_lex(args);
   } else if (std::strcmp(cmd, "parse") == 0) {
     return execute_parse(args);
+  } else if (std::strcmp(cmd, "expand") == 0) {
+    return execute_expand(args);
   } else {
     std::fprintf(stderr, "ely: error: unknown command \"%s\"\n", cmd);
     return EXIT_FAILURE;
@@ -146,14 +151,55 @@ int execute_parse(std::span<char*> args) {
 
     auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
                                             token_buffer_size};
-    auto parser = ely::parser();
+    auto parser =
+        ely::parser<decltype(lex), ely::arena::dumb_typed<ely::stx::sexp>>(lex);
 
-    for (ely::stx::sexp node = parser.next(lex); !node.is_eof();
-         node = parser.next(lex)) {
-      fmt::print(out, "{}\n", node);
+    for (ely::stx::sexp* node = parser.next(); node && !node->is_eof();
+         node = parser.next()) {
+      fmt::print(out, "{}\n", *node);
     }
   }
 
   std::fprintf(out, "parse end\n");
   return EXIT_SUCCESS;
+}
+
+int execute_expand(std::span<char*> args) {
+  auto in_out = parse_in_out(args);
+  if (!in_out.out_file)
+    return EXIT_FAILURE;
+
+  std::FILE* out = in_out.out_file;
+
+  constexpr auto buffer_size = 64 * 1024;
+  char buffer[buffer_size];
+
+  constexpr auto token_buffer_size = 64;
+  ely::token token_buffer[token_buffer_size];
+
+  for (std::FILE* in : in_out.input_files) {
+    ely::file_stream stream(in, buffer, buffer_size);
+    auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
+                                            token_buffer_size};
+    auto parser =
+        ely::parser<decltype(lex), ely::arena::dumb_typed<ely::stx::sexp>>(lex);
+
+    auto expand = ely::expander<ely::arena::dumb_typed<ely::stx::sexp>>{};
+    expand.add_builtin("define", [](const auto& in) -> const ely::stx::sexp* {
+      fmt::println("found define");
+      return nullptr;
+    });
+
+    for (ely::stx::sexp* node = parser.next(); node && !node->is_eof();
+         node = parser.next()) {
+      if (const auto* s = expand.expand_all(*node)) {
+        fmt::print(out, "{}\n", *s);
+      } else {
+        fmt::print(out, "couldn't expand: {}\n", *node);
+      }
+      fmt::print(out, "{}\n", *expand.expand_all(*node));
+    }
+  }
+
+  return 0;
 }
