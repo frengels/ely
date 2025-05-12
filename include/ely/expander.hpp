@@ -1,7 +1,5 @@
 #pragma once
 
-// TODO: remove explicit verbose
-#define ELY_DBG_VERBOSE 1
 #include "ely/dbg.hpp"
 
 #include <cassert>
