@@ -7,14 +7,12 @@
 #include <utility>
 #include <vector>
 
-#include "ely/arena/allocator.hpp"
 #include "ely/arena/block.hpp"
 
 namespace ely {
 // a simple interner implementation, currently doesn't do anything optimal
 template <typename CharT, typename Traits = std::char_traits<CharT>,
-          typename Alloc = ely::arena::ref_allocator<
-              ely::arena::fixed_block<CharT, 256 * 1024>>>
+          typename Arena = ely::arena::fixed_block<CharT, 256 * 1024>>
 class basic_simple_interner {
 public:
   using char_type = CharT;
@@ -24,18 +22,18 @@ public:
 private:
   std::unordered_map<string_view_type, symbol_type> map_;
   std::vector<string_view_type> ref_;
-  [[no_unique_address]] Alloc alloc_;
+  Arena* alloc_;
 
 public:
-  basic_simple_interner() = default;
-  constexpr basic_simple_interner(Alloc alloc) : alloc_(alloc) {}
+  constexpr basic_simple_interner(Arena& alloc)
+      : alloc_(std::addressof(alloc)) {}
 
   constexpr symbol_type intern(string_view_type strv) {
     auto it = map_.find(strv);
     if (it != map_.end())
       return it->second;
 
-    char_type* p = alloc_.allocate(strv.size());
+    char_type* p = alloc_->allocate(strv.size());
     std::uninitialized_copy(strv.begin(), strv.end(), p);
     string_view_type internal = string_view_type{p, strv.size()};
     // std::string& ref = buffer_.emplace_front(strv);

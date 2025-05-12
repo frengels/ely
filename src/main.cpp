@@ -13,7 +13,6 @@
 #include <fmt/compile.h>
 #include <fmt/printf.h>
 
-#include "ely/arena/allocator.hpp"
 #include "ely/arena/block.hpp"
 #include "ely/arena/dumb_typed.hpp"
 #include "ely/expander.hpp"
@@ -124,8 +123,7 @@ int execute_lex(std::span<char*> args) {
     ely::file_stream stream{input_file, buffer, buffer_size};
 
     auto intern_arena = ely::arena::fixed_block<char, 128 * 1024>{};
-    auto interner =
-        ely::simple_interner{ely::arena::ref_allocator(intern_arena)};
+    auto interner = ely::simple_interner{intern_arena};
 
     // reuse intern arena as the general string arena, they should share
     // lifetimes so it's fine
@@ -158,8 +156,7 @@ int execute_parse(std::span<char*> args) {
   for (std::FILE* in : in_out.input_files) {
     ely::file_stream stream(in, buffer, buffer_size);
     auto intern_arena = ely::arena::fixed_block<char, 128 * 1024>{};
-    auto interner =
-        ely::simple_interner{ely::arena::ref_allocator(intern_arena)};
+    auto interner = ely::simple_interner{intern_arena};
 
     // reuse intern arena as the general string arena, they should share
     // lifetimes so it's fine
@@ -195,8 +192,7 @@ int execute_expand(std::span<char*> args) {
   for (std::FILE* in : in_out.input_files) {
     ely::file_stream stream(in, buffer, buffer_size);
     auto intern_arena = ely::arena::fixed_block<char, 128 * 1024>{};
-    auto interner =
-        ely::simple_interner{ely::arena::ref_allocator(intern_arena)};
+    auto interner = ely::simple_interner{intern_arena};
 
     // reuse intern arena as the general string arena, they should share
     // lifetimes so it's fine
