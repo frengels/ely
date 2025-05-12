@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ely/cast.hpp"
 #include "ely/stx.hpp"
 #include "ely/tokens.hpp"
 #include "stx.hpp"
@@ -57,7 +56,7 @@ private:
 
   constexpr stx::sexp* parse_path() {
     auto tok = next_skip_atmosphere();
-    if (auto* s = ely::dyn_cast<tokens::slash>(tok)) {
+    if (auto* s = tok.template isa<tokens::slash>()) {
       return parse_absolute_path(*s);
     }
   }
