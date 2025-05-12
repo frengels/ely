@@ -13,8 +13,11 @@
 #include <fmt/compile.h>
 #include <fmt/printf.h>
 
+#include "ely/arena/allocator.hpp"
+#include "ely/arena/block.hpp"
 #include "ely/arena/dumb_typed.hpp"
 #include "ely/expander.hpp"
+#include "ely/interner.hpp"
 #include "ely/lexer.hpp"
 #include "ely/parser.hpp"
 #include "ely/stream.hpp"
@@ -120,8 +123,14 @@ int execute_lex(std::span<char*> args) {
   for (std::FILE* input_file : in_out.input_files) {
     ely::file_stream stream{input_file, buffer, buffer_size};
 
-    auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
-                                            token_buffer_size};
+    auto intern_arena = ely::arena::fixed_block<char, 128 * 1024>{};
+    auto interner =
+        ely::simple_interner{ely::arena::ref_allocator(intern_arena)};
+
+    // reuse intern arena as the general string arena, they should share
+    // lifetimes so it's fine
+    auto lex = ely::lexer{std::move(stream), intern_arena, interner,
+                          token_buffer, token_buffer_size};
     std::fputs("[\n", out);
 
     for (auto tok = lex.next(); !ely::token_is_eof(tok); tok = lex.next()) {
@@ -148,11 +157,17 @@ int execute_parse(std::span<char*> args) {
   ely::token token_buffer[token_buffer_size];
   for (std::FILE* in : in_out.input_files) {
     ely::file_stream stream(in, buffer, buffer_size);
+    auto intern_arena = ely::arena::fixed_block<char, 128 * 1024>{};
+    auto interner =
+        ely::simple_interner{ely::arena::ref_allocator(intern_arena)};
 
-    auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
-                                            token_buffer_size};
-    auto parser =
-        ely::parser<decltype(lex), ely::arena::dumb_typed<ely::stx::sexp>>(lex);
+    // reuse intern arena as the general string arena, they should share
+    // lifetimes so it's fine
+    auto lex = ely::lexer{std::move(stream), intern_arena, interner,
+                          token_buffer, token_buffer_size};
+
+    auto stx_arena = ely::arena::fixed_block<ely::stx::sexp, 1024>{};
+    auto parser = ely::parser(lex, stx_arena, interner);
 
     for (ely::stx::sexp* node = parser.next(); node && !node->is_eof();
          node = parser.next()) {
@@ -179,13 +194,21 @@ int execute_expand(std::span<char*> args) {
 
   for (std::FILE* in : in_out.input_files) {
     ely::file_stream stream(in, buffer, buffer_size);
-    auto lex = ely::lexer<ely::file_stream>{std::move(stream), token_buffer,
-                                            token_buffer_size};
-    auto parser =
-        ely::parser<decltype(lex), ely::arena::dumb_typed<ely::stx::sexp>>(lex);
+    auto intern_arena = ely::arena::fixed_block<char, 128 * 1024>{};
+    auto interner =
+        ely::simple_interner{ely::arena::ref_allocator(intern_arena)};
+
+    // reuse intern arena as the general string arena, they should share
+    // lifetimes so it's fine
+    auto lex = ely::lexer{std::move(stream), intern_arena, interner,
+                          token_buffer, token_buffer_size};
+
+    auto stx_arena = ely::arena::fixed_block<ely::stx::sexp, 1024>{};
+    auto parser = ely::parser(lex, stx_arena, interner);
 
     auto expand = ely::expander<ely::arena::dumb_typed<ely::stx::sexp>>{};
-    expand.add_builtin("define", [](const auto& in) -> const ely::stx::sexp* {
+    auto def_sym = interner.intern("define");
+    expand.add_builtin(def_sym, [](const auto& in) -> const ely::stx::sexp* {
       fmt::println("found define");
       return nullptr;
     });

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <memory>
 
 #include "ely/tokens.hpp"
 
@@ -57,7 +58,7 @@ template <typename CharT> constexpr bool is_identifier_continue(CharT c) {
 }
 } // namespace detail
 
-template <typename Stream> class lexer {
+template <typename Stream, typename AAlloc, typename Interner> class lexer {
 public:
   using stream_type = Stream;
 
@@ -67,6 +68,8 @@ public:
 
 private:
   stream_type stream_;
+  AAlloc* arena_;
+  Interner* interner_;
 
   ely::token* buf_start_;
   ely::token* buf_end_;
@@ -75,14 +78,18 @@ private:
   using char_type = decltype(stream_.next());
 
 public:
-  explicit constexpr lexer(const stream_type& stream, ely::token* buf,
+  explicit constexpr lexer(const stream_type& stream, AAlloc& arena,
+                           Interner& interner, ely::token* buf,
                            std::size_t buf_len)
-      : stream_(stream), buf_start_(buf), buf_cur_(buf + buf_len),
-        buf_end_(buf + buf_len) {}
-  explicit constexpr lexer(stream_type&& stream, ely::token* buf,
+      : stream_(stream), arena_(std::addressof(arena)),
+        interner_(std::addressof(interner)), buf_start_(buf),
+        buf_cur_(buf + buf_len), buf_end_(buf + buf_len) {}
+  explicit constexpr lexer(stream_type&& stream, AAlloc& arena,
+                           Interner& interner, ely::token* buf,
                            std::size_t buf_len)
-      : stream_(std::move(stream)), buf_start_(buf), buf_cur_(buf + buf_len),
-        buf_end_(buf + buf_len) {}
+      : stream_(std::move(stream)), arena_(std::addressof(arena)),
+        interner_(std::addressof(interner)), buf_start_(buf),
+        buf_cur_(buf + buf_len), buf_end_(buf + buf_len) {}
 
   constexpr stream_type base() const { return stream_; }
 
@@ -270,7 +277,8 @@ private:
       text.push_back(c);
     }
 
-    return tokens::identifier{std::move(text)};
+    auto sym = interner_->intern(text);
+    return tokens::identifier{sym};
   }
 
   constexpr token read_number(char_type c) {
@@ -289,7 +297,7 @@ private:
       text.push_back(c);
     }
 
-    return make_token<tokens::integer_lit>(std::move(text));
+    return make_token<tokens::integer_lit>(copy_from_string(text));
   }
 
   constexpr tokens::decimal_lit read_decimal_cont(char_type c,
@@ -304,7 +312,7 @@ private:
       text.push_back(c);
     }
 
-    return tokens::decimal_lit(std::move(text));
+    return tokens::decimal_lit(copy_from_string(text));
   }
 
   constexpr token read_string(char_type c) {
@@ -323,14 +331,21 @@ private:
 
       if (c == '"' && !escaped) {
         consume_char();
-        return tokens::string_lit(std::move(text));
+        return tokens::string_lit(copy_from_string(text));
       }
 
       text.push_back(c);
       escaped = false;
     }
 
-    return tokens::unterminated_string_lit(std::move(text));
+    return tokens::unterminated_string_lit(copy_from_string(text));
+  }
+
+private:
+  constexpr std::string_view copy_from_string(const std::string& str) {
+    auto* p = arena_->allocate(str.size());
+    std::uninitialized_copy(str.begin(), str.end(), p);
+    return std::string_view{p, str.size()};
   }
 };
 } // namespace ely

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <variant>
 
@@ -152,10 +153,10 @@ struct unsyntax_splicing {
 struct identifier {
   static constexpr const char* short_name = "id";
 
-  std::string text;
+  std::uint32_t sym;
 
-  constexpr std::size_t size() const { return text.size(); }
-  constexpr std::string to_string() const { return text; }
+  constexpr std::size_t size() const { return std::to_string(sym).size(); }
+  constexpr std::string to_string() const { return std::to_string(sym); }
 };
 
 struct slash {
@@ -168,23 +169,23 @@ struct slash {
 struct integer_lit {
   static constexpr const char* short_name = "int";
 
-  std::string text;
+  std::string_view text;
 
   constexpr std::size_t size() const { return text.size(); }
-  constexpr std::string to_string() const { return text; }
+  constexpr std::string to_string() const { return std::string{text}; }
 };
 struct decimal_lit {
   static constexpr const char* short_name = "dec";
 
-  std::string text;
+  std::string_view text;
 
   constexpr std::size_t size() const { return text.size(); }
-  constexpr std::string to_string() const { return text; }
+  constexpr std::string to_string() const { return std::string{text}; }
 };
 struct string_lit {
   static constexpr const char* short_name = "str";
 
-  std::string text;
+  std::string_view text;
 
   constexpr std::size_t size() const { return text.size() + 2; }
   constexpr std::string to_string() const {
@@ -199,7 +200,7 @@ struct string_lit {
 struct unterminated_string_lit {
   static constexpr const char* short_name = "unterm str";
 
-  std::string text;
+  std::string_view text;
 
   constexpr std::size_t size() const { return text.size() + 1; }
   constexpr std::string to_string() const {
@@ -260,6 +261,10 @@ using token_variant =
 class token : public detail::token_variant {
 public:
   using detail::token_variant::token_variant;
+
+  template <typename T> constexpr bool isa() const {
+    return std::holds_alternative<T>(*this);
+  }
 
   constexpr bool is_eof() const {
     return std::visit([]<typename T>(const T&) { return tokens::is_eof_v<T>; },

@@ -20,7 +20,9 @@ class sexp;
 class list;
 
 namespace detail {
-class sexp_base : public boost::intrusive::list_base_hook<> {};
+class sexp_base
+    : public boost::intrusive::list_base_hook<boost::intrusive::link_mode<
+          boost::intrusive::link_mode_type::normal_link>> {};
 } // namespace detail
 
 class list {
@@ -45,13 +47,12 @@ public:
 };
 
 class identifier {
-  std::string text_;
+  std::uint32_t sym_;
 
 public:
-  explicit constexpr identifier(const std::string& text) : text_(text) {}
-  explicit constexpr identifier(std::string&& text) : text_(std::move(text)) {}
+  explicit constexpr identifier(std::uint32_t sym) : sym_(sym) {}
 
-  constexpr std::string_view text() const { return text_; }
+  constexpr auto sym() const { return sym_; }
 };
 
 class path {
@@ -68,43 +69,38 @@ public:
 };
 
 class integer_lit {
-  std::string text_;
+  std::string_view text_;
 
 public:
-  explicit constexpr integer_lit(const std::string& text) : text_(text) {}
-  explicit constexpr integer_lit(std::string&& text) : text_(std::move(text)) {}
+  explicit constexpr integer_lit(std::string_view text) : text_(text) {}
 
   constexpr std::string_view text() const { return text_; }
 };
 
 class decimal_lit {
-  std::string text_;
+  std::string_view text_;
 
 public:
-  explicit constexpr decimal_lit(const std::string& text) : text_(text) {}
-  explicit constexpr decimal_lit(std::string&& text) : text_(std::move(text)) {}
+  explicit constexpr decimal_lit(std::string_view text) : text_(text) {}
 
   constexpr std::string_view text() const { return text_; }
 };
 
 class string_lit {
-  std::string text_;
+  std::string_view text_;
 
 public:
-  explicit constexpr string_lit(const std::string& text) : text_(text) {}
-  explicit constexpr string_lit(std::string&& text) : text_(std::move(text)) {}
+  explicit constexpr string_lit(std::string_view text) : text_(text) {}
 
   constexpr std::string_view text() const { return text_; }
 };
 
 class unterminated_string_lit {
-  std::string text_;
+  std::string_view text_;
 
 public:
-  explicit constexpr unterminated_string_lit(const std::string& text)
+  explicit constexpr unterminated_string_lit(std::string_view text)
       : text_(text) {}
-  explicit constexpr unterminated_string_lit(std::string&& text)
-      : text_(std::move(text)) {}
 
   constexpr std::string_view text() const { return text_; }
 };
@@ -260,7 +256,7 @@ template <> struct fmt::formatter<ely::stx::identifier> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
   constexpr auto format(const ely::stx::identifier& id, Ctx& ctx) const {
-    return fmt::format_to(ctx.out(), "identifier({})", id.text());
+    return fmt::format_to(ctx.out(), "identifier({})", id.sym());
   }
 };
 

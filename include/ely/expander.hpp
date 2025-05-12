@@ -24,7 +24,7 @@ private:
   [[no_unique_address]] Arena arena_;
 
 public:
-  expander() { add_builtins(); }
+  expander() = default;
 
   constexpr const stx::sexp* expand_once(const stx::sexp& s) {
     using std::visit;
@@ -53,8 +53,8 @@ public:
     return res;
   }
 
-  void add_builtin(std::string_view id, transformer&& fn) {
-    bindings_.try_emplace(id, current_ss_, std::move(fn));
+  void add_builtin(std::uint32_t sym, transformer&& fn) {
+    bindings_.try_emplace(sym, current_ss_, std::move(fn));
   }
 
 private:
@@ -65,8 +65,8 @@ private:
     auto& maybe_call = *l.begin();
 
     if (maybe_call.is_identifier()) {
-      if (auto maybe_bind = bindings_.resolve(
-              maybe_call.as_identifier()->text(), current_ss_);
+      if (auto maybe_bind =
+              bindings_.resolve(maybe_call.as_identifier()->sym(), current_ss_);
           maybe_bind) {
         auto bind = *maybe_bind;
         auto transform_args_stx = stx::sexp::create<stx::list>(arena_);
@@ -87,21 +87,6 @@ private:
 
     // return nullptr if no expansion happened
     return nullptr;
-  }
-
-  void add_builtins() {
-    // define-syntax is a special form of `define` that takes stx as argument
-    // and returns another stx object back out
-    add_builtin("define", [&](const stx::sexp& s) -> const stx::sexp* {
-      assert(s.is_list());
-      if (auto* l = s.as_list()) {
-        ely::with_new_scope(current_ss_, [&](ely::scope s) {
-          fmt::println("our current scope is {}", s);
-          fmt::println("our current scope set is {}", current_ss_);
-        });
-      }
-      return nullptr;
-    });
   }
 };
 } // namespace ely

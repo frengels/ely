@@ -6,18 +6,19 @@
 #include "stx.hpp"
 
 namespace ely {
-template <typename TokenStream, typename Arena> class parser {
+template <typename TokenStream, typename Interner, typename Arena>
+class parser {
 private:
   TokenStream* tokens_;
-  [[no_unique_address]] Arena arena_;
+  Arena* arena_;
+  Interner* interner_;
 
 public:
   parser() = default;
 
-  constexpr parser(TokenStream& ts) : tokens_(std::addressof(ts)) {}
-  constexpr parser(Arena arena) : arena_(arena) {}
-  constexpr parser(TokenStream& ts, Arena arena)
-      : tokens_(std::addressof(ts)), arena_(arena) {}
+  constexpr parser(TokenStream& ts, Arena& arena, Interner& interner)
+      : tokens_(std::addressof(ts)), arena_(std::addressof(arena)),
+        interner_(std::addressof(interner)) {}
 
   constexpr stx::sexp* next() {
     auto tok = next_skip_atmosphere();
@@ -50,7 +51,7 @@ private:
                   !tokens::is_list_end_v<std::remove_cvref_t<Token>>) {
       return parse(static_cast<Token&&>(t));
     } else {
-      return stx::sexp::create<stx::unknown>(arena_);
+      return stx::sexp::create<stx::unknown>(*arena_);
     }
   }
 
@@ -73,30 +74,30 @@ private:
       assert(!tok.is_atmosphere());
     }
 
-    return stx::sexp::create<stx::list>(arena_, elements.begin(),
+    return stx::sexp::create<stx::list>(*arena_, elements.begin(),
                                         elements.end());
   }
 
   constexpr stx::sexp* parse(ely::tokens::lbrace) {
-    return stx::sexp::create<stx::unknown>(arena_);
+    return stx::sexp::create<stx::unknown>(*arena_);
   }
 
   constexpr stx::sexp* parse(ely::tokens::lbracket) {
-    return stx::sexp::create<stx::unknown>(arena_);
+    return stx::sexp::create<stx::unknown>(*arena_);
   }
 
   constexpr stx::sexp* parse(tokens::unknown) {
-    return stx::sexp::create<stx::unknown>(arena_);
+    return stx::sexp::create<stx::unknown>(*arena_);
   }
 
   constexpr stx::sexp* parse(tokens::slash) {
-    return stx::sexp::create<stx::unknown>(arena_);
+    return stx::sexp::create<stx::unknown>(*arena_);
   }
 
   template <typename Prefix> constexpr stx::sexp* parse_prefix(Prefix) {
     auto* exp = next();
-    auto* quote_stx =
-        stx::sexp::create<stx::identifier>(arena_, Prefix::symbol);
+    auto* quote_stx = stx::sexp::create<stx::identifier>(
+        *arena_, interner_->intern(Prefix::symbol));
 
     // if there is a list put `quote` infront '(1 2) -> (quote 1 2)
     if (auto* l = exp->as_list()) {
@@ -106,7 +107,7 @@ private:
       std::vector<stx::sexp*> elements{};
       elements.push_back(quote_stx);
       elements.push_back(exp);
-      return stx::sexp::create<stx::list>(arena_, elements.begin(),
+      return stx::sexp::create<stx::list>(*arena_, elements.begin(),
                                           elements.end());
     }
   }
@@ -135,33 +136,33 @@ private:
 
   constexpr stx::sexp* parse(tokens::identifier&& id) {
     // TODO: add origin
-    return stx::sexp::create<stx::identifier>(arena_, id.text);
+    return stx::sexp::create<stx::identifier>(*arena_, id.sym);
   }
 
   constexpr stx::sexp* parse(tokens::integer_lit&& ilit) {
     // TODO: add origin
-    return stx::sexp::create<stx::integer_lit>(arena_, ilit.text);
+    return stx::sexp::create<stx::integer_lit>(*arena_, ilit.text);
   }
 
   constexpr stx::sexp* parse(tokens::decimal_lit&& dlit) {
     // TODO: add origin
-    return stx::sexp::create<stx::decimal_lit>(arena_, dlit.text);
+    return stx::sexp::create<stx::decimal_lit>(*arena_, dlit.text);
   }
 
   constexpr stx::sexp* parse(tokens::string_lit&& str_lit) {
     // TODO: add origin
-    return stx::sexp::create<stx::string_lit>(arena_, str_lit.text);
+    return stx::sexp::create<stx::string_lit>(*arena_, str_lit.text);
   }
 
   constexpr stx::sexp* parse(tokens::unterminated_string_lit&& ustr_lit) {
     // TODO: add origin
-    return stx::sexp::create<stx::unterminated_string_lit>(arena_,
+    return stx::sexp::create<stx::unterminated_string_lit>(*arena_,
                                                            ustr_lit.text);
   }
 
   constexpr stx::sexp* parse(const tokens::eof&) {
     // TODO: add origin
-    return stx::sexp::create<stx::eof>(arena_);
+    return stx::sexp::create<stx::eof>(*arena_);
   }
 };
 } // namespace ely
