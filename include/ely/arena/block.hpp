@@ -84,7 +84,8 @@ public:
   static constexpr std::size_t max_size() { return capacity(); }
 
   constexpr pointer allocate(std::size_t n) {
-    assert(n <= capacity() && "Requesting allocation over capacity.");
+    if (n > max_size()) [[unlikely]]
+      throw std::bad_alloc();
     if (!blocks_.empty() && blocks_.begin()->remaining() <= n) {
       return blocks_.begin()->allocate(n);
     }
