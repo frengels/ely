@@ -5,8 +5,12 @@
 
 #include "support.hpp"
 
+#include "ely/arena/block.hpp"
+
 bool simple_interner() {
-  auto interner = ely::simple_interner();
+  auto arena = ely::arena::fixed_block<char, 128 * 1024>{};
+  auto alloc = ely::arena::ref_allocator{arena};
+  auto interner = ely::simple_interner(alloc);
 
   // 2 equivalent interned symbol must compare equal
   auto hello_sym = interner.intern("hello");
