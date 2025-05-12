@@ -7,44 +7,53 @@
 #include <utility>
 #include <vector>
 
+#include "ely/arena/allocator.hpp"
+#include "ely/arena/block.hpp"
+
 namespace ely {
 // a simple interner implementation, currently doesn't do anything optimal
-template <typename CharT, typename Traits = std::char_traits<CharT>>
+template <typename CharT, typename Traits = std::char_traits<CharT>,
+          typename Alloc = ely::arena::ref_allocator<
+              ely::arena::fixed_block<CharT, 256 * 1024>>>
 class basic_simple_interner {
 public:
   using char_type = CharT;
   using symbol_type = std::uint32_t;
+  using string_view_type = std::basic_string_view<CharT, Traits>;
 
 private:
-  std::unordered_map<std::string_view, symbol_type> map_;
-  std::vector<std::string_view> ref_;
-
-  // TODO: replace with an arena
-  // using forward list right now for the constant memory location
-  std::forward_list<std::string> buffer_;
+  std::unordered_map<string_view_type, symbol_type> map_;
+  std::vector<string_view_type> ref_;
+  [[no_unique_address]] Alloc alloc_;
 
 public:
   basic_simple_interner() = default;
+  constexpr basic_simple_interner(Alloc alloc) : alloc_(alloc) {}
 
-  constexpr symbol_type intern(std::string_view strv) {
+  constexpr symbol_type intern(string_view_type strv) {
     auto it = map_.find(strv);
     if (it != map_.end())
       return it->second;
 
-    std::string& ref = buffer_.emplace_front(strv);
+    char_type* p = alloc_.allocate(strv.size());
+    std::uninitialized_copy(strv.begin(), strv.end(), p);
+    string_view_type internal = string_view_type{p, strv.size()};
+    // std::string& ref = buffer_.emplace_front(strv);
 
     // add references to this location in both the map and ref
     symbol_type id = ref_.size();
-    ref_.emplace_back(ref);
-    map_.emplace(std::piecewise_construct, std::forward_as_tuple(ref),
+    ref_.emplace_back(internal);
+    map_.emplace(std::piecewise_construct, std::forward_as_tuple(internal),
                  std::forward_as_tuple(id));
     return id;
   }
 
-  constexpr std::string_view lookup(symbol_type sym) {
+  constexpr string_view_type lookup(symbol_type sym) {
     return ref_[static_cast<std::size_t>(sym)];
   }
 };
 
-using simple_interner = basic_simple_interner<char>;
+template <typename Alloc>
+using simple_interner =
+    basic_simple_interner<char, std::char_traits<char>, Alloc>;
 } // namespace ely
