@@ -4,6 +4,8 @@
 #include <string>
 #include <variant>
 
+#include "ely/symbol.hpp"
+
 namespace ely {
 namespace detail {
 template <typename T, typename... Us>
@@ -153,10 +155,10 @@ struct unsyntax_splicing {
 struct identifier {
   static constexpr const char* short_name = "id";
 
-  std::uint32_t sym;
+  ely::symbol sym;
 
-  constexpr std::size_t size() const { return std::to_string(sym).size(); }
-  constexpr std::string to_string() const { return std::to_string(sym); }
+  constexpr std::size_t size() const { return std::to_string(sym.id).size(); }
+  constexpr std::string to_string() const { return std::to_string(sym.id); }
 };
 
 struct slash {

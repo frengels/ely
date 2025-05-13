@@ -12,7 +12,7 @@
 
 #include <boost/intrusive/list.hpp>
 
-#include "ely/memory/shared_ptr.hpp"
+#include "ely/symbol.hpp"
 
 namespace ely {
 namespace stx {
@@ -47,12 +47,12 @@ public:
 };
 
 class identifier {
-  std::uint32_t sym_;
+  ely::symbol sym_;
 
 public:
-  explicit constexpr identifier(std::uint32_t sym) : sym_(sym) {}
+  explicit constexpr identifier(ely::symbol sym) : sym_(sym) {}
 
-  constexpr auto sym() const { return sym_; }
+  constexpr ely::symbol sym() const { return sym_; }
 };
 
 class path {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ely/dbg.hpp"
-
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -10,7 +8,9 @@
 #include <unordered_map>
 
 #include "ely/binding.hpp"
+#include "ely/dbg.hpp"
 #include "ely/stx.hpp"
+#include "ely/symbol.hpp"
 
 namespace ely {
 using transformer = std::function<const stx::sexp*(const stx::sexp&)>;
@@ -19,10 +19,10 @@ template <typename Arena> class expander {
 private:
   ely::binding_map bindings_;
   ely::scope_set current_ss_;
-  [[no_unique_address]] Arena arena_;
+  Arena* arena_;
 
 public:
-  expander() = default;
+  explicit constexpr expander(Arena& arena) : arena_(std::addressof(arena)) {}
 
   constexpr const stx::sexp* expand_once(const stx::sexp& s) {
     using std::visit;
@@ -51,7 +51,7 @@ public:
     return res;
   }
 
-  void add_builtin(std::uint32_t sym, transformer&& fn) {
+  void add_builtin(ely::symbol sym, transformer&& fn) {
     bindings_.try_emplace(sym, current_ss_, std::move(fn));
   }
 
@@ -67,11 +67,11 @@ private:
               bindings_.resolve(maybe_call.as_identifier()->sym(), current_ss_);
           maybe_bind) {
         auto bind = *maybe_bind;
-        auto transform_args_stx = stx::sexp::create<stx::list>(arena_);
+        auto transform_args_stx = stx::sexp::create<stx::list>(*arena_);
         auto transform_args = transform_args_stx->template as<stx::list>();
         for (auto it = std::next(l.begin()), end = l.end(); it != end; ++it) {
           // make copies
-          transform_args->push_back(stx::sexp::create_copy(arena_, *it));
+          transform_args->push_back(stx::sexp::create_copy(*arena_, *it));
         }
 
         /* call with stx_list as arg */

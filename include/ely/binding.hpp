@@ -10,8 +10,8 @@
 
 #include "ely/scope.hpp"
 #include "ely/stx.hpp"
+#include "ely/symbol.hpp"
 #include "ely/value.hpp"
-#include "stx.hpp"
 
 namespace ely {
 struct binding {
@@ -32,21 +32,24 @@ struct binding {
 };
 
 class binding_map {
+public:
+  using symbol_type = ely::symbol;
+
 private:
-  std::unordered_map<std::uint32_t, std::vector<binding>> impl_;
+  std::unordered_map<symbol_type, std::vector<binding>> impl_;
 
 public:
   binding_map() = default;
 
   template <typename... SArgs>
-  binding try_emplace(std::uint32_t sym, const ely::scope_set& ss,
+  binding try_emplace(symbol_type sym, const ely::scope_set& ss,
                       SArgs&&... args) {
     auto& bindings = impl_[sym];
     return bindings.emplace_back(ss, static_cast<SArgs&&>(args)...);
   }
 
   // find the best binding for the passed in id and scope set combination
-  std::optional<binding> resolve(std::uint32_t sym,
+  std::optional<binding> resolve(symbol_type sym,
                                  const ely::scope_set& ss) const {
     if (auto it = impl_.find(sym); it != impl_.end()) {
       auto& bindings = *it;

@@ -2,12 +2,14 @@
 
 #include <cstdint>
 #include <forward_list>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "ely/arena/block.hpp"
+#include "ely/symbol.hpp"
 
 namespace ely {
 // a simple interner implementation, currently doesn't do anything optimal
@@ -16,7 +18,7 @@ template <typename CharT, typename Traits = std::char_traits<CharT>,
 class basic_simple_interner {
 public:
   using char_type = CharT;
-  using symbol_type = std::uint32_t;
+  using symbol_type = ely::symbol;
   using string_view_type = std::basic_string_view<CharT, Traits>;
 
 private:
@@ -39,7 +41,7 @@ public:
     // std::string& ref = buffer_.emplace_front(strv);
 
     // add references to this location in both the map and ref
-    symbol_type id = ref_.size();
+    auto id = symbol_type{static_cast<std::uint32_t>(ref_.size())};
     ref_.emplace_back(internal);
     map_.emplace(std::piecewise_construct, std::forward_as_tuple(internal),
                  std::forward_as_tuple(id));
@@ -47,7 +49,7 @@ public:
   }
 
   constexpr string_view_type lookup(symbol_type sym) {
-    return ref_[static_cast<std::size_t>(sym)];
+    return ref_[static_cast<std::size_t>(sym.id)];
   }
 };
 
