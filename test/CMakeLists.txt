@@ -1,6 +1,7 @@
 set(ELY_TEST_FILES
     arena
     interner
+    stream
 )
 
 function(make_test target)
