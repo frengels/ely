@@ -2,6 +2,7 @@ set(ELY_TEST_FILES
     arena
     interner
     stream
+    scope
 )
 
 function(make_test target)
