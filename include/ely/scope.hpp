@@ -15,8 +15,6 @@
 #include <fmt/ranges.h>
 
 namespace ely {
-namespace stx {
-
 class scope_generator;
 
 class scope {
@@ -276,26 +274,25 @@ public:
     return true;
   }
 };
-} // namespace stx
 } // namespace ely
 
-template <> struct fmt::formatter<ely::stx::scope> {
+template <> struct fmt::formatter<ely::scope> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
-  constexpr auto format(const ely::stx::scope& s, Ctx& ctx) const {
+  constexpr auto format(const ely::scope& s, Ctx& ctx) const {
     return fmt::format_to(ctx.out(), "scope({})", s.id());
   }
 };
 
-template <> struct fmt::formatter<ely::stx::simple_scope_set> {
+template <> struct fmt::formatter<ely::simple_scope_set> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
-  constexpr auto format(const ely::stx::simple_scope_set& ss, Ctx& ctx) const {
+  constexpr auto format(const ely::simple_scope_set& ss, Ctx& ctx) const {
     return fmt::format_to(
         ctx.out(), "simple_scope_set({})",
         fmt::join(
             std::ranges::subrange(ss.begin(), ss.end()) |
-                std::views::transform([](ely::stx::scope s) { return s.id(); }),
+                std::views::transform([](ely::scope s) { return s.id(); }),
             ", "));
   }
 };
