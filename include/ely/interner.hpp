@@ -41,15 +41,15 @@ public:
     // std::string& ref = buffer_.emplace_front(strv);
 
     // add references to this location in both the map and ref
-    auto id = symbol_type{static_cast<std::uint32_t>(ref_.size())};
+    auto id = symbol_type{static_cast<std::uint32_t>(ref_.size() + 1)};
     ref_.emplace_back(internal);
     map_.emplace(std::piecewise_construct, std::forward_as_tuple(internal),
                  std::forward_as_tuple(id));
     return id;
   }
 
-  constexpr string_view_type lookup(symbol_type sym) {
-    return ref_[static_cast<std::size_t>(sym.id)];
+  constexpr string_view_type lookup(symbol_type sym) const {
+    return ref_[static_cast<std::size_t>(sym.id) - 1];
   }
 };
 

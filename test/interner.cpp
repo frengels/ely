@@ -1,4 +1,4 @@
-#include "ely/interner.hpp"
+#include <ely/interner.hpp>
 
 #include <cassert>
 #include <fmt/core.h>
@@ -9,8 +9,7 @@
 
 bool simple_interner() {
   auto arena = ely::arena::fixed_block<char, 128 * 1024>{};
-  auto alloc = ely::arena::ref_allocator{arena};
-  auto interner = ely::simple_interner(alloc);
+  auto interner = ely::simple_interner(arena);
 
   // 2 equivalent interned symbol must compare equal
   auto hello_sym = interner.intern("hello");
