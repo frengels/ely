@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <forward_list>
 #include <limits>
+#include <llvm/ADT/Hashing.h>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -53,7 +54,84 @@ public:
   }
 };
 
+template <typename Ptr, typename T>
+concept dereference_to =
+    std::same_as<typename std::pointer_traits<Ptr>::element_type, T> &&
+    requires(Ptr& p) {
+      typename std::pointer_traits<Ptr>::element_type;
+      typename std::pointer_traits<Ptr>::pointer;
+      { std::to_address(p) } -> std::same_as<T*>;
+      { *p } -> std::same_as<T&>;
+    };
+
+static_assert(dereference_to<int*, int>);
+static_assert(dereference_to<std::unique_ptr<int>, int>);
+
+template <typename T, typename... Args>
+concept creates_storage = requires(Args&&... args) {
+  {
+    T::create_storage(static_cast<Args&&>(args)...)
+  } -> dereference_to<typename T::storage_type>;
+};
+
 template <typename Alloc>
 using simple_interner =
     basic_simple_interner<char, std::char_traits<char>, Alloc>;
+
+namespace detail {
+template <typename T> struct llvm_hash {
+  constexpr std::size_t operator()(const T& t) const {
+    return llvm::hash_value(t);
+  }
+};
+} // namespace detail
+
+template <typename T> class interner2 {
+public:
+  using key_type = typename T::key_type;
+  using storage_type = typename T::storage_type;
+
+private:
+  std::unordered_map<key_type, std::unique_ptr<storage_type>,
+                     detail::llvm_hash<key_type>>
+      storage_map_;
+
+public:
+  interner2() = default;
+
+  template <typename... Args>
+  [[nodiscard]] T intern(const key_type& key, Args&&... args) {
+    auto it = storage_map_.find(key);
+    if (it != storage_map_.end()) {
+      return T(it->second.get());
+    }
+
+    dereference_to<storage_type> auto storage = [&] {
+      if constexpr (creates_storage<T, const key_type&, Args&&...>) {
+        return T::create_storage(key, static_cast<Args&&>(args)...);
+      } else {
+        return std::make_unique<storage_type>(key,
+                                              static_cast<Args&&>(args)...);
+      }
+    }();
+
+    storage_type* p = std::to_address(storage);
+    storage_map_.emplace(key, std::move(storage));
+    return T(p);
+  }
+};
+
+template <typename T> class dyn_interner {
+public:
+  using key_type = typename T::key_type;
+  using storage_type = typename T::storage_type;
+
+private:
+  std::unordered_map<key_type, void*> storage_map_;
+
+public:
+  dyn_interner() = default;
+
+  template <typename... Args> T intern(const key_type& key, Args&&... args) {}
+};
 } // namespace ely
