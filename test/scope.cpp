@@ -46,7 +46,7 @@ template <ely::scope_set SS> void test_scope() {
 }
 
 void scope() {
-  test_scope<ely::simple_scope_set>();
+  test_scope<ely::basic_scope_set>();
   fmt::println("ely/scope/simple - SUCCESS");
   test_scope<ely::bitset_scope_set<64>>();
   fmt::println("ely/scope/bitset - SUCCESS");

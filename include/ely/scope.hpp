@@ -66,7 +66,7 @@ concept scope_set =
       { a.size() } -> std::same_as<std::size_t>;
     };
 
-class simple_scope_set {
+class basic_scope_set {
 public:
   using const_iterator = typename std::set<scope>::const_iterator;
 
@@ -74,46 +74,46 @@ private:
   std::set<scope> set_;
 
 public:
-  simple_scope_set() = default;
-  simple_scope_set(std::initializer_list<scope> il) : set_(il) {}
+  basic_scope_set() = default;
+  basic_scope_set(std::initializer_list<scope> il) : set_(il) {}
 
   std::size_t size() const { return set_.size(); }
   const_iterator begin() const { return set_.begin(); }
   const_iterator end() const { return set_.end(); }
 
-  friend bool operator==(const simple_scope_set&,
-                         const simple_scope_set&) = default;
+  friend bool operator==(const basic_scope_set&,
+                         const basic_scope_set&) = default;
 
-  bool subset_of(const simple_scope_set& other) const {
+  bool subset_of(const basic_scope_set& other) const {
     return std::includes(other.begin(), other.end(), begin(), end());
   }
 
   bool has_scope(const scope& sc) const { return set_.find(sc) != set_.end(); }
 
   [[nodiscard]]
-  simple_scope_set add_scope(const scope& sc) const {
-    simple_scope_set res = *this;
+  basic_scope_set add_scope(const scope& sc) const {
+    basic_scope_set res = *this;
     res.set_.insert(sc);
     return res;
   }
 
   [[nodiscard]]
-  simple_scope_set add_scopes(std::span<scope> scopes) const {
-    simple_scope_set res = *this;
+  basic_scope_set add_scopes(std::span<scope> scopes) const {
+    basic_scope_set res = *this;
     res.set_.insert(scopes.begin(), scopes.end());
     return res;
   }
 
   [[nodiscard]]
-  simple_scope_set remove_scope(const scope& sc) const {
-    simple_scope_set res = *this;
+  basic_scope_set remove_scope(const scope& sc) const {
+    basic_scope_set res = *this;
     res.set_.erase(sc);
     return res;
   }
 
   [[nodiscard]]
-  simple_scope_set remove_scopes(std::span<scope> scopes) const {
-    simple_scope_set res = *this;
+  basic_scope_set remove_scopes(std::span<scope> scopes) const {
+    basic_scope_set res = *this;
     for (const auto& sc : scopes) {
       res.set_.erase(sc);
     }
@@ -121,7 +121,7 @@ public:
   }
 
   [[nodiscard]]
-  simple_scope_set flip_scope(const scope& sc) const {
+  basic_scope_set flip_scope(const scope& sc) const {
     if (has_scope(sc)) {
       return remove_scope(sc);
     } else {
@@ -130,7 +130,7 @@ public:
   }
 
   [[nodiscard]]
-  simple_scope_set flip_scopes(std::span<scope> scopes) const {
+  basic_scope_set flip_scopes(std::span<scope> scopes) const {
     auto res = *this;
     for (const auto& sc : scopes) {
       if (res.has_scope(sc)) {
@@ -145,7 +145,7 @@ public:
   std::size_t hash() const { return 0; }
 };
 
-static_assert(scope_set<simple_scope_set>);
+static_assert(scope_set<basic_scope_set>);
 
 template <std::size_t N> class bitset_scope_set {
 private:
@@ -284,12 +284,12 @@ template <> struct fmt::formatter<ely::scope> {
   }
 };
 
-template <> struct fmt::formatter<ely::simple_scope_set> {
+template <> struct fmt::formatter<ely::basic_scope_set> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
-  constexpr auto format(const ely::simple_scope_set& ss, Ctx& ctx) const {
+  constexpr auto format(const ely::basic_scope_set& ss, Ctx& ctx) const {
     return fmt::format_to(
-        ctx.out(), "simple_scope_set({})",
+        ctx.out(), "basic_scope_set({})",
         fmt::join(
             std::ranges::subrange(ss.begin(), ss.end()) |
                 std::views::transform([](ely::scope s) { return s.id(); }),
