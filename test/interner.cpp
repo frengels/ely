@@ -11,17 +11,20 @@
 #include <string_view>
 
 class data {
-public:
-  using key_type = std::tuple<int, int>;
-
 private:
   struct data_storage {
     int x, y;
     std::string name;
 
+    using key_type = std::tuple<int, int>;
+
   public:
-    data_storage(const key_type& k, std::string name)
-        : x(std::get<0>(k)), y(std::get<1>(k)), name(std::move(name)) {}
+    data_storage(int x, int y, std::string name)
+        : x(x), y(y), name(std::move(name)) {}
+
+    static key_type get_key(int x, int y, const std::string&) {
+      return key_type{x, y};
+    }
   };
 
 public:
@@ -69,14 +72,14 @@ bool simple_interner() {
 
 template <typename T> bool test_interner2() {
   auto intern = ely::interner2<T>{};
-  T d0 = intern.intern(std::tuple{4, 5}, "Hello");
-  T d1 = intern.intern(std::tuple{4, 5}, "Bye");
+  T d0 = intern.intern(4, 5, "Hello");
+  T d1 = intern.intern(4, 5, "Bye");
 
   assert(d0 == d1);
   assert(d0.name() == "Hello");
   assert(d1.name() == "Hello");
 
-  T d2 = intern.intern(std::tuple(5, 4), "Yes");
+  T d2 = intern.intern(5, 4, "Yes");
 
   assert(d2 != d0);
 
