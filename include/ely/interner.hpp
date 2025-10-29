@@ -77,42 +77,4 @@ concept creates_storage = requires(Args&&... args) {
 template <typename Alloc>
 using simple_interner =
     basic_simple_interner<char, std::char_traits<char>, Alloc>;
-
-namespace detail {
-template <typename T> struct llvm_hash {
-  constexpr std::size_t operator()(const T& t) const {
-    using llvm::hash_value;
-    return hash_value(t);
-  }
-};
-} // namespace detail
-
-template <typename T> class interner2 {
-public:
-  using storage_type = typename T::storage_type;
-  using key_type = typename storage_type::key_type;
-
-private:
-  std::unordered_map<key_type, std::unique_ptr<storage_type>,
-                     detail::llvm_hash<key_type>>
-      storage_map_;
-
-public:
-  interner2() = default;
-
-  template <typename... Args> [[nodiscard]] T intern(Args&&... args) {
-    key_type key = storage_type::get_key(static_cast<Args&&>(args)...);
-    auto it = storage_map_.find(key);
-    if (it != storage_map_.end()) {
-      return T(it->second.get());
-    }
-
-    std::unique_ptr<storage_type> storage =
-        std::make_unique<storage_type>(static_cast<Args&&>(args)...);
-
-    storage_type* p = storage.get();
-    storage_map_.emplace(key, std::move(storage));
-    return T(p);
-  }
-};
 } // namespace ely
