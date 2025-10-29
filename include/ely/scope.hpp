@@ -66,6 +66,8 @@ concept scope_set =
       { a.size() } -> std::same_as<std::size_t>;
     };
 
+// TODO: this is currently quite expensive to copy, this should be memoized or
+// uniqued, we'll have to implement a basic_scope_set_storage and similar
 class basic_scope_set {
 public:
   using const_iterator = typename std::set<scope>::const_iterator;
