@@ -44,14 +44,14 @@ public:
 template <typename T> bool test_uniquer() {
 
   auto uniq = ely::uniquer<T>{};
-  T d0 = uniq.get_or_create(4, 5, "Hello");
-  T d1 = uniq.get_or_create(4, 5, "Bye");
+  T d0 = uniq.get_or_emplace(4, 5, "Hello");
+  T d1 = uniq.get_or_emplace(4, 5, "Bye");
 
   assert(d0 == d1);
   assert(d0.name() == "Hello");
   assert(d1.name() == "Hello");
 
-  T d2 = uniq.get_or_create(5, 4, "Yes");
+  T d2 = uniq.get_or_emplace(5, 4, "Yes");
 
   assert(d2 != d0);
 
