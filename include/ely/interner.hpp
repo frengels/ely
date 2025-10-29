@@ -54,26 +54,6 @@ public:
   }
 };
 
-template <typename Ptr, typename T>
-concept dereference_to =
-    std::same_as<typename std::pointer_traits<Ptr>::element_type, T> &&
-    requires(Ptr& p) {
-      typename std::pointer_traits<Ptr>::element_type;
-      typename std::pointer_traits<Ptr>::pointer;
-      { std::to_address(p) } -> std::same_as<T*>;
-      { *p } -> std::same_as<T&>;
-    };
-
-static_assert(dereference_to<int*, int>);
-static_assert(dereference_to<std::unique_ptr<int>, int>);
-
-template <typename T, typename... Args>
-concept creates_storage = requires(Args&&... args) {
-  {
-    T::create_storage(static_cast<Args&&>(args)...)
-  } -> dereference_to<typename T::storage_type>;
-};
-
 template <typename Alloc>
 using simple_interner =
     basic_simple_interner<char, std::char_traits<char>, Alloc>;
