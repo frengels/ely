@@ -11,6 +11,8 @@ namespace detail {
 template <bool B, typename... Ts> union union_storage_impl;
 }
 
+// template <typename... Ts> union union_storage {};
+
 template <typename... Ts>
 using union_storage =
     detail::union_storage_impl<(std::is_trivially_destructible_v<Ts> && ...),
@@ -32,7 +34,7 @@ union union_storage_impl<false, T, Ts...> {
   constexpr union_storage_impl(std::in_place_index_t<I>, Args&&... args)
       : rest_(std::in_place_index<I - 1>, static_cast<Args&&>(args)...) {}
 
-  constexpr ~union_storage_impl() {}
+  constexpr ~union_storage_impl() noexcept {}
 
   template <typename... Args>
   constexpr void emplace(std::in_place_index_t<0>, Args&&... args) {
@@ -43,6 +45,17 @@ union union_storage_impl<false, T, Ts...> {
   constexpr void emplace(std::in_place_index_t<I>, Args&&... args) {
     return rest_.emplace(std::in_place_index<I - 1>,
                          static_cast<Args&&>(args)...);
+  }
+
+  constexpr void destroy(std::in_place_index_t<0>) noexcept {
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+      std::destroy_at(&first_);
+    }
+  }
+
+  template <std::size_t I>
+  constexpr void destroy(std::in_place_index_t<I>) noexcept {
+    return rest_.destroy(std::in_place_index<I - 1>);
   }
 
   constexpr T& get(std::in_place_index_t<0>) & noexcept { return first_; }
