@@ -3,6 +3,7 @@ set(ELY_TEST_FILES
     interner
     stream
     scope
+    union_storage
 )
 
 function(make_test target)
