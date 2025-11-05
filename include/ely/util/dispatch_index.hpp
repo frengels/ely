@@ -72,7 +72,7 @@ all_return_types_same(std::integer_sequence<std::size_t, Is...>) {
 }
 } // namespace detail
 
-template <std::size_t Total, typename Fn, typename Ret>
+template <std::size_t Total, typename Ret, typename Fn>
 ELY_ALWAYS_INLINE constexpr Ret dispatch_index_r(std::size_t index, Fn&& fn) {
   return detail::dispatch_index_impl<Total, 0, Fn, Ret>(index,
                                                         static_cast<Fn&&>(fn));
@@ -84,8 +84,8 @@ dispatch_index(std::size_t index, Fn&& fn) {
   static_assert(
       detail::all_return_types_same<Fn&&>(std::make_index_sequence<Total>{}),
       "All return types must match");
-  return detail::dispatch_index_impl<
-      Total, 0, Fn, std::invoke_result_t<Fn&&, std::in_place_index_t<0>>>(
+  return ely::dispatch_index_r<
+      Total, std::invoke_result_t<Fn&&, std::in_place_index_t<0>>>(
       index, static_cast<Fn&&>(fn));
 }
 } // namespace ely
