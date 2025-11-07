@@ -1,6 +1,5 @@
-#include <boost/variant2.hpp>
-
 #include <ely/util/dispatch_index.hpp>
+#include <ely/util/variant.hpp>
 
 struct empty_t {};
 
@@ -16,9 +15,10 @@ void variant() {
   assert(test_dispatch());
   static_assert(test_dispatch());
   // this should really be equal in size as it doesn't require an index
-  // static_assert(sizeof(boost::variant<int>) == sizeof(int));
+  static_assert(sizeof(ely::variant<int>) == sizeof(int));
 
-  // static_assert(std::is_empty_v<empty_t>);
+  static_assert(std::is_empty_v<empty_t>);
+  // TODO doesn't work with std::tuple's implementation
   // static_assert(std::is_empty_v<std::variant<empty_t>>);
 }
 
