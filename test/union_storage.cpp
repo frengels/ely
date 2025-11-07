@@ -3,6 +3,10 @@
 #include <cassert>
 #include <type_traits>
 
+struct empty0 {};
+struct empty1 {};
+struct empty2 {};
+
 void union_storage() {
   {
     auto u0 = ely::union_storage<int>(std::in_place_index<0>, 5);
@@ -33,6 +37,12 @@ void union_storage() {
     assert(u0.get(std::in_place_index<1>) == "Hello world");
     u0.destroy(std::in_place_index<1>);
   }
+
+  static_assert(std::is_empty_v<ely::union_storage<>>);
+  // TODO: doesn't work until std::tuple has this zero size optimization
+  //   static_assert(std::is_empty_v<ely::union_storage<empty0, empty1,
+  //   empty2>);
+  static_assert(sizeof(ely::union_storage<empty0, empty1, empty2>) == 1);
 }
 
 #ifndef NO_MAIN

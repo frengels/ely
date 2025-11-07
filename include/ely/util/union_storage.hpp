@@ -137,144 +137,131 @@ public:
     }
   }
 };
-} // namespace detail
 
-template <typename... Ts>
-using union_storage = detail::union_storage_impl<Ts...>;
+class union_storage_empty {};
 
-namespace detail {
-// for use in a variant with a single element
-template <std::size_t I> class constant_index {
-public:
-  constant_index() = default;
-
-  constexpr std::size_t operator()() const { return I; }
-};
-
-template <std::uint64_t I> constexpr auto get_index_type_impl() {
-  if constexpr (I < std::numeric_limits<std::uint8_t>::max()) {
-    return std::uint8_t{};
-  } else if constexpr (I < std::numeric_limits<std::uint16_t>::max()) {
-    return std::uint16_t{};
-  } else if constexpr (I < std::numeric_limits<std::uint32_t>::max()) {
-    return std::uint32_t{};
-  } else {
-    return std::uint64_t{};
-  }
-}
-
-template <typename I, I... Is>
-constexpr std::array<I, sizeof...(Is)>
-integer_sequence_to_array(std::integer_sequence<I, Is...>) {
-  return std::array<I, sizeof...(Is)>{Is...};
-}
-
-template <typename T, std::size_t N>
-constexpr bool contains(const std::array<T, N>& arr, const T& val) {
-  std::find(arr.begin(), arr.end(), val) != arr.end();
-}
-
-template <std::size_t N>
-constexpr std::size_t rmap(const std::array<std::size_t, N>& arr,
-                           std::size_t idx) {
-  auto it = std::find(arr.begin(), arr.end(), idx);
-  assert(it != arr.end());
-  return std::distance(arr.begin(), it);
-}
-} // namespace detail
-
-template <std::uint64_t I>
-using get_index_type_t = decltype(detail::get_index_type_impl<I>());
-
-namespace detail {
-template <typename BaseT, typename... Ts> class variant_interface {
-public:
-  variant_interface() = default;
+template <typename... Ts> class union_storage_zero_size {
+  static_assert((std::is_empty_v<Ts> && ...), "All Ts must be zero size");
+  static_assert((std::is_trivially_default_constructible_v<Ts> && ...),
+                "All Ts must be trivially default constructible");
+  static_assert((std::is_trivially_destructible_v<Ts> && ...),
+                "All Ts must be trivially destructible");
 
 private:
-  constexpr auto& base() & noexcept { return static_cast<BaseT&>(*this); }
-
-  constexpr const auto& base() const& noexcept {
-    return static_cast<const BaseT&>(*this);
-  }
-
-  constexpr auto&& base() && noexcept { return static_cast<BaseT&&>(*this); }
-
-  constexpr const auto&& base() const&& noexcept {
-    return static_cast<const BaseT&&>(*this);
-  }
-};
-
-template <bool B, typename... Ts> class variant_base_impl;
-
-template <typename... Ts>
-using variant_base =
-    variant_base_impl<(std::is_trivially_destructible_v<Ts> && ...), Ts...>;
-
-template <std::size_t I, typename T> struct vmap;
-
-template <std::size_t... Is, typename... Ts>
-class variant_base_impl<true, vmap<Is, Ts>...> {
-private:
-  inline static constexpr std::array<std::size_t, sizeof...(Is)> index_mapping =
-      integer_sequence_to_array(std::integer_sequence<std::size_t, Is...>{});
-
-  template <std::size_t I>
-  inline static constexpr bool holds_index = detail::contains(index_mapping, I);
+  [[no_unique_address]] std::tuple<Ts...> impl_;
 
 public:
-  using index_type = get_index_type_t<std::max(Is...)>;
-
-private:
-  [[no_unique_address]] union_storage<Ts...> store_;
-  [[no_unique_address]] index_type idx_;
-
-public:
-  constexpr variant_base_impl()
-      : store_(std::in_place_index<0>), idx_(index_mapping[0]) {}
+  union_storage_zero_size() = default;
 
   template <std::size_t I, typename... Args>
-    requires(holds_index<I>)
-  constexpr explicit variant_base_impl(std::in_place_index_t<I>, Args&&... args)
-      : store_(std::in_place_index<rmap(index_mapping, I)>,
-               static_cast<Args&&>(args)...) {}
+  explicit constexpr union_storage_zero_size(std::in_place_index_t<I>,
+                                             Args&&... args) {
+    // not getting stored due to being zero sized
+    std::tuple_element_t<I, std::tuple<Ts...>>(static_cast<Args&&>(args)...);
+  }
 
-  constexpr std::size_t index() const noexcept { return idx_; }
+  template <typename T, typename... Args>
+  explicit constexpr union_storage_zero_size(std::in_place_type_t<T>,
+                                             Args&&... args) {
+    // TODO: check tuple contains element
+    T(static_cast<Args&&>(args)...);
+  }
+
+  constexpr ~union_storage_zero_size() noexcept
+    requires(!(std::is_trivially_destructible_v<Ts> && ...))
+  {}
+
+  ~union_storage_zero_size()
+    requires((std::is_trivially_destructible_v<Ts> && ...))
+  = default;
 
   template <std::size_t I>
-    requires(holds_index<I>)
-  constexpr auto& get_unchecked(std::in_place_index_t<I>) & noexcept {
-    return store_.get(std::in_place_index<rmap(index_mapping, I)>);
+  constexpr auto& get(std::in_place_index_t<I>) & noexcept {
+    return std::get<I>(impl_);
   }
 
   template <std::size_t I>
-    requires(holds_index<I>)
-  constexpr const auto&
-  get_unchecked(std::in_place_index_t<I>) const& noexcept {
-    return store_.get(std::in_place_index<rmap(index_mapping, I)>);
+  constexpr const auto& get(std::in_place_index_t<I>) const& noexcept {
+    return std::get<I>(impl_);
   }
 
   template <std::size_t I>
-    requires(holds_index<I>)
-  constexpr auto&& get_unchecked(std::in_place_index_t<I>) && noexcept {
-    return std::move(store_).get(std::in_place_index<rmap(index_mapping, I)>);
+  constexpr auto&& get(std::in_place_index_t<I>) && noexcept {
+    return std::get<I>(std::move(impl_));
   }
 
   template <std::size_t I>
-    requires(holds_index<I>)
-  constexpr const auto&&
-  get_unchecked(std::in_place_index_t<I>) const&& noexcept {
-    return std::move(store_).get(std::in_place_index<rmap(index_mapping, I)>);
+  constexpr const auto&& get(std::in_place_index_t<I>) const&& noexcept {
+    return std::get<I>(std::move(impl_));
   }
 
   template <std::size_t I, typename... Args>
-    requires(holds_index<I>)
-  constexpr void emplace_unchecked(Args&&... args) {
-    store_.emplace(std::in_place_index<rmap(index_mapping, I)>,
-                   static_cast<Args&&>(args)...);
-    idx_ = I;
+  constexpr void emplace(std::in_place_index_t<I> i, Args&&... args) {
+    std::construct_at(std::addressof(get<I>(i)), static_cast<Args&&>(args)...);
+  }
+
+  template <std::size_t I>
+  constexpr void destroy(std::in_place_index_t<I> i) noexcept {
+    std::destroy_at(std::addressof(get<I>(i)));
   }
 };
-
 } // namespace detail
+
+template <typename... Ts> class union_storage {
+private:
+  using impl_type = std::conditional_t<
+      sizeof...(Ts) == 0, detail::union_storage_empty,
+      std::conditional_t<(std::is_empty_v<Ts> && ...) &&
+                             (std::is_trivially_default_constructible_v<Ts> &&
+                              ...) &&
+                             (std::is_trivially_destructible_v<Ts> && ...),
+                         detail::union_storage_zero_size<Ts...>,
+                         detail::union_storage_impl<Ts...>>>;
+
+private:
+  [[no_unique_address]] impl_type impl_;
+
+public:
+  template <std::size_t I, typename... Args>
+  explicit constexpr union_storage(std::in_place_index_t<I> i, Args&&... args)
+      : impl_(i, static_cast<Args&&>(args)...) {}
+
+  ~union_storage() = default;
+
+  template <std::size_t I>
+    requires(I < sizeof...(Ts))
+  constexpr auto& get(std::in_place_index_t<I> i) & noexcept {
+    return impl_.get(i);
+  }
+
+  template <std::size_t I>
+    requires(I < sizeof...(Ts))
+  constexpr const auto& get(std::in_place_index_t<I> i) const& noexcept {
+    return impl_.get(i);
+  }
+
+  template <std::size_t I>
+    requires(I < sizeof...(Ts))
+  constexpr auto&& get(std::in_place_index_t<I> i) && noexcept {
+    return std::move(impl_).get(i);
+  }
+
+  template <std::size_t I>
+    requires(I < sizeof...(Ts))
+  constexpr const auto&& get(std::in_place_index_t<I> i) const&& noexcept {
+    return std::move(impl_).get(i);
+  }
+
+  template <std::size_t I, typename... Args>
+    requires(I < sizeof...(Ts))
+  constexpr void emplace(std::in_place_index_t<I> i, Args&&... args) {
+    impl_.emplace(i, static_cast<Args&&>(args)...);
+  }
+
+  template <std::size_t I>
+    requires(I < sizeof...(Ts))
+  constexpr void destroy(std::in_place_index_t<I> i) noexcept {
+    impl_.destroy(i);
+  }
+};
 } // namespace ely
