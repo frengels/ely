@@ -3,14 +3,15 @@
 #include <ely/config.hpp>
 
 #include <functional>
+#include <type_traits>
 
 namespace ely {
 namespace detail {
 template <std::size_t I, std::size_t Max, typename Fn, typename Ret>
   requires(I < Max)
 ELY_ALWAYS_INLINE constexpr Ret dispatch_on(Fn&& fn) noexcept(
-    noexcept(static_cast<Fn&&>(fn)(std::in_place_index<I>))) {
-  return static_cast<Fn&&>(fn)(std::in_place_index<I>);
+    std::is_nothrow_invocable_r_v<Ret, Fn&&, std::in_place_index_t<I>>) {
+  return std::invoke(static_cast<Fn&&>(fn), std::in_place_index<I>);
 }
 
 template <std::size_t I, std::size_t Max, typename Fn, typename Ret>
@@ -72,7 +73,7 @@ all_return_types_same(std::integer_sequence<std::size_t, Is...>) {
 }
 } // namespace detail
 
-template <std::size_t Total, typename Ret, typename Fn>
+template <typename Ret, std::size_t Total, typename Fn>
 ELY_ALWAYS_INLINE constexpr Ret dispatch_index_r(std::size_t index, Fn&& fn) {
   return detail::dispatch_index_impl<Total, 0, Fn, Ret>(index,
                                                         static_cast<Fn&&>(fn));
@@ -85,7 +86,7 @@ dispatch_index(std::size_t index, Fn&& fn) {
       detail::all_return_types_same<Fn&&>(std::make_index_sequence<Total>{}),
       "All return types must match");
   return ely::dispatch_index_r<
-      Total, std::invoke_result_t<Fn&&, std::in_place_index_t<0>>>(
+      std::invoke_result_t<Fn&&, std::in_place_index_t<0>>, Total>(
       index, static_cast<Fn&&>(fn));
 }
 } // namespace ely
