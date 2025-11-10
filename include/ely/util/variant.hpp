@@ -151,9 +151,9 @@ public:
   constexpr ~variant() noexcept
     requires(!(std::is_trivially_destructible_v<Ts> && ...))
   {
-    ely::dispatch_index_r<sizeof...(Ts), void>(
+    ely::dispatch_index_r<void, sizeof...(Ts)>(
         index(), [&]<std::size_t I>(std::in_place_index_t<I> i) noexcept {
-          std::destroy_at(this->get_unchecked(i));
+          std::destroy_at(std::addressof(this->get_unchecked(i)));
         });
   }
 
@@ -208,33 +208,4 @@ public:
     return get_unchecked(i);
   }
 };
-
-namespace detail {
-template <typename V> struct is_ely_variant_impl : std::false_type {};
-
-template <typename... Ts>
-struct is_ely_variant_impl<::ely::variant<Ts...>> : std::true_type {};
-
-template <typename V>
-struct is_ely_variant : is_ely_variant_impl<std::remove_cvref_t<V>> {};
-} // namespace detail
-
-template <typename R, typename Visitor, typename Variant>
-  requires(detail::is_ely_variant<Variant>::value)
-constexpr R visit(Visitor&& fn, Variant&& v) {
-  return ely::dispatch_index_r<R, std::remove_cvref_t<Variant>::size()>(
-      v.index(), [&]<std::size_t I>(std::in_place_index_t<I> i) -> R {
-        return static_cast<Visitor&&>(fn)(
-            static_cast<Variant&&>(v).get_unchecked(i));
-      });
-}
-
-template <typename Visitor, typename Variant>
-  requires(detail::is_ely_variant<Variant>::value)
-constexpr auto visit(Visitor&& fn, Variant&& v) {
-  using return_type = decltype(static_cast<Visitor&&>(fn)(
-      static_cast<Variant&&>(v).get_unchecked(std::in_place_index<0>)));
-  return visit<return_type>(static_cast<Visitor&&>(fn),
-                            static_cast<Variant&&>(v));
-}
 } // namespace ely
