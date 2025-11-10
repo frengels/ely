@@ -5,6 +5,7 @@
 #include "union_storage.hpp"
 
 #include <cassert>
+#include <concepts>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
@@ -47,6 +48,12 @@ public:
 
 namespace ely {
 namespace detail {
+template <typename T, typename... Ts>
+inline constexpr std::size_t find_index_v = [] {
+  constexpr bool vs[] = {std::is_same_v<T, Ts>...};
+  auto it = std::find(std::begin(vs), std::end(vs), true);
+  return std::distance(std::begin(vs), it);
+}();
 
 template <std::size_t I>
 using get_index_type_t = std::conditional_t<
@@ -72,6 +79,13 @@ public:
     requires(I < sizeof...(Ts))
   explicit constexpr variant(std::in_place_index_t<I> i, Args&&... args)
       : store_(i, static_cast<Args&&>(args)...), idx_(I) {}
+
+  template <typename T, typename... Args>
+    requires(detail::find_index_v<T, Ts...> != sizeof...(Ts) &&
+             std::constructible_from<T, Args...>)
+  explicit constexpr variant(std::in_place_type_t<T>, Args&&... args)
+      : variant(std::in_place_index<detail::find_index_v<T, Ts...>>,
+                static_cast<Args&&>(args)...) {}
 
   constexpr variant(const variant& other) noexcept(
       (std::is_nothrow_copy_constructible_v<Ts> && ...))
@@ -167,6 +181,31 @@ public:
     return static_cast<std::size_t>(idx_);
   }
 
+  friend constexpr bool operator==(const variant& lhs,
+                                   const variant& rhs) noexcept {
+    if (lhs.index() != rhs.index()) {
+      return false;
+    }
+
+    return ely::dispatch_index_r<bool, sizeof...(Ts)>(
+        lhs.index(), [&]<std::size_t I>(std::in_place_index_t<I> i) -> bool {
+          const auto& lhs_x = lhs.get_unchecked(i);
+          const auto& rhs_x = rhs.get_unchecked(i);
+          return lhs_x == rhs_x;
+        });
+  }
+
+  template <typename T>
+    requires(ely::any_of<T, Ts...>)
+  friend constexpr bool operator==(const variant& lhs, const T& rhs) {
+    constexpr auto idx = detail::find_index_v<T, Ts...>;
+    if (lhs.index() != idx) {
+      return false;
+    }
+
+    return lhs.get_unchecked(std::in_place_index<idx>) == rhs;
+  }
+
   template <std::size_t I>
     requires(I < sizeof...(Ts))
   constexpr auto& get_unchecked(std::in_place_index_t<I> i) & noexcept {
@@ -191,9 +230,37 @@ public:
 
   template <std::size_t I>
     requires(I < sizeof...(Ts))
-  constexpr auto&& get_unchecked(std::in_place_index_t<I> i) const&& noexcept {
+  constexpr const auto&&
+  get_unchecked(std::in_place_index_t<I> i) const&& noexcept {
     assert(I == index());
     return std::move(store_).get(i);
+  }
+
+  template <typename T>
+    requires(ely::any_of<T, Ts...>)
+  constexpr auto& get_unchecked(std::in_place_type_t<T>) & noexcept {
+    return get_unchecked(std::in_place_index<detail::find_index_v<T, Ts...>>);
+  }
+
+  template <typename T>
+    requires(ely::any_of<T, Ts...>)
+  constexpr const auto& get_unchecked(std::in_place_type_t<T>) const& noexcept {
+    return get_unchecked(std::in_place_index<detail::find_index_v<T, Ts...>>);
+  }
+
+  template <typename T>
+    requires(ely::any_of<T, Ts...>)
+  constexpr auto&& get_unchecked(std::in_place_type_t<T>) && noexcept {
+    return std::move(*this).get_unchecked(
+        std::in_place_index<detail::find_index_v<T, Ts...>>);
+  }
+
+  template <typename T>
+    requires(ely::any_of<T, Ts...>)
+  constexpr const auto&&
+  get_unchecked(std::in_place_type_t<T>) const&& noexcept {
+    return std::move(*this).get_unchecked(
+        std::in_place_index<detail::find_index_v<T, Ts...>>);
   }
 
   template <std::size_t I, typename... Args>

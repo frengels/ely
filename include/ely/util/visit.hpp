@@ -22,4 +22,6 @@ constexpr decltype(auto) visit(Visitor&& fn, Variant&& v) {
                                           std::declval<Variant&&>()))>;
   return visit<ret_type>(static_cast<Visitor&&>(fn), static_cast<Variant&&>(v));
 }
+
+// TODO: implement lazy_visit that allows continuations
 } // namespace ely

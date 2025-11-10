@@ -3,6 +3,7 @@ set(ELY_TEST_FILES
     interner
     stream
     scope
+    uniquer
     variant
     union_storage
 )

@@ -23,12 +23,12 @@ public:
   using storage_type = data_storage;
 
 private:
-  storage_type* impl_;
+  const storage_type* impl_;
 
 public:
   data() = default;
   // construct from store pointer
-  constexpr data(storage_type* store) : impl_(store) {}
+  constexpr data(const storage_type* store) : impl_(store) {}
 
   // simple pointer equality
   friend constexpr bool operator==(const data& lhs, const data& rhs) {
