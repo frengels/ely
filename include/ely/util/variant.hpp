@@ -1,8 +1,10 @@
 #pragma once
 
+#include "ely/util/concepts.hpp"
 #include "ely/util/dispatch_index.hpp"
+#include "ely/util/resolve_overload.hpp"
+#include "ely/util/traits.hpp"
 #include "ely/util/union_storage.hpp"
-#include "union_storage.hpp"
 
 #include <cassert>
 #include <concepts>
@@ -48,13 +50,6 @@ public:
 
 namespace ely {
 namespace detail {
-template <typename T, typename... Ts>
-inline constexpr std::size_t find_index_v = [] {
-  constexpr bool vs[] = {std::is_same_v<T, Ts>...};
-  auto it = std::find(std::begin(vs), std::end(vs), true);
-  return std::distance(std::begin(vs), it);
-}();
-
 template <std::size_t I>
 using get_index_type_t = std::conditional_t<
     I == 1, constant_zero,
@@ -81,11 +76,19 @@ public:
       : store_(i, static_cast<Args&&>(args)...), idx_(I) {}
 
   template <typename T, typename... Args>
-    requires(detail::find_index_v<T, Ts...> != sizeof...(Ts) &&
+    requires(ely::find_index_v<T, Ts...> != sizeof...(Ts) &&
              std::constructible_from<T, Args...>)
   explicit constexpr variant(std::in_place_type_t<T>, Args&&... args)
-      : variant(std::in_place_index<detail::find_index_v<T, Ts...>>,
+      : variant(std::in_place_index<ely::find_index_v<T, Ts...>>,
                 static_cast<Args&&>(args)...) {}
+
+  template <typename U>
+    requires(
+        std::constructible_from<ely::resolve_overload_t<U &&, Ts...>, U &&>)
+  constexpr variant(U&& u) noexcept(
+      std::is_nothrow_constructible_v<ely::resolve_overload_t<U&&, Ts...>>)
+      : variant(std::in_place_index<ely::resolve_overload_index_v<U&&, Ts...>>,
+                static_cast<U&&>(u)) {}
 
   constexpr variant(const variant& other) noexcept(
       (std::is_nothrow_copy_constructible_v<Ts> && ...))
@@ -195,10 +198,9 @@ public:
         });
   }
 
-  template <typename T>
-    requires(ely::any_of<T, Ts...>)
+  template <ely::any_of<Ts...> T>
   friend constexpr bool operator==(const variant& lhs, const T& rhs) {
-    constexpr auto idx = detail::find_index_v<T, Ts...>;
+    constexpr auto idx = ely::find_index_v<T, Ts...>;
     if (lhs.index() != idx) {
       return false;
     }
@@ -236,31 +238,27 @@ public:
     return std::move(store_).get(i);
   }
 
-  template <typename T>
-    requires(ely::any_of<T, Ts...>)
+  template <ely::any_of<Ts...> T>
   constexpr auto& get_unchecked(std::in_place_type_t<T>) & noexcept {
-    return get_unchecked(std::in_place_index<detail::find_index_v<T, Ts...>>);
+    return get_unchecked(std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 
-  template <typename T>
-    requires(ely::any_of<T, Ts...>)
+  template <ely::any_of<Ts...> T>
   constexpr const auto& get_unchecked(std::in_place_type_t<T>) const& noexcept {
-    return get_unchecked(std::in_place_index<detail::find_index_v<T, Ts...>>);
+    return get_unchecked(std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 
-  template <typename T>
-    requires(ely::any_of<T, Ts...>)
+  template <ely::any_of<Ts...> T>
   constexpr auto&& get_unchecked(std::in_place_type_t<T>) && noexcept {
     return std::move(*this).get_unchecked(
-        std::in_place_index<detail::find_index_v<T, Ts...>>);
+        std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 
-  template <typename T>
-    requires(ely::any_of<T, Ts...>)
+  template <ely::any_of<Ts...> T>
   constexpr const auto&&
   get_unchecked(std::in_place_type_t<T>) const&& noexcept {
     return std::move(*this).get_unchecked(
-        std::in_place_index<detail::find_index_v<T, Ts...>>);
+        std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 
   template <std::size_t I, typename... Args>
