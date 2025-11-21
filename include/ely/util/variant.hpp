@@ -2,6 +2,7 @@
 
 #include "ely/util/concepts.hpp"
 #include "ely/util/dispatch_index.hpp"
+#include "ely/util/hash.hpp"
 #include "ely/util/resolve_overload.hpp"
 #include "ely/util/traits.hpp"
 #include "ely/util/union_storage.hpp"
