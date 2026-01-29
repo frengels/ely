@@ -273,5 +273,7 @@ public:
     idx_ = I;
     return get_unchecked(i);
   }
+
+  // TODO: implement swap
 };
 } // namespace ely
