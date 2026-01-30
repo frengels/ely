@@ -16,7 +16,7 @@ template <> struct overload<> {
 template <typename T, typename... Rest>
 struct overload<T, Rest...> : overload<Rest...> {
   using overload<Rest...>::operator();
-  std::type_identity_t<T> operator()(T) const;
+  std::type_identity<T> operator()(T) const;
 };
 } // namespace detail
 
