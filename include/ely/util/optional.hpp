@@ -42,6 +42,10 @@ public:
   explicit(!std::is_convertible_v<U, T>) constexpr just(U&& u)
       : val_(static_cast<U&&>(u)) {}
 
+  template <typename Self> constexpr decltype(auto) value(this Self&& self) {
+    return (static_cast<Self&&>(self).val_);
+  }
+
   template <typename Self, typename F>
   constexpr auto transform(this Self&& self, F&& fn) {
     // this is an excellent use of explicit object member functions, eliminating
@@ -64,6 +68,20 @@ public:
     using std::swap;
     swap(val_, other.val_);
   }
+};
+
+template <> class just<void> {
+public:
+  just() = default;
+
+  constexpr just(std::in_place_t) {}
+
+  template <typename F> constexpr auto transform(F&& fn) {
+    return just<std::invoke_result_t<F&&>>(std::invoke(static_cast<F&&>(fn)));
+  }
+
+  // only transform is supported, as or_else would return void and and_then is
+  // implemented in optional
 };
 
 inline constexpr auto nullopt = nullopt_t{};
@@ -133,7 +151,12 @@ public:
       std::invoke_result_t<F&&, decltype(*std::declval<Self&&>())>>
   and_then(this Self&& self, F&& fn) {
     if (self.has_value()) {
-      return std::invoke(static_cast<F&&>(fn), *static_cast<Self&&>(self));
+      if constexpr (std::is_void_v<value_type>) {
+        return std::invoke(static_cast<F&&>(fn));
+      } else {
+        return std::invoke(static_cast<F&&>(fn),
+                           (*static_cast<Self&&>(self)).value());
+      }
     } else {
       return ely::nullopt;
     }
