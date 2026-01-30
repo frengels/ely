@@ -80,6 +80,8 @@ public:
     return just<std::invoke_result_t<F&&>>(std::invoke(static_cast<F&&>(fn)));
   }
 
+  constexpr void value() const {}
+
   // only transform is supported, as or_else would return void and and_then is
   // implemented in optional
 };
@@ -115,7 +117,9 @@ public:
 
   template <typename Self>
   constexpr decltype(auto) operator*(this Self&& self) noexcept {
-    return static_cast<Self&&>(self).get_unchecked(std::in_place_index<1>);
+    return static_cast<Self&&>(self)
+        .get_unchecked(std::in_place_index<1>)
+        .value();
   }
 
   template <typename Self, typename U>
