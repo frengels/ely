@@ -215,56 +215,18 @@ public:
     return lhs.get_unchecked(std::in_place_index<idx>) == rhs;
   }
 
-  template <std::size_t I>
+  template <typename Self, std::size_t I>
     requires(I < sizeof...(Ts))
-  constexpr auto& get_unchecked(std::in_place_index_t<I> i) & noexcept {
-    assert(I == index());
-    return store_.get(i);
+  constexpr decltype(auto) get_unchecked(this Self&& self,
+                                         std::in_place_index_t<I> i) noexcept {
+    assert(I == self.index());
+    return (static_cast<Self&&>(self).store_).get(i);
   }
 
-  template <std::size_t I>
-    requires(I < sizeof...(Ts))
-  constexpr const auto&
-  get_unchecked(std::in_place_index_t<I> i) const& noexcept {
-    assert(I == index());
-    return store_.get(i);
-  }
-
-  template <std::size_t I>
-    requires(I < sizeof...(Ts))
-  constexpr auto&& get_unchecked(std::in_place_index_t<I> i) && noexcept {
-    assert(I == index());
-    return std::move(store_).get(i);
-  }
-
-  template <std::size_t I>
-    requires(I < sizeof...(Ts))
-  constexpr const auto&&
-  get_unchecked(std::in_place_index_t<I> i) const&& noexcept {
-    assert(I == index());
-    return std::move(store_).get(i);
-  }
-
-  template <ely::any_of<Ts...> T>
-  constexpr auto& get_unchecked(std::in_place_type_t<T>) & noexcept {
-    return get_unchecked(std::in_place_index<ely::find_index_v<T, Ts...>>);
-  }
-
-  template <ely::any_of<Ts...> T>
-  constexpr const auto& get_unchecked(std::in_place_type_t<T>) const& noexcept {
-    return get_unchecked(std::in_place_index<ely::find_index_v<T, Ts...>>);
-  }
-
-  template <ely::any_of<Ts...> T>
-  constexpr auto&& get_unchecked(std::in_place_type_t<T>) && noexcept {
-    return std::move(*this).get_unchecked(
-        std::in_place_index<ely::find_index_v<T, Ts...>>);
-  }
-
-  template <ely::any_of<Ts...> T>
-  constexpr const auto&&
-  get_unchecked(std::in_place_type_t<T>) const&& noexcept {
-    return std::move(*this).get_unchecked(
+  template <typename Self, ely::any_of<Ts...> T>
+  constexpr decltype(auto) get_unchecked(this Self&& self,
+                                         std::in_place_type_t<T>) noexcept {
+    return static_cast<Self&&>(self).get_unchecked(
         std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 
