@@ -68,7 +68,12 @@ public:
 
   template <std::size_t I, typename... Args>
   constexpr void emplace(std::in_place_index_t<I> i, Args&&... args) {
-    std::construct_at(std::addressof(get(i)), static_cast<Args&&>(args)...);
+    // this saves having to determine T
+    auto remove_const = []<typename T>(const T& t) -> T& {
+      return const_cast<T&>(t);
+    };
+    std::construct_at(std::addressof(remove_const(get(i))),
+                      static_cast<Args&&>(args)...);
   }
 
   template <std::size_t I>
