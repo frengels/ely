@@ -5,7 +5,22 @@
 #include <variant>
 
 namespace ely {
+
+namespace detail {
+// used for derived types
+template <typename... Ts>
+auto as_variant(const ely::variant<Ts...>&) -> ely::variant<Ts...>;
+
+template <typename... Ts>
+auto as_variant(const std::variant<Ts...>&) -> std::variant<Ts...>;
+} // namespace detail
+
 template <typename> struct variant_size {};
+
+template <typename V>
+  requires requires(const V& v) { detail::as_variant(v); }
+struct variant_size<V>
+    : variant_size<decltype(detail::as_variant(std::declval<const V&>()))> {};
 
 template <typename... Ts>
 struct variant_size<ely::variant<Ts...>>

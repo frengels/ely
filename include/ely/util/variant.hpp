@@ -167,7 +167,8 @@ public:
   = default;
 
   constexpr ~variant() noexcept
-    requires(!(std::is_trivially_destructible_v<Ts> && ...))
+    requires((std::is_destructible_v<Ts> && ...) &&
+             !(std::is_trivially_destructible_v<Ts> && ...))
   {
     ely::dispatch_index_r<void, sizeof...(Ts)>(
         index(), [&]<std::size_t I>(std::in_place_index_t<I> i) noexcept {
@@ -176,8 +177,13 @@ public:
   }
 
   ~variant()
-    requires((std::is_trivially_destructible_v<Ts> && ...))
+    requires((std::is_destructible_v<Ts> && ...) &&
+             (std::is_trivially_destructible_v<Ts> && ...))
   = default;
+
+  ~variant()
+    requires(!(std::is_destructible_v<Ts> && ...))
+  = delete;
 
   static constexpr std::size_t size() noexcept { return sizeof...(Ts); }
 
@@ -277,3 +283,5 @@ public:
   // TODO: implement swap
 };
 } // namespace ely
+
+#include "ely/util/visit.hpp"
