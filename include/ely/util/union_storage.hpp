@@ -79,13 +79,13 @@ public:
   template <std::size_t I>
   constexpr const auto& get(std::in_place_index_t<I>) const& noexcept {
     if constexpr (I == 0) {
-      return t0_;
+      return static_cast<const T0&>(t0_);
     } else if constexpr (I == 1) {
-      return t1_;
+      return static_cast<const T1&>(t1_);
     } else if constexpr (I == 2) {
-      return t2_;
+      return static_cast<const T2&>(t2_);
     } else if constexpr (I == 3) {
-      return t3_;
+      return static_cast<const T3&>(t3_);
     } else {
       return rest_.get(std::in_place_index<I - 4>);
     }
@@ -94,13 +94,13 @@ public:
   template <std::size_t I>
   constexpr auto& get(std::in_place_index_t<I>) & noexcept {
     if constexpr (I == 0) {
-      return t0_;
+      return static_cast<T0&>(t0_);
     } else if constexpr (I == 1) {
-      return t1_;
+      return static_cast<T1&>(t1_);
     } else if constexpr (I == 2) {
-      return t2_;
+      return static_cast<T2&>(t2_);
     } else if constexpr (I == 3) {
-      return t3_;
+      return static_cast<T3&>(t3_);
     } else {
       return rest_.get(std::in_place_index<I - 4>);
     }
@@ -208,6 +208,10 @@ public:
 } // namespace detail
 
 template <typename... Ts> class union_storage {
+  static_assert((!std::is_reference_v<Ts> && ...),
+                "union_storage cannot hold references due to UB with "
+                "assignment and comparison.");
+
 private:
   using impl_type = std::conditional_t<
       sizeof...(Ts) == 0, detail::union_storage_empty,
