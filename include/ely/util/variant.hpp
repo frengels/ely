@@ -2,13 +2,11 @@
 
 #include "ely/util/concepts.hpp"
 #include "ely/util/dispatch_index.hpp"
-#include "ely/util/hash.hpp"
 #include "ely/util/resolve_overload.hpp"
 #include "ely/util/traits.hpp"
 #include "ely/util/union_storage.hpp"
 
 #include <cassert>
-#include <concepts>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
@@ -116,8 +114,8 @@ public:
   constexpr variant(variant&& other) noexcept(
       (std::is_nothrow_move_constructible_v<Ts> && ...))
     requires(!(std::is_trivially_move_constructible_v<Ts> && ...))
-      : store_([&]() -> union_storage<Ts...> {
-          return ely::dispatch_index_r<sizeof...(Ts),
+      : store_([&] -> union_storage<Ts...> {
+          return ely::dispatch_index_r<union_storage<Ts...>, sizeof...(Ts),
                                        ely::union_storage<Ts...>>(
               other.index(),
               [&]<std::size_t I>(
@@ -245,5 +243,3 @@ public:
   // TODO: implement swap
 };
 } // namespace ely
-
-#include "ely/util/visit.hpp"
