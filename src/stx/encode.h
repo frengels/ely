@@ -91,8 +91,20 @@ ELY_ALWAYS_INLINE static size_t encode_identifier(uint8_t* out, size_t num) {
   return 2;
 }
 
+ELY_ALWAYS_INLINE static size_t encode_integer_lit(uint8_t* out, size_t num) {
+  *out++ = ELY_TOKEN_INTEGER_LIT;
+  *out = num;
+  return 2;
+}
+
 ELY_ALWAYS_INLINE static size_t encode_decimal_lit(uint8_t* out, size_t num) {
   *out++ = ELY_TOKEN_DECIMAL_LIT;
+  *out = num;
+  return 2;
+}
+
+ELY_ALWAYS_INLINE static size_t encode_string_lit(uint8_t* out, size_t num) {
+  *out++ = ELY_TOKEN_STRING_LIT;
   *out = num;
   return 2;
 }

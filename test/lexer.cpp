@@ -44,6 +44,8 @@ constexpr int lexer() {
   std::uint8_t buffer[1024];
   std::uint8_t expected[1024];
 
+  const char terminate = '\0';
+
   {
     {
       auto expected_len = encode_whitespace(expected, 4);
@@ -144,11 +146,54 @@ constexpr int lexer() {
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      char terminate = '\0';
       expected_len = encode_identifier(expected, 0);
       expected_len += encode_eof(expected + expected_len);
       res = ely::stx::lex(std::string_view{&terminate, 1}, buffer,
                           buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+    }
+    {
+      // decimal literal with spill
+      std::string_view num[] = {"123.", "45"};
+
+      auto expected_len =
+          encode_spill(expected, num[0].size(), CONT_DECIMAL_LIT);
+      auto res = ely::stx::lex(num[0], buffer);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      // continuing after the dot should be in decimal mode
+      expected_len = encode_spill(expected, num[1].size(), CONT_DECIMAL_LIT);
+      res = ely::stx::lex(num[1], buffer, buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      expected_len = encode_decimal_lit(expected, 0);
+      expected_len += encode_eof(expected + expected_len);
+      res = ely::stx::lex(std::string_view{&terminate, 1}, buffer,
+                          buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+    }
+    {
+      // string literal with spill
+      std::string_view str[] = {"\"Hello, ", "world!\""};
+
+      auto expected_len =
+          encode_spill(expected, str[0].size(), CONT_STRING_LIT);
+      auto res = ely::stx::lex(str[0], buffer);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      expected_len = encode_string_lit(expected, str[1].size());
+      expected_len += encode_spill(expected + expected_len, 0, CONT_START);
+      res = ely::stx::lex(str[1], buffer, buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      expected_len = encode_eof(expected);
+      res = ely::stx::lex(std::string_view{&terminate, 1}, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }

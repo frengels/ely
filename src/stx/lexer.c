@@ -44,6 +44,9 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       [CONT_TAB] = &&tab,
       [CONT_NEWLINE_CR] = &&newline_cr,
       [CONT_IDENTIFIER] = &&identifier,
+      [CONT_DECIMAL_LIT] = &&decimal,
+      [CONT_INTEGER_LIT] = &&number,
+      [CONT_STRING_LIT] = &&string_lit,
   };
 
   static const void* dispatch[256] = {
@@ -54,7 +57,7 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       ['\r'] = &&newline_cr,
       [' '] = &&whitespace,
       ['!'] = &&exclamation,
-      ['"'] = &&start_string,
+      ['"'] = &&string_lit,
       ['#'] = &&number_sign,
       ['$'] = &&dollar,
       ['%'] = &&percent,
@@ -109,12 +112,12 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
 
 #define COMP_DISPATCH()                                                        \
   do {                                                                         \
+    tok_start = it;                                                            \
     CHECK_DO_SPILL(CONT_START);                                                \
     if ((out_buffer + out_buffer_len - out) < 4) {                             \
       out += encode_buffer_full(out);                                          \
       return out - out_buffer;                                                 \
     }                                                                          \
-    tok_start = it;                                                            \
     goto* dispatch[*it++];                                                     \
   } while (false)
 
@@ -175,9 +178,44 @@ identifier:
   }
   DO_SPILL(CONT_IDENTIFIER);
 number:
+  for (; it != end; ++it) {
+    if (*it == '.') {
+      ++it;
+      goto*&& decimal;
+    } else if (is_delimiter(*it)) {
+      out += encode_integer_lit(out, it - tok_start);
+      COMP_DISPATCH();
+    } else if (!is_digit(*it)) {
+      ++it;
+      goto*&& identifier;
+    }
+  }
+decimal:
+  for (; it != end; ++it) {
+    if (is_delimiter(*it)) {
+      out += encode_decimal_lit(out, it - tok_start);
+      COMP_DISPATCH();
+    } else if (!is_digit(*it)) {
+      ++it;
+      // identifier now
+      goto*&& identifier;
+    }
+  }
+
+  DO_SPILL(CONT_DECIMAL_LIT);
+string_lit:
+  // skipped starting "
+  for (; it != end; ++it) {
+    // TODO: handle escapes
+    if (*it == '"') {
+      ++it;
+      out += encode_string_lit(out, it - tok_start);
+      COMP_DISPATCH();
+    }
+  }
+  DO_SPILL(CONT_STRING_LIT);
 
 exclamation:
-start_string:
 number_sign:
 dollar:
 percent:
