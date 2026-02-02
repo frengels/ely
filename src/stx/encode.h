@@ -109,9 +109,10 @@ ELY_ALWAYS_INLINE static size_t encode_string_lit(uint8_t* out, size_t num) {
   return 2;
 }
 
-ELY_ALWAYS_INLINE static size_t encode_unknown(uint8_t* out) {
-  *out = ELY_TOKEN_UNKNOWN;
-  return 1;
+ELY_ALWAYS_INLINE static size_t encode_unknown(uint8_t* out, size_t len) {
+  *out++ = ELY_TOKEN_UNKNOWN;
+  *out = len;
+  return 2;
 }
 
 ELY_ALWAYS_INLINE static size_t encode_spill(uint8_t* out, size_t num,

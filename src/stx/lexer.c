@@ -47,6 +47,9 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       [CONT_DECIMAL_LIT] = &&decimal,
       [CONT_INTEGER_LIT] = &&number,
       [CONT_STRING_LIT] = &&string_lit,
+      [CONT_UNICODE4] = &&unicode4,
+      [CONT_UNICODE3] = &&unicode3,
+      [CONT_UNICODE2] = &&unicode2,
   };
 
   static const void* dispatch[256] = {
@@ -68,7 +71,7 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       ['*'] = &&asterisk,
       ['+'] = &&plus,
       [','] = &&comma,
-      ['-'] = &&minus,
+      ['-'] = &&identifier,
       ['.'] = &&period,
       ['/'] = &&slash,
       ['0' ... '9'] = &&number,
@@ -103,17 +106,12 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
     return out - out_buffer;                                                   \
   } while (false)
 
-#define CHECK_DO_SPILL(id)                                                     \
-  do {                                                                         \
-    if (it == end) {                                                           \
-      DO_SPILL(id);                                                            \
-    }                                                                          \
-  } while (false)
-
 #define COMP_DISPATCH()                                                        \
   do {                                                                         \
     tok_start = it;                                                            \
-    CHECK_DO_SPILL(CONT_START);                                                \
+    if (it == end) {                                                           \
+      DO_SPILL(CONT_START);                                                    \
+    }                                                                          \
     if ((out_buffer + out_buffer_len - out) < 4) {                             \
       out += encode_buffer_full(out);                                          \
       return out - out_buffer;                                                 \
@@ -146,7 +144,9 @@ newline_lf:
   out += encode_newline_lf(out);
   COMP_DISPATCH();
 newline_cr:
-  CHECK_DO_SPILL(CONT_NEWLINE_CR);
+  if (it == end) {
+    DO_SPILL(CONT_NEWLINE_CR);
+  }
   if (*it == '\n') {
     ++it;
     out += encode_newline_crlf(out);
@@ -214,7 +214,24 @@ string_lit:
     }
   }
   DO_SPILL(CONT_STRING_LIT);
-
+unicode4:
+  if (it == end) {
+    DO_SPILL(CONT_UNICODE4);
+  }
+  ++it;
+  // fallthrough to unicode3
+unicode3:
+  if (it == end) {
+    DO_SPILL(CONT_UNICODE3);
+  }
+  ++it;
+  // fallthrough to unicode2
+unicode2:
+  if (it == end) {
+    DO_SPILL(CONT_UNICODE2);
+  }
+  ++it;
+  // fallthrough to unknown
 exclamation:
 number_sign:
 dollar:
@@ -224,7 +241,6 @@ single_quote:
 asterisk:
 plus:
 comma:
-minus:
 period:
 colon:
 start_comment:
@@ -240,11 +256,8 @@ lbrace:
 vbar:
 rbrace:
 tilde:
-unicode2:
-unicode3:
-unicode4:
 unknown:
-  out += encode_unknown(out);
+  out += encode_unknown(out, it - tok_start);
   COMP_DISPATCH();
 eof:
   out += encode_eof(out);
