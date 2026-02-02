@@ -1,0 +1,56 @@
+#ifndef TOKEN
+#error TOKEN(_) must be defined
+#endif
+
+#ifndef TOKEN2
+#define TOKEN2(x, c) TOKEN(x)
+#endif
+
+TOKEN2(WHITESPACE, ' ')
+TOKEN2(TAB, '\t')
+TOKEN2(NEWLINE_LF, '\n')
+TOKEN2(NEWLINE_CR, '\r')
+TOKEN(NEWLINE_CRLF)
+TOKEN2(LINE_COMMENT, ';')
+TOKEN(BLOCK_COMMENT)
+
+TOKEN2(LPAREN, '(')
+TOKEN2(RPAREN, ')')
+TOKEN2(LBRACKET, '[')
+TOKEN2(RBRACKET, ']')
+TOKEN2(LBRACE, '{')
+TOKEN2(RBRACE, '}')
+
+TOKEN2(QUOTE, '\'')
+TOKEN(QUASIQUOTE)
+TOKEN2(UNQUOTE, ',')
+TOKEN(UNQUOTE_SPLICING)
+TOKEN(SYNTAX)
+TOKEN(QUASISYNTAX)
+TOKEN(UNSYNTAX)
+TOKEN(UNSYNTAX_SPLICING)
+
+TOKEN2(DOLLAR, '$')
+TOKEN2(SLASH, '/')
+
+TOKEN(IDENTIFIER)
+TOKEN(INTEGER_LIT)
+TOKEN(DECIMAL_LIT)
+TOKEN(STRING_LIT)
+
+TOKEN(UNTERMINATED_STRING_LIT)
+TOKEN(UNKNOWN)
+
+// these 3 are the different events the lexer can emit as a last token in the encoded stream
+
+// indicates that '\0' was found and the file is done lexing
+TOKEN2(EOF, '\0')
+// indicate this should be spilled and the next received token will 
+// indicate which this is part of. [... spill], [identifier ...] -> [identifier ...].
+// if present in the buffer it's always as the last token
+TOKEN(SPILL)
+// to signal that the buffer needs to be refreshed
+TOKEN(BUFFER_FULL)
+
+#undef TOKEN
+#undef TOKEN2
