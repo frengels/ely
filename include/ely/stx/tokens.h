@@ -3,15 +3,13 @@
 #include <assert.h>
 #include <stdint.h>
 
-enum ely_token_kind : uint8_t {
+typedef enum ely_token_kind : uint8_t {
 #define TOKEN(x) ELY_TOKEN_##x,
 #define TOKEN2(x, c) ELY_TOKEN_##x = c,
 #include "tokens.def"
 #undef TOKEN
 #undef TOKEN2
-};
-
-static_assert(sizeof(ely_token_kind) == sizeof(uint8_t));
+} ely_token_kind;
 
 static inline bool ely_token_is_newline(ely_token_kind tk) {
   switch (tk) {

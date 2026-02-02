@@ -50,6 +50,7 @@ TOKEN2(EOF, '\0')
 // if present in the buffer it's always as the last token
 TOKEN(SPILL)
 // to signal that the buffer needs to be refreshed
+// also always the final token in the buffer
 TOKEN(BUFFER_FULL)
 
 #undef TOKEN
