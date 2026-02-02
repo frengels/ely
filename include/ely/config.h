@@ -15,7 +15,7 @@
 #endif
 
 #if __has_attribute(always_inline)
-#define ELY_ALWAYS_INLINE __attribute__((always_inline))
+#define ELY_ALWAYS_INLINE inline __attribute__((always_inline))
 #else
-#define ELY_ALWAYS_INLINE
+#define ELY_ALWAYS_INLINE inline
 #endif
