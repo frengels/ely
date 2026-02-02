@@ -80,6 +80,11 @@ ELY_ALWAYS_INLINE static size_t encode_rbrace(uint8_t* out) {
   return 1;
 }
 
+ELY_ALWAYS_INLINE static size_t encode_slash(uint8_t* out) {
+  *out = ELY_TOKEN_SLASH;
+  return 1;
+}
+
 ELY_ALWAYS_INLINE static size_t encode_identifier(uint8_t* out, size_t num) {
   *out++ = ELY_TOKEN_IDENTIFIER;
   *out = num;

@@ -100,6 +100,26 @@ constexpr int lexer() {
       res = ely::stx::lex(tabs, buffer, cont);
       assert(res == expected_len);
     }
+    {
+      auto id = make_src("hello_world");
+      auto expected_len = encode_identifier(expected, id.size() - 1); // for \0
+      expected_len += encode_eof(expected + expected_len);
+      auto res = ely::stx::lex(id, buffer);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+    }
+    {
+      auto id = make_src("var123/other/more");
+      auto expected_len = encode_identifier(expected, 6);
+      expected_len += encode_slash(expected + expected_len);
+      expected_len += encode_identifier(expected + expected_len, 5);
+      expected_len += encode_slash(expected + expected_len);
+      expected_len += encode_identifier(expected + expected_len, 4);
+      expected_len += encode_eof(expected + expected_len);
+      auto res = ely::stx::lex(id, buffer);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+    }
   }
   return 0;
 }

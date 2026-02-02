@@ -114,6 +114,7 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       out += encode_buffer_full(out);                                          \
       return out - out_buffer;                                                 \
     }                                                                          \
+    tok_start = it;                                                            \
     goto* dispatch[*it++];                                                     \
   } while (false)
 
@@ -162,6 +163,9 @@ lbracket:
 rbracket:
   out += encode_rbracket(out);
   COMP_DISPATCH();
+slash:
+  out += encode_slash(out);
+  COMP_DISPATCH();
 identifier:
   for (; it != end; ++it) {
     if (is_delimiter(*it)) {
@@ -184,7 +188,6 @@ plus:
 comma:
 minus:
 period:
-slash:
 colon:
 start_comment:
 less_than:
