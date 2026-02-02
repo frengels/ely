@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ely/config.hpp>
+#include <ely/config.h>
 
 #include <functional>
 #include <type_traits>
