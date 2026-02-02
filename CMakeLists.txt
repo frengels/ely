@@ -27,10 +27,17 @@ find_package(LLVM REQUIRED CONFIG)
 set(SRC
   src/main.cpp)
 
-add_library(ely INTERFACE)
-target_include_directories(ely INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(ely INTERFACE fmt::fmt LLVMSupport)
-target_compile_features(ely INTERFACE cxx_std_23)
+set(LIB_SRC
+  src/stx/lexer.c)
+
+add_library(ely SHARED ${LIB_SRC})
+target_include_directories(ely PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:$<$<BOOL:$<TARGET_PROPERTY:ELY_PRIVATE>>:${CMAKE_CURRENT_SOURCE_DIR}/src>>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(ely PUBLIC fmt::fmt LLVMSupport)
+target_compile_features(ely PUBLIC cxx_std_26)
+target_compile_features(ely PUBLIC c_std_11)
 set_target_properties(ely PROPERTIES CXX_EXTENSIONS OFF)
 
 add_executable(ely_exe ${SRC})
