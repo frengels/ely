@@ -7,6 +7,22 @@
 #include "ely/util/variant.hpp"
 
 namespace ely {
+template <typename T> class optional;
+
+namespace detail {
+template <typename> struct is_optional : std::false_type {};
+template <typename T> struct is_optional<ely::optional<T>> : std::true_type {};
+
+template <typename T>
+inline constexpr bool is_optional_v = is_optional<T>::value;
+
+template <typename F, typename T>
+struct invoke_result_no_void : std::invoke_result<F, T> {};
+template <typename F>
+struct invoke_result_no_void<F, void> : std::invoke_result<F> {};
+template <typename F, typename T>
+using invoke_result_no_void_t = typename invoke_result_no_void<F, T>::type;
+} // namespace detail
 struct nullopt_t {
   nullopt_t() = default;
 
@@ -22,8 +38,21 @@ struct nullopt_t {
     return std::invoke(static_cast<F&&>(fn));
   }
 
+  template <typename F> constexpr decltype(auto) value_or_else(F&& fn) const {
+    return std::invoke(static_cast<F&&>(fn));
+  }
+
   constexpr void swap(nullopt_t&) noexcept {}
 };
+
+template <typename T> class just;
+
+namespace detail {
+template <typename> struct is_just : std::false_type {};
+template <typename T> struct is_just<ely::just<T>> : std::true_type {};
+
+template <typename T> inline constexpr bool is_just_v = is_just<T>::value;
+} // namespace detail
 
 template <typename T> class just {
 private:
@@ -56,11 +85,20 @@ public:
         std::invoke(static_cast<F&&>(fn), (static_cast<Self&&>(self).val_)));
   }
 
-  // can't implement `and_then` here as it has to return an optional which isn't
-  // defined yet.
+  template <typename Self, typename F>
+    requires(detail::is_just_v<
+             std::invoke_result_t<F, decltype((std::declval<Self &&>().val_))>>)
+  constexpr auto and_then(this Self&& self, F&& fn) {
+    return std::invoke(static_cast<F&&>(fn), (static_cast<Self&&>(self).val_));
+  }
 
   template <typename Self, typename F>
   constexpr decltype(auto) or_else(this Self&& self, const F&) {
+    return (static_cast<Self&&>(self).val_);
+  }
+
+  template <typename Self, typename F>
+  constexpr T value_or_else(this Self&& self, const F&) {
     return (static_cast<Self&&>(self).val_);
   }
 
@@ -76,14 +114,15 @@ public:
 
   constexpr just(std::in_place_t) {}
 
-  template <typename F> constexpr auto transform(F&& fn) {
-    return just<std::invoke_result_t<F&&>>(std::invoke(static_cast<F&&>(fn)));
+  template <std::invocable F> constexpr auto transform(F&& fn) const {
+    return just<std::invoke_result_t<F>>(std::invoke(static_cast<F&&>(fn)));
   }
 
-  constexpr void value() const {}
-
-  // only transform is supported, as or_else would return void and and_then is
-  // implemented in optional
+  template <std::invocable F>
+    requires(detail::is_just_v<std::invoke_result_t<F>>)
+  constexpr auto and_then(F&& fn) const {
+    return std::invoke(static_cast<F&&>(fn));
+  }
 };
 
 inline constexpr auto nullopt = nullopt_t{};
@@ -91,6 +130,8 @@ inline constexpr auto nullopt = nullopt_t{};
 template <typename T> class optional : public ely::variant<nullopt_t, just<T>> {
 public:
   using value_type = T;
+  // using add_lvalue_reference keeps void void
+  using reference = std::add_lvalue_reference_t<value_type>;
   using base = ely::variant<nullopt_t, just<T>>;
 
 public:
@@ -111,7 +152,7 @@ public:
   explicit(!std::is_convertible_v<U, T>) constexpr optional(U&& u)
       : base(std::in_place_index<1>, static_cast<U&&>(u)) {}
 
-  constexpr bool has_value() const noexcept { return index() != 0; }
+  constexpr bool has_value() const noexcept { return base::index() != 0; }
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
 
@@ -122,14 +163,15 @@ public:
         .value();
   }
 
-  template <typename Self, typename U>
+  template <typename Self, typename U = std::remove_cvref_t<T>>
   constexpr T value_or(this Self&& self, U&& default_val) {
     return self.has_value() ? *static_cast<Self&&>(self)
                             : static_cast<T>(static_cast<U&&>(default_val));
   }
 
   template <typename... Args>
-  constexpr T& emplace(Args&&... args) noexcept(
+    requires(!std::is_void_v<T>)
+  constexpr reference emplace(Args&&... args) noexcept(
       std::is_nothrow_constructible_v<T, Args&&...>) {
     return base::emplace(std::in_place_index<1>, std::in_place,
                          static_cast<Args&&>(args)...);
@@ -139,27 +181,25 @@ public:
 
   template <typename Self, typename F>
   constexpr auto transform(this Self&& self, F&& fn) {
+    using ret_type = detail::invoke_result_no_void_t<F, T>;
     return ely::visit(
-        [&]<typename X>(X&& x) -> decltype(auto) {
-          using ret_type =
-              std::invoke_result_t<F&&, decltype(*static_cast<Self&&>(self))>;
+        [&]<typename X>(X&& x) -> ely::optional<ret_type> {
           // this will return a just or nullopt and construct our optional
-          return optional<ret_type>{
-              static_cast<X&&>(x).transform(static_cast<F&&>(fn))};
+          return static_cast<X&&>(x).transform(static_cast<F&&>(fn));
         },
         static_cast<Self&&>(self));
   }
 
   template <typename Self, typename F>
-  constexpr optional<
-      std::invoke_result_t<F&&, decltype(*std::declval<Self&&>())>>
+    requires(detail::is_optional_v<
+             std::invoke_result_t<F, decltype(*std::declval<Self>())>>)
+  constexpr std::invoke_result_t<F&&, decltype(*std::declval<Self&&>())>
   and_then(this Self&& self, F&& fn) {
     if (self.has_value()) {
       if constexpr (std::is_void_v<value_type>) {
         return std::invoke(static_cast<F&&>(fn));
       } else {
-        return std::invoke(static_cast<F&&>(fn),
-                           (*static_cast<Self&&>(self)).value());
+        return std::invoke(static_cast<F&&>(fn), (*static_cast<Self&&>(self)));
       }
     } else {
       return ely::nullopt;
@@ -171,6 +211,16 @@ public:
     return ely::visit(
         [&]<typename X>(X&& x) -> optional {
           return optional{static_cast<X&&>(x).or_else(static_cast<F&&>(fn))};
+        },
+        static_cast<Self&&>(self));
+  }
+
+  // implemented from p3413r0 (https://github.com/cplusplus/papers/issues/2084)
+  template <typename Self, typename F>
+  constexpr T value_or_else(this Self&& self, F&& fn) {
+    return ely::visit(
+        [&]<typename X>(X&& x) -> T {
+          return T{static_cast<X&&>(x).value_or_else(static_cast<F&&>(fn))};
         },
         static_cast<Self&&>(self));
   }
