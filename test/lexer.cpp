@@ -120,6 +120,38 @@ constexpr int lexer() {
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
+    {
+      std::string_view id[] = {"hello", "world", "this_is_a_test",
+                               "variant123"};
+      auto expected_len = encode_spill(expected, id[0].size(), CONT_IDENTIFIER);
+      auto res = ely::stx::lex(id[0], buffer);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      expected_len = encode_spill(expected, id[1].size(), CONT_IDENTIFIER);
+      res = ely::stx::lex(id[1], buffer, buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      expected_len = encode_spill(expected, id[2].size(), CONT_IDENTIFIER);
+      res = ely::stx::lex(id[2], buffer, buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      expected_len = encode_spill(expected, id[3].size(), CONT_IDENTIFIER);
+      // expected_len += encode_eof(expected + expected_len);
+      res = ely::stx::lex(id[3], buffer, buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+
+      char terminate = '\0';
+      expected_len = encode_identifier(expected, 0);
+      expected_len += encode_eof(expected + expected_len);
+      res = ely::stx::lex(std::string_view{&terminate, 1}, buffer,
+                          buffer[res - 2]);
+      assert(res == expected_len);
+      assert(check_equal(buffer, expected, res));
+    }
   }
   return 0;
 }
