@@ -25,8 +25,6 @@ endif()
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
 
-find_package(LLVM REQUIRED CONFIG)
-
 set(SRC
   src/main.cpp)
 
