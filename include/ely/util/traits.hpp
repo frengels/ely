@@ -18,4 +18,10 @@ inline constexpr std::size_t find_index_v = [] {
   auto it = std::find(std::begin(vs), std::end(vs), true);
   return std::distance(std::begin(vs), it);
 }();
+
+template <std::size_t I, typename... Ts> struct type_pack_element {
+  using type = __type_pack_element<I, Ts...>;
+};
+template <std::size_t I, typename... Ts>
+using type_pack_element_t = typename type_pack_element<I, Ts...>::type;
 } // namespace ely
