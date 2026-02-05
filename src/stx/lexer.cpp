@@ -3,15 +3,15 @@
 #include "cont.h"
 #include "encode.h"
 
-#include <cstddef>
-#include <stddef.h>
-#include <stdint.h>
+#include <span>
+#include <string_view>
 
+namespace ely {
+namespace stx {
 namespace {
+constexpr bool is_digit(char c) { return '0' <= c && c <= '9'; }
 
-static inline bool is_digit(char c) { return '0' <= c && c <= '9'; }
-
-static inline bool is_delimiter(char c) {
+constexpr bool is_delimiter(char c) {
   switch (c) {
   case ' ':
   case '\t':
@@ -31,17 +31,18 @@ static inline bool is_delimiter(char c) {
     return false;
   }
 }
+} // namespace
 
-extern "C" size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
-                          size_t out_buffer_len, uint8_t cont_id) {
+std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
+                uint8_t cont_id) {
   // need at least 4 bytes for possible encodings
-  if (out_buffer_len < 4) {
+  if (out_buffer.size() < 4) {
     return 0;
   }
-  const char* it = src;
-  const char* end = src + src_len;
+  const char* it = src.data();
+  const char* end = src.data() + src.size();
   const char* tok_start = it;
-  uint8_t* out = out_buffer;
+  uint8_t* out = out_buffer.data();
 
   static constexpr void* cont_table[] = {
       [CONT_START] = &&start,
@@ -175,7 +176,7 @@ extern "C" size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
 #define DO_SPILL(id)                                                           \
   do {                                                                         \
     out += encode_spill(out, it - tok_start, id);                              \
-    return out - out_buffer;                                                   \
+    return out - out_buffer.data();                                            \
   } while (false)
 
 #define COMP_DISPATCH()                                                        \
@@ -184,9 +185,9 @@ extern "C" size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
     if (it == end) {                                                           \
       DO_SPILL(CONT_START);                                                    \
     }                                                                          \
-    if ((out_buffer + out_buffer_len - out) < 4) {                             \
+    if ((out_buffer.data() + out_buffer.size() - out) < 4) {                   \
       out += encode_buffer_full(out);                                          \
-      return out - out_buffer;                                                 \
+      return out - out_buffer.data();                                          \
     }                                                                          \
     goto* dispatch[*it++];                                                     \
   } while (false)
@@ -356,6 +357,7 @@ unknown:
   COMP_DISPATCH();
 eof:
   out += encode_eof(out);
-  return out - out_buffer;
+  return out - out_buffer.data();
 }
-} // namespace
+} // namespace stx
+} // namespace ely
