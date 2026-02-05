@@ -1,9 +1,10 @@
 set(ELY_TEST_FILES
-    arena
     interner
     stream
     scope
     lexer
+    builder
+    parser
     uniquer
     variant
     union_storage
