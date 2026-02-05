@@ -2,56 +2,52 @@
 #error TOKEN(_) must be defined
 #endif
 
-#ifndef TOKEN2
-#define TOKEN2(x, c) TOKEN(x)
-#endif
+TOKEN(whitespace)
+TOKEN(tab)
+TOKEN(newline_lf)
+TOKEN(newline_cr)
+TOKEN(newline_crlf)
+TOKEN(line_comment)
+TOKEN(block_comment)
 
-TOKEN2(WHITESPACE, ' ')
-TOKEN2(TAB, '\t')
-TOKEN2(NEWLINE_LF, '\n')
-TOKEN2(NEWLINE_CR, '\r')
-TOKEN(NEWLINE_CRLF)
-TOKEN2(LINE_COMMENT, ';')
-TOKEN(BLOCK_COMMENT)
+TOKEN(lparen)
+TOKEN(rparen)
+TOKEN(lbracket)
+TOKEN(rbracket)
+TOKEN(lbrace)
+TOKEN(rbrace)
 
-TOKEN2(LPAREN, '(')
-TOKEN2(RPAREN, ')')
-TOKEN2(LBRACKET, '[')
-TOKEN2(RBRACKET, ']')
-TOKEN2(LBRACE, '{')
-TOKEN2(RBRACE, '}')
+TOKEN(quote)
+TOKEN(quasiquote)
+TOKEN(unquote)
+TOKEN(unquote_splicing)
+TOKEN(syntax)
+TOKEN(quasisyntax)
+TOKEN(unsyntax)
+TOKEN(unsyntax_splicing)
 
-TOKEN2(QUOTE, '\'')
-TOKEN(QUASIQUOTE)
-TOKEN2(UNQUOTE, ',')
-TOKEN(UNQUOTE_SPLICING)
-TOKEN(SYNTAX)
-TOKEN(QUASISYNTAX)
-TOKEN(UNSYNTAX)
-TOKEN(UNSYNTAX_SPLICING)
+TOKEN(dollar)
+TOKEN(slash)
 
-TOKEN2(DOLLAR, '$')
-TOKEN2(SLASH, '/')
+TOKEN(identifier)
+TOKEN(integer_lit)
+TOKEN(decimal_lit)
+TOKEN(string_lit)
 
-TOKEN(IDENTIFIER)
-TOKEN(INTEGER_LIT)
-TOKEN(DECIMAL_LIT)
-TOKEN(STRING_LIT)
-
-TOKEN(UNTERMINATED_STRING_LIT)
-TOKEN(UNKNOWN)
+TOKEN(unterminated_string_lit)
+TOKEN(unknown)
 
 // these 3 are the different events the lexer can emit as a last token in the encoded stream
 
 // indicates that '\0' was found and the file is done lexing
-TOKEN2(EOF, '\0')
+TOKEN(eof)
 // indicate this should be spilled and the next received token will 
 // indicate which this is part of. [... spill], [identifier ...] -> [identifier ...].
 // if present in the buffer it's always as the last token
-TOKEN(SPILL)
+TOKEN(spill)
 // to signal that the buffer needs to be refreshed
 // also always the final token in the buffer
-TOKEN(BUFFER_FULL)
+TOKEN(buffer_full)
 
 #undef TOKEN
 #undef TOKEN2

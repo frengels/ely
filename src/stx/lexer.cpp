@@ -1,7 +1,7 @@
 #include <array>
 
-#include "cont.h"
-#include "encode.h"
+#include "cont.hpp"
+#include "encode.hpp"
 
 #include <span>
 #include <string_view>
@@ -48,19 +48,19 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
 
   // surprised that designated initializers for static arrays are working here.
   static constexpr void* cont_table[] = {
-      [CONT_START] = &&start,
-      [CONT_WHITESPACE] = &&whitespace,
-      [CONT_TAB] = &&tab,
-      [CONT_NEWLINE_CR] = &&newline_cr,
-      [CONT_IDENTIFIER] = &&identifier,
-      [CONT_DECIMAL_LIT] = &&decimal,
-      [CONT_INTEGER_LIT] = &&number,
-      [CONT_STRING_LIT] = &&string_lit,
-      [CONT_LINE_COMMENT] = &&start_comment,
-      [CONT_LINE_COMMENT_CR] = &&line_comment_cr,
-      [CONT_UNICODE4] = &&unicode4,
-      [CONT_UNICODE3] = &&unicode3,
-      [CONT_UNICODE2] = &&unicode2,
+      [static_cast<std::size_t>(cont::start)] = &&start,
+      [static_cast<std::size_t>(cont::whitespace)] = &&whitespace,
+      [static_cast<std::size_t>(cont::tab)] = &&tab,
+      [static_cast<std::size_t>(cont::newline_cr)] = &&newline_cr,
+      [static_cast<std::size_t>(cont::identifier)] = &&identifier,
+      [static_cast<std::size_t>(cont::decimal_lit)] = &&decimal,
+      [static_cast<std::size_t>(cont::integer_lit)] = &&number,
+      [static_cast<std::size_t>(cont::string_lit)] = &&string_lit,
+      [static_cast<std::size_t>(cont::line_comment)] = &&start_comment,
+      [static_cast<std::size_t>(cont::line_comment_cr)] = &&line_comment_cr,
+      [static_cast<std::size_t>(cont::unicode4)] = &&unicode4,
+      [static_cast<std::size_t>(cont::unicode3)] = &&unicode3,
+      [static_cast<std::size_t>(cont::unicode2)] = &&unicode2,
   };
 
   // this madness is required because C++ doesn't allow designated initializers
@@ -178,7 +178,8 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
 
 #define DO_SPILL(id)                                                           \
   do {                                                                         \
-    out += encode_spill(out, it - tok_start, id);                              \
+    out += encode<token_kind::spill>(out, it - tok_start,                      \
+                                     static_cast<std::uint8_t>(id));           \
     return out - out_buffer.data();                                            \
   } while (false)
 
@@ -186,10 +187,10 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
   do {                                                                         \
     tok_start = it;                                                            \
     if (it == end) {                                                           \
-      DO_SPILL(CONT_START);                                                    \
+      DO_SPILL(cont::start);                                                   \
     }                                                                          \
     if ((out_buffer.data() + out_buffer.size() - out) < 4) {                   \
-      out += encode_buffer_full(out);                                          \
+      out += encode<token_kind::buffer_full>(out);                             \
       return out - out_buffer.data();                                          \
     }                                                                          \
     goto* dispatch[*it++];                                                     \
@@ -203,53 +204,53 @@ start:
 whitespace:
   for (; it != end; ++it) {
     if (*it != ' ') {
-      out += encode_whitespace(out, it - tok_start);
+      out += encode<token_kind::whitespace>(out, it - tok_start);
       COMP_DISPATCH();
     }
   }
-  DO_SPILL(CONT_WHITESPACE);
+  DO_SPILL(cont::whitespace);
 tab:
   for (; it != end; ++it) {
     if (*it != '\t') {
-      out += encode_tab(out, it - tok_start);
+      out += encode<token_kind::tab>(out, it - tok_start);
       COMP_DISPATCH();
     }
   }
-  DO_SPILL(CONT_TAB);
+  DO_SPILL(cont::tab);
 newline_lf:
-  out += encode_newline_lf(out);
+  out += encode<token_kind::newline_lf>(out);
   COMP_DISPATCH();
 newline_cr:
   if (it == end) {
-    DO_SPILL(CONT_NEWLINE_CR);
+    DO_SPILL(cont::newline_cr);
   }
   if (*it == '\n') {
     ++it;
-    out += encode_newline_crlf(out);
+    out += encode<token_kind::newline_crlf>(out);
   } else {
-    out += encode_newline_cr(out);
+    out += encode<token_kind::newline_cr>(out);
   }
   COMP_DISPATCH();
 lparen:
-  out += encode_lparen(out);
+  out += encode<token_kind::lparen>(out);
   COMP_DISPATCH();
 rparen:
-  out += encode_rparen(out);
+  out += encode<token_kind::rparen>(out);
   COMP_DISPATCH();
 lbracket:
-  out += encode_lbracket(out);
+  out += encode<token_kind::lbracket>(out);
   COMP_DISPATCH();
 rbracket:
-  out += encode_rbracket(out);
+  out += encode<token_kind::rbracket>(out);
   COMP_DISPATCH();
 lbrace:
-  out += encode_lbrace(out);
+  out += encode<token_kind::lbrace>(out);
   COMP_DISPATCH();
 rbrace:
-  out += encode_rbrace(out);
+  out += encode<token_kind::rbrace>(out);
   COMP_DISPATCH();
 slash:
-  out += encode_slash(out);
+  out += encode<token_kind::slash>(out);
   COMP_DISPATCH();
 number:
   for (; it != end; ++it) {
@@ -257,7 +258,7 @@ number:
       ++it;
       goto*&& decimal;
     } else if (is_delimiter(*it)) {
-      out += encode_integer_lit(out, it - tok_start);
+      out += encode<token_kind::integer_lit>(out, it - tok_start);
       COMP_DISPATCH();
     } else if (!is_digit(*it)) {
       ++it;
@@ -267,7 +268,7 @@ number:
 decimal:
   for (; it != end; ++it) {
     if (is_delimiter(*it)) {
-      out += encode_decimal_lit(out, it - tok_start);
+      out += encode<token_kind::decimal_lit>(out, it - tok_start);
       COMP_DISPATCH();
     } else if (!is_digit(*it)) {
       ++it;
@@ -276,53 +277,53 @@ decimal:
     }
   }
 
-  DO_SPILL(CONT_DECIMAL_LIT);
+  DO_SPILL(cont::decimal_lit);
 string_lit:
   // skipped starting "
   for (; it != end; ++it) {
     // TODO: handle escapes
     if (*it == '"') {
       ++it;
-      out += encode_string_lit(out, it - tok_start);
+      out += encode<token_kind::string_lit>(out, it - tok_start);
       COMP_DISPATCH();
     }
   }
-  DO_SPILL(CONT_STRING_LIT);
+  DO_SPILL(cont::string_lit);
 start_comment:
   for (; it != end; ++it) {
     if (*it == '\n') {
       ++it;
-      out += encode_line_comment(out, it - tok_start);
+      out += encode<token_kind::line_comment>(out, it - tok_start);
       COMP_DISPATCH();
     } else if (*it == '\r') {
       ++it;
       if (it == end) {
-        DO_SPILL(CONT_LINE_COMMENT_CR);
+        DO_SPILL(cont::line_comment_cr);
       }
     line_comment_cr:
       if (*it == '\n') {
         ++it;
       }
-      out += encode_line_comment(out, it - tok_start);
+      out += encode<token_kind::line_comment>(out, it - tok_start);
       COMP_DISPATCH();
     }
   }
-  DO_SPILL(CONT_LINE_COMMENT);
+  DO_SPILL(cont::line_comment);
 unicode4:
   if (it == end) {
-    DO_SPILL(CONT_UNICODE4);
+    DO_SPILL(cont::unicode4);
   }
   ++it;
 // fallthrough to unicode3
 unicode3:
   if (it == end) {
-    DO_SPILL(CONT_UNICODE3);
+    DO_SPILL(cont::unicode3);
   }
   ++it;
 // fallthrough to unicode2
 unicode2:
   if (it == end) {
-    DO_SPILL(CONT_UNICODE2);
+    DO_SPILL(cont::unicode2);
   }
   ++it;
 // fallthrough to unknown
@@ -350,16 +351,16 @@ tilde:
 identifier:
   for (; it != end; ++it) {
     if (is_delimiter(*it)) {
-      out += encode_identifier(out, it - tok_start);
+      out += encode<token_kind::identifier>(out, it - tok_start);
       COMP_DISPATCH();
     }
   }
-  DO_SPILL(CONT_IDENTIFIER);
+  DO_SPILL(cont::identifier);
 unknown:
-  out += encode_unknown(out, it - tok_start);
+  out += encode<token_kind::unknown>(out, it - tok_start);
   COMP_DISPATCH();
 eof:
-  out += encode_eof(out);
+  out += encode<token_kind::eof>(out);
   return out - out_buffer.data();
 }
 } // namespace stx

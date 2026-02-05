@@ -4,13 +4,16 @@
 #include <string_view>
 
 #include <fmt/base.h>
+#include <utility>
 
-#include "ely/stx/tokens.h"
+#include "ely/stx/tokens.hpp"
 // testing internal encoding api as well
-#include "stx/cont.h"
-#include "stx/encode.h"
+#include "stx/cont.hpp"
+#include "stx/encode.hpp"
 
 #include "support.hpp"
+
+using namespace ely::stx;
 
 template <std::size_t N>
 constexpr std::string_view make_src(const char (&cstr)[N]) {
@@ -46,40 +49,44 @@ constexpr int lexer() {
 
   const char terminate = '\0';
 
+  using enum ely::stx::token_kind;
+
   {
     {
-      auto expected_len = encode_whitespace(expected, 4);
-      expected_len += encode_eof(expected + expected_len);
+      auto expected_len = encode<whitespace>(expected, 4);
+      expected_len += encode<eof>(expected + expected_len);
 
-      auto res = ely::stx::lex(spaces, buffer);
+      auto res = lex(spaces, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
     {
-      auto expected_len = encode_tab(expected, 4);
-      expected_len += encode_eof(expected + expected_len);
+      auto expected_len = encode<tab>(expected, 4);
+      expected_len += encode<eof>(expected + expected_len);
 
-      auto res = ely::stx::lex(tabs, buffer);
+      auto res = lex(tabs, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
 
     {
       // can it handle empty buffer?
-      auto res = ely::stx::lex(spaces, {});
+      auto res = lex(spaces, {});
       assert(res == 0); // this is the only case that can return 0
     }
 
     {
-      auto expected_len = encode_spill(expected, 0, CONT_START);
+      auto expected_len =
+          encode<spill>(expected, 0, std::to_underlying(ely::stx::cont::start));
       // what about an empty src block
-      auto res = ely::stx::lex({}, buffer);
+      auto res = lex({}, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_spill(expected, 4, CONT_WHITESPACE);
+      expected_len =
+          encode<spill>(expected, 4, std::to_underlying(cont::whitespace));
       // let's refill and continue, but again with an unfinished block
-      res = ely::stx::lex(spaces_block, buffer, buffer[1]);
+      res = lex(spaces_block, buffer, buffer[1]);
 
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
@@ -88,36 +95,36 @@ constexpr int lexer() {
       auto len = buffer[0];
       auto cont = buffer[1];
 
-      expected_len = encode_whitespace(expected, 4);
-      expected_len += encode_eof(expected + expected_len);
+      expected_len = encode<whitespace>(expected, 4);
+      expected_len += encode<eof>(expected + expected_len);
       // finally, finish it
-      res = ely::stx::lex(spaces, buffer, cont);
+      res = lex(spaces, buffer, cont);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_whitespace(expected, 0);
-      expected_len += encode_tab(expected + expected_len, 4);
-      expected_len += encode_eof(expected + expected_len);
+      expected_len = encode<whitespace>(expected, 0);
+      expected_len += encode<tab>(expected + expected_len, 4);
+      expected_len += encode<eof>(expected + expected_len);
       // finish with tabs now
-      res = ely::stx::lex(tabs, buffer, cont);
+      res = lex(tabs, buffer, cont);
       assert(res == expected_len);
     }
     {
       auto id = make_src("hello_world");
-      auto expected_len = encode_identifier(expected, id.size() - 1); // for \0
-      expected_len += encode_eof(expected + expected_len);
+      auto expected_len = encode<identifier>(expected, id.size() - 1); // for \0
+      expected_len += encode<eof>(expected + expected_len);
       auto res = ely::stx::lex(id, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
     {
       auto id = make_src("var123/other/more");
-      auto expected_len = encode_identifier(expected, 6);
-      expected_len += encode_slash(expected + expected_len);
-      expected_len += encode_identifier(expected + expected_len, 5);
-      expected_len += encode_slash(expected + expected_len);
-      expected_len += encode_identifier(expected + expected_len, 4);
-      expected_len += encode_eof(expected + expected_len);
+      auto expected_len = encode<identifier>(expected, 6);
+      expected_len += encode<slash>(expected + expected_len);
+      expected_len += encode<identifier>(expected + expected_len, 5);
+      expected_len += encode<slash>(expected + expected_len);
+      expected_len += encode<identifier>(expected + expected_len, 4);
+      expected_len += encode<eof>(expected + expected_len);
       auto res = ely::stx::lex(id, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
@@ -125,31 +132,36 @@ constexpr int lexer() {
     {
       std::string_view id[] = {"hello", "world", "this_is_a_test",
                                "variant123"};
-      auto expected_len = encode_spill(expected, id[0].size(), CONT_IDENTIFIER);
-      auto res = ely::stx::lex(id[0], buffer);
+      auto expected_len =
+          encode<spill>(expected, id[0].size(),
+                        std::to_underlying(ely::stx::cont::identifier));
+      auto res = lex(id[0], buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_spill(expected, id[1].size(), CONT_IDENTIFIER);
-      res = ely::stx::lex(id[1], buffer, buffer[res - 2]);
+      expected_len =
+          encode<spill>(expected, id[1].size(),
+                        std::to_underlying(ely::stx::cont::identifier));
+      res = lex(id[1], buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_spill(expected, id[2].size(), CONT_IDENTIFIER);
-      res = ely::stx::lex(id[2], buffer, buffer[res - 2]);
+      expected_len = encode<spill>(expected, id[2].size(),
+                                   std::to_underlying(cont::identifier));
+      res = lex(id[2], buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_spill(expected, id[3].size(), CONT_IDENTIFIER);
+      expected_len = encode<spill>(expected, id[3].size(),
+                                   std::to_underlying(cont::identifier));
       // expected_len += encode_eof(expected + expected_len);
-      res = ely::stx::lex(id[3], buffer, buffer[res - 2]);
+      res = lex(id[3], buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_identifier(expected, 0);
-      expected_len += encode_eof(expected + expected_len);
-      res = ely::stx::lex(std::string_view{&terminate, 1}, buffer,
-                          buffer[res - 2]);
+      expected_len = encode<identifier>(expected, 0);
+      expected_len += encode<eof>(expected + expected_len);
+      res = lex(std::string_view{&terminate, 1}, buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
@@ -157,22 +169,22 @@ constexpr int lexer() {
       // decimal literal with spill
       std::string_view num[] = {"123.", "45"};
 
-      auto expected_len =
-          encode_spill(expected, num[0].size(), CONT_DECIMAL_LIT);
-      auto res = ely::stx::lex(num[0], buffer);
+      auto expected_len = encode<spill>(expected, num[0].size(),
+                                        std::to_underlying(cont::decimal_lit));
+      auto res = lex(num[0], buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
       // continuing after the dot should be in decimal mode
-      expected_len = encode_spill(expected, num[1].size(), CONT_DECIMAL_LIT);
-      res = ely::stx::lex(num[1], buffer, buffer[res - 2]);
+      expected_len = encode<spill>(expected, num[1].size(),
+                                   std::to_underlying(cont::decimal_lit));
+      res = lex(num[1], buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_decimal_lit(expected, 0);
-      expected_len += encode_eof(expected + expected_len);
-      res = ely::stx::lex(std::string_view{&terminate, 1}, buffer,
-                          buffer[res - 2]);
+      expected_len = encode<decimal_lit>(expected, 0);
+      expected_len += encode<eof>(expected + expected_len);
+      res = lex(std::string_view{&terminate, 1}, buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
@@ -180,20 +192,22 @@ constexpr int lexer() {
       // string literal with spill
       std::string_view str[] = {"\"Hello, ", "world!\""};
 
-      auto expected_len =
-          encode_spill(expected, str[0].size(), CONT_STRING_LIT);
+      auto expected_len = encode<token_kind::spill>(
+          expected, str[0].size(),
+          std::to_underlying(ely::stx::cont::string_lit));
       auto res = ely::stx::lex(str[0], buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_string_lit(expected, str[1].size());
-      expected_len += encode_spill(expected + expected_len, 0, CONT_START);
-      res = ely::stx::lex(str[1], buffer, buffer[res - 2]);
+      expected_len = encode<token_kind::string_lit>(expected, str[1].size());
+      expected_len += encode<spill>(expected + expected_len, 0,
+                                    std::to_underlying(cont::start));
+      res = lex(str[1], buffer, buffer[res - 2]);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 
-      expected_len = encode_eof(expected);
-      res = ely::stx::lex(std::string_view{&terminate, 1}, buffer);
+      expected_len = encode<eof>(expected);
+      res = lex(std::string_view{&terminate, 1}, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
