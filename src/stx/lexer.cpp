@@ -1,8 +1,13 @@
+#include <array>
+
 #include "cont.h"
 #include "encode.h"
 
+#include <cstddef>
 #include <stddef.h>
 #include <stdint.h>
+
+namespace {
 
 static inline bool is_digit(char c) { return '0' <= c && c <= '9'; }
 
@@ -27,8 +32,8 @@ static inline bool is_delimiter(char c) {
   }
 }
 
-size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
-               size_t out_buffer_len, uint8_t cont_id) {
+extern "C" size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
+                          size_t out_buffer_len, uint8_t cont_id) {
   // need at least 4 bytes for possible encodings
   if (out_buffer_len < 4) {
     return 0;
@@ -38,7 +43,7 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
   const char* tok_start = it;
   uint8_t* out = out_buffer;
 
-  static const void* cont_table[] = {
+  static constexpr void* cont_table[] = {
       [CONT_START] = &&start,
       [CONT_WHITESPACE] = &&whitespace,
       [CONT_TAB] = &&tab,
@@ -54,53 +59,118 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       [CONT_UNICODE2] = &&unicode2,
   };
 
-  static const void* dispatch[256] = {
-      [0 ... 255] = &&unknown,
-      ['\0'] = &&eof,
-      ['\t'] = &&tab,
-      ['\n'] = &&newline_lf,
-      ['\r'] = &&newline_cr,
-      [' '] = &&whitespace,
-      ['!'] = &&exclamation,
-      ['"'] = &&string_lit,
-      ['#'] = &&number_sign,
-      ['$'] = &&dollar,
-      ['%'] = &&percent,
-      ['&'] = &&ampersand,
-      ['\''] = &&single_quote,
-      ['('] = &&lparen,
-      [')'] = &&rparen,
-      ['*'] = &&asterisk,
-      ['+'] = &&plus,
-      [','] = &&comma,
-      ['-'] = &&identifier,
-      ['.'] = &&period,
-      ['/'] = &&slash,
-      ['0' ... '9'] = &&number,
-      [':'] = &&colon,
-      [';'] = &&start_comment,
-      ['<'] = &&less_than,
-      ['='] = &&equals,
-      ['>'] = &&greater_than,
-      ['?'] = &&question,
-      ['@'] = &&at,
-      ['A' ... 'Z'] = &&identifier,
-      ['['] = &&lbracket,
-      ['\\'] = &&backslash,
-      // for some reason vscode syntax highlighting messes up on ]
-      [']'] = &&rbracket,
-      ['^'] = &&circumflex,
-      ['_'] = &&identifier,
-      ['`'] = &&grave,
-      ['a' ... 'z'] = &&identifier,
-      ['{'] = &&lbrace,
-      ['|'] = &&vbar,
-      ['}'] = &&rbrace,
-      ['~'] = &&tilde,
-      [0b11000000 ... 0b11011111] = &&unicode2,
-      [0b11100000 ... 0b11101111] = &&unicode3,
-      [0b11110000 ... 0b11110111] = &&unicode4,
-  };
+  // this madness is required because C++ doesn't allow designated initializers
+  // for static arrays.
+  constexpr void* eof = &&eof;
+  constexpr void* newline_lf = &&newline_lf;
+  constexpr void* newline_cr = &&newline_cr;
+  constexpr void* whitespace = &&whitespace;
+  constexpr void* tab = &&tab;
+  constexpr void* exclamation = &&exclamation;
+  constexpr void* string_lit = &&string_lit;
+  constexpr void* number_sign = &&number_sign;
+  constexpr void* dollar = &&dollar;
+  constexpr void* percent = &&percent;
+  constexpr void* ampersand = &&ampersand;
+  constexpr void* single_quote = &&single_quote;
+  constexpr void* lparen = &&lparen;
+  constexpr void* rparen = &&rparen;
+  constexpr void* lbracket = &&lbracket;
+  constexpr void* rbracket = &&rbracket;
+  constexpr void* lbrace = &&lbrace;
+  constexpr void* rbrace = &&rbrace;
+  constexpr void* asterisk = &&asterisk;
+  constexpr void* plus = &&plus;
+  constexpr void* comma = &&comma;
+  constexpr void* period = &&period;
+  constexpr void* slash = &&slash;
+  constexpr void* colon = &&colon;
+  constexpr void* less_than = &&less_than;
+  constexpr void* equals = &&equals;
+  constexpr void* greater_than = &&greater_than;
+  constexpr void* question = &&question;
+  constexpr void* at = &&at;
+  constexpr void* unknown = &&unknown;
+  constexpr void* identifier = &&identifier;
+  constexpr void* number = &&number;
+  constexpr void* decimal = &&decimal;
+  constexpr void* start_comment = &&start_comment;
+  constexpr void* backslash = &&backslash;
+  constexpr void* circumflex = &&circumflex;
+  constexpr void* grave = &&grave;
+  constexpr void* vbar = &&vbar;
+
+  static constexpr std::array<const void*, 256> dispatch =
+      [](void* unknown, void* unicode2, void* unicode3, void* unicode4) {
+        // assign all the ranges because c++ doesn't support the [a ... b] GNU
+        // extension for static arrays, and we want to keep the dispatch table
+        // constexpr. We also want to keep the explicitly assigned entries in
+        // place, so we can't just default to unknown and then overwrite the
+        // assigned ones.
+        std::array<const void*, 256> res{};
+        for (std::size_t i = 0; i != 256; ++i) {
+
+          res[i] = unknown;
+        }
+        res['\0'] = eof;
+        res['\t'] = tab;
+        res['\n'] = newline_lf;
+        res['\r'] = newline_cr;
+        res[' '] = whitespace;
+        res['!'] = exclamation;
+        res['"'] = string_lit;
+        res['#'] = number_sign;
+        res['$'] = dollar;
+        res['%'] = percent;
+        res['&'] = ampersand;
+        res['\''] = single_quote;
+        res['('] = lparen;
+        res[')'] = rparen;
+        res['*'] = asterisk;
+        res['+'] = plus;
+        res[','] = comma;
+        res['-'] = identifier; // could be minus or start of identifier
+        res['.'] = period;     // could be dot or start of decimal literal
+        res['/'] = slash;
+        res[':'] = colon;
+        res[';'] = start_comment;
+        res['<'] = less_than;
+        res['='] = equals;
+        res['>'] = greater_than;
+        res['?'] = question;
+        res['@'] = at;
+        res['['] = lbracket;
+        res['\\'] = backslash;
+        res[']'] = rbracket;
+        res['^'] = circumflex;
+        res['_'] = identifier;
+        res['`'] = grave;
+        res['{'] = lbrace;
+        res['|'] = vbar;
+        res['}'] = rbrace;
+        // assign the ranges for identifiers and unicode characters
+
+        for (char c = '0'; c <= '9'; ++c) {
+          res[c] = number;
+        }
+        for (char c = 'a'; c <= 'z'; ++c) {
+          res[c] = identifier;
+        }
+        for (char c = 'A'; c <= 'Z'; ++c) {
+          res[c] = identifier;
+        }
+        for (std::size_t i = 0b11000000; i <= 0b11011111; ++i) {
+          res[i] = unicode2;
+        }
+        for (std::size_t i = 0b11100000; i <= 0b11101111; ++i) {
+          res[i] = unicode3;
+        }
+        for (std::size_t i = 0b11110000; i <= 0b11110111; ++i) {
+          res[i] = unicode4;
+        }
+
+        return res;
+      }(&&unknown, &&unicode2, &&unicode3, &&unicode4);
 
 #define DO_SPILL(id)                                                           \
   do {                                                                         \
@@ -239,19 +309,19 @@ unicode4:
     DO_SPILL(CONT_UNICODE4);
   }
   ++it;
-  // fallthrough to unicode3
+// fallthrough to unicode3
 unicode3:
   if (it == end) {
     DO_SPILL(CONT_UNICODE3);
   }
   ++it;
-  // fallthrough to unicode2
+// fallthrough to unicode2
 unicode2:
   if (it == end) {
     DO_SPILL(CONT_UNICODE2);
   }
   ++it;
-  // fallthrough to unknown
+// fallthrough to unknown
 exclamation:
 number_sign:
 dollar:
@@ -288,3 +358,4 @@ eof:
   out += encode_eof(out);
   return out - out_buffer;
 }
+} // namespace
