@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # Check if ely is built as a standalone project
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(ely LANGUAGES C CXX)
+  project(ely LANGUAGES CXX)
   set(ELY_STANDALONE_BUILD ON)
 endif ()
 
@@ -31,7 +31,7 @@ set(SRC
   src/main.cpp)
 
 set(LIB_SRC
-  src/stx/lexer.c)
+  src/stx/lexer.cpp)
 
 add_library(ely STATIC ${LIB_SRC})
 target_include_directories(ely PUBLIC
@@ -40,8 +40,7 @@ target_include_directories(ely PUBLIC
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(ely PUBLIC fmt::fmt LLVMSupport)
 target_compile_features(ely PUBLIC cxx_std_26)
-target_compile_features(ely PUBLIC c_std_11)
-set_target_properties(ely PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(ely PROPERTIES CXX_EXTENSIONS ON)
 
 add_executable(ely_exe ${SRC})
 set_target_properties(ely_exe PROPERTIES OUTPUT_NAME ely)
