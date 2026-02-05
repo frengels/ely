@@ -9,9 +9,11 @@
 namespace ely {
 namespace stx {
 namespace {
-constexpr bool is_digit(char c) { return '0' <= c && c <= '9'; }
+template <typename CharT> constexpr bool is_digit(CharT c) {
+  return '0' <= c && c <= '9';
+}
 
-constexpr bool is_delimiter(char c) {
+template <typename CharT> constexpr bool is_delimiter(CharT c) {
   switch (c) {
   case ' ':
   case '\t':
@@ -44,6 +46,7 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
   const char* tok_start = it;
   uint8_t* out = out_buffer.data();
 
+  // surprised that designated initializers for static arrays are working here.
   static constexpr void* cont_table[] = {
       [CONT_START] = &&start,
       [CONT_WHITESPACE] = &&whitespace,
