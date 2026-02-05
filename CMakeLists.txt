@@ -22,6 +22,9 @@ if(NOT fmt_FOUND)
   FetchContent_MakeAvailable(fmt)
 endif()
 
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+
 find_package(LLVM REQUIRED CONFIG)
 
 set(SRC
@@ -30,7 +33,7 @@ set(SRC
 set(LIB_SRC
   src/stx/lexer.c)
 
-add_library(ely SHARED ${LIB_SRC})
+add_library(ely STATIC ${LIB_SRC})
 target_include_directories(ely PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:$<$<BOOL:$<TARGET_PROPERTY:ELY_PRIVATE>>:${CMAKE_CURRENT_SOURCE_DIR}/src>>
@@ -43,6 +46,14 @@ set_target_properties(ely PROPERTIES CXX_EXTENSIONS OFF)
 add_executable(ely_exe ${SRC})
 set_target_properties(ely_exe PROPERTIES OUTPUT_NAME ely)
 target_link_libraries(ely_exe PRIVATE ely)
+
+if(ipo_supported)
+  message(STATUS "LTO enabled")
+  set_target_properties(ely PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+  set_target_properties(ely_exe PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+  message(WARNING "IPO is not supported: ${ipo_error}")
+endif()
 
 if(${ELY_ENABLE_TESTS})
   enable_testing()
