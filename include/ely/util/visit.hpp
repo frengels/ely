@@ -10,6 +10,11 @@ constexpr R visit(Visitor&& fn, Variant&& v) {
   return ely::dispatch_index_r<
       R, ely::variant_size_v<std::remove_cvref_t<Variant>>>(
       v.index(), [&]<std::size_t I>(std::in_place_index_t<I>) -> R {
+        static_assert(
+            std::is_same_v<R, std::invoke_result_t<
+                                  Visitor&&, decltype(ely::get_unchecked<I>(
+                                                 static_cast<Variant&&>(v)))>>,
+            "Calling visitor on variant does not return R");
         return std::invoke(static_cast<Visitor&&>(fn),
                            ely::get_unchecked<I>(static_cast<Variant&&>(v)));
       });
