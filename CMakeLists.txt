@@ -8,6 +8,7 @@ endif ()
 
 option(ELY_ENABLE_TESTS "Enable tests" ON)
 option(ELY_TEST_SANITIZE_ADDRESS "enable address sanitizer for tests" ON)
+option(ELY_ENABLE_BENCHMARKS "Enable benchmarks" ON)
 
 include(FetchContent)
 
@@ -55,4 +56,8 @@ endif()
 if(${ELY_ENABLE_TESTS})
   enable_testing()
   add_subdirectory(test)
+endif()
+
+if(${ELY_ENABLE_BENCHMARKS})
+  add_subdirectory(bench)
 endif()
