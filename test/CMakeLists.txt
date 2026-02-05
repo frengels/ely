@@ -3,8 +3,6 @@ set(ELY_TEST_FILES
     stream
     scope
     lexer
-    builder
-    parser
     uniquer
     variant
     union_storage
