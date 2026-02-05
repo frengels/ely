@@ -47,6 +47,8 @@ size_t ely_lex(const char* src, size_t src_len, uint8_t* out_buffer,
       [CONT_DECIMAL_LIT] = &&decimal,
       [CONT_INTEGER_LIT] = &&number,
       [CONT_STRING_LIT] = &&string_lit,
+      [CONT_LINE_COMMENT] = &&start_comment,
+      [CONT_LINE_COMMENT_CR] = &&line_comment_cr,
       [CONT_UNICODE4] = &&unicode4,
       [CONT_UNICODE3] = &&unicode3,
       [CONT_UNICODE2] = &&unicode2,
@@ -166,17 +168,15 @@ lbracket:
 rbracket:
   out += encode_rbracket(out);
   COMP_DISPATCH();
+lbrace:
+  out += encode_lbrace(out);
+  COMP_DISPATCH();
+rbrace:
+  out += encode_rbrace(out);
+  COMP_DISPATCH();
 slash:
   out += encode_slash(out);
   COMP_DISPATCH();
-identifier:
-  for (; it != end; ++it) {
-    if (is_delimiter(*it)) {
-      out += encode_identifier(out, it - tok_start);
-      COMP_DISPATCH();
-    }
-  }
-  DO_SPILL(CONT_IDENTIFIER);
 number:
   for (; it != end; ++it) {
     if (*it == '.') {
@@ -214,6 +214,26 @@ string_lit:
     }
   }
   DO_SPILL(CONT_STRING_LIT);
+start_comment:
+  for (; it != end; ++it) {
+    if (*it == '\n') {
+      ++it;
+      out += encode_line_comment(out, it - tok_start);
+      COMP_DISPATCH();
+    } else if (*it == '\r') {
+      ++it;
+      if (it == end) {
+        DO_SPILL(CONT_LINE_COMMENT_CR);
+      }
+    line_comment_cr:
+      if (*it == '\n') {
+        ++it;
+      }
+      out += encode_line_comment(out, it - tok_start);
+      COMP_DISPATCH();
+    }
+  }
+  DO_SPILL(CONT_LINE_COMMENT);
 unicode4:
   if (it == end) {
     DO_SPILL(CONT_UNICODE4);
@@ -243,7 +263,6 @@ plus:
 comma:
 period:
 colon:
-start_comment:
 less_than:
 equals:
 greater_than:
@@ -252,10 +271,16 @@ at:
 backslash:
 circumflex:
 grave:
-lbrace:
 vbar:
-rbrace:
 tilde:
+identifier:
+  for (; it != end; ++it) {
+    if (is_delimiter(*it)) {
+      out += encode_identifier(out, it - tok_start);
+      COMP_DISPATCH();
+    }
+  }
+  DO_SPILL(CONT_IDENTIFIER);
 unknown:
   out += encode_unknown(out, it - tok_start);
   COMP_DISPATCH();
@@ -263,112 +288,3 @@ eof:
   out += encode_eof(out);
   return out - out_buffer;
 }
-// constexpr value_type lex_cr() {
-//   assert(*start == '\r');
-//   if (*it_ == '\n') {
-//     ++it_;
-//     return make_lexeme(token_kind::newline_crlf, start);
-//   }
-//   return make_lexeme(token_kind::newline_cr, start);
-// }
-
-// constexpr value_type lex_unquote() {
-//   assert(*start == ',');
-//   if (*it_ == '@') {
-//     ++it_;
-//     return make_lexeme(token_kind::unquote_splicing, start);
-//   }
-
-//   return make_lexeme(token_kind::unquote, start);
-// }
-
-// constexpr value_type lex_syntax(const char* start) {
-//   assert(*start == '#');
-//   switch (*it_) {
-//   case '\'':
-//     ++it_;
-//     return make_lexeme(token_kind::syntax, start);
-//   case '`':
-//     ++it_;
-//     return make_lexeme(token_kind::quasisyntax, start);
-//   case ',':
-//     ++it_;
-//     if (*it_ == '@') {
-//       ++it_;
-//       return make_lexeme(token_kind::unsyntax_splicing, start);
-//     }
-//     return make_lexeme(token_kind::unsyntax, start);
-//   }
-
-//   return make_lexeme(token_kind::unknown, start);
-// }
-
-// constexpr value_type lex_string(const char* start) {
-//   assert(*start == '"');
-
-//   for (auto c = *it_; c != '\0'; c = *++it_) {
-
-//     if (c == '"') {
-//       ++it_;
-//       return make_lexeme(token_kind::string_lit, start);
-//     }
-//   }
-
-//   return make_lexeme(token_kind::unterminated_string_lit, start);
-// }
-
-// constexpr value_type lex_number(const char* start) {
-//   assert(detail::is_digit(*start));
-
-//   skip_while(detail::is_digit<char>);
-
-//   if (*it_ == '.') {
-//     ++it_;
-//     skip_while(detail::is_digit<char>);
-//     if (!detail::is_delimiter(*it_)) {
-//       // identifier now
-//       skip_until(detail::is_delimiter<char>);
-//       return make_lexeme(token_kind::identifier, start);
-//     }
-//     return make_lexeme(token_kind::decimal_lit, start);
-//   } else {
-//     if (!detail::is_delimiter(*it_)) {
-//       skip_until(detail::is_delimiter<char>);
-//       return make_lexeme(token_kind::identifier, start);
-//     }
-
-//     return make_lexeme(token_kind::integer_lit, start);
-//   }
-// }
-
-// constexpr value_type lex_identifier(const char* start) {
-//   skip_until(detail::is_delimiter<char>);
-//   return make_lexeme(token_kind::identifier, start);
-// }
-
-// // skips the pred's return while pred(*it_) != 0
-// template <typename P> constexpr void skip_n_while(P pred) {
-//   for (;;) {
-//     auto skip = pred(*it_);
-//     if (skip == 0)
-//       return;
-//     it_ += skip;
-//   }
-// }
-
-// // skips characters while pred(*it_) is fulfilled
-// template <typename P> constexpr void skip_while(P pred) {
-//   skip_n_while(pred);
-// }
-
-// template <typename P> constexpr void skip_until(P pred) {
-//   skip_while(std::not_fn<P>(std::move(pred)));
-// }
-
-// template <> struct fmt::formatter<ely::stx::token_kind> {
-//   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin();
-//   } template <typename Ctx> constexpr auto format(ely::stx::token_kind k,
-//   Ctx& ctx) const {
-//     return fmt::format_to(ctx.out(), "{}", ely::stx::token_kind_name(k));
-//   }
-// };
