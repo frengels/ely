@@ -1,6 +1,5 @@
 set(ELY_TEST_FILES
     interner
-    stream
     scope
     lexer
     uniquer

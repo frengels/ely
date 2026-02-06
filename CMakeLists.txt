@@ -37,7 +37,7 @@ target_include_directories(ely PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:$<$<BOOL:$<TARGET_PROPERTY:ELY_PRIVATE>>:${CMAKE_CURRENT_SOURCE_DIR}/src>>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(ely PUBLIC fmt::fmt LLVMSupport)
+target_link_libraries(ely PUBLIC fmt::fmt)
 target_compile_features(ely PUBLIC cxx_std_26)
 set_target_properties(ely PROPERTIES CXX_EXTENSIONS ON)
 
