@@ -2,6 +2,7 @@
 
 #include <ely/stx/lexer.hpp>
 
+#include "ely/stx/tokens.hpp"
 #include "gen_src.hpp"
 
 static constexpr auto MiB = 1024 * 1024;
@@ -11,9 +12,12 @@ auto file_10M = gen_src(10 * MiB);
 static void BM_computed_goto_lexer_1M(benchmark::State& state) {
   auto file_1M = gen_src(MiB);
   auto out_buffer = std::make_unique<std::uint8_t[]>(MiB);
+  std::size_t read;
   for (auto _ : state) {
-    ely::stx::lex(file_1M, {out_buffer.get(), MiB});
+    read = ely::stx::lex(file_1M, {out_buffer.get(), MiB});
   }
+
+  assert(out_buffer[read - 1] == std::to_underlying(ely::stx::token_kind::eof));
 }
 
 static void BM_computed_goto_lexer_10M(benchmark::State& state) {

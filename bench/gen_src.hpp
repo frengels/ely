@@ -83,5 +83,6 @@ static inline std::string gen_src(std::size_t len, std::size_t seed = 42) {
   }
 
   output += close_parens();
+  output += '\0';
   return output;
 }
