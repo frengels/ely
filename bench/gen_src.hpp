@@ -1,6 +1,7 @@
 #include <random>
 #include <string>
 
+namespace {
 int parens_level = 0;
 
 std::string gen_ident(std::mt19937& rng) {
@@ -68,28 +69,19 @@ constexpr std::add_pointer_t<std::string(std::mt19937&)> actions[] = {
     &gen_ident, &gen_lparens, &gen_rparens,
     &gen_num,   &gen_decimal, &gen_whitespace,
 };
+} // namespace
 
-int main(int argc, char** argv) {
-  std::mt19937 rng(42);
+static inline std::string gen_src(std::size_t len, std::size_t seed = 42) {
+  std::mt19937 rng(seed);
   std::uniform_int_distribution<std::size_t> dist(0, std::size(actions) - 1);
 
-  // first arg is size in kilobytes
-  if (argc < 2) {
-    return 1;
-  }
-
-  std::size_t target_size = std::stoull(argv[1]) * 1024;
-
   std::string output;
-  output.reserve(target_size);
+  output.reserve(len);
 
-  while (output.size() < target_size) {
+  while (output.size() < len) {
     output += actions[dist(rng)](rng);
   }
 
   output += close_parens();
-
-  std::fprintf(stdout, "%s\n", output.c_str());
-
-  return 0;
+  return output;
 }
