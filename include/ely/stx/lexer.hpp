@@ -9,11 +9,12 @@
 namespace ely {
 namespace stx {
 namespace {
-template <typename CharT> constexpr bool is_digit(CharT c) {
+template <typename CharT> ELY_ALWAYS_INLINE constexpr bool is_digit(CharT c) {
   return '0' <= c && c <= '9';
 }
 
-template <typename CharT> constexpr bool is_delimiter(CharT c) {
+template <typename CharT>
+ELY_ALWAYS_INLINE constexpr bool is_delimiter(CharT c) {
   switch (c) {
   case ' ':
   case '\t':
