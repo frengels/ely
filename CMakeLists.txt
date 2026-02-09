@@ -29,16 +29,14 @@ check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
 set(SRC
   src/main.cpp)
 
-set(LIB_SRC
-  src/stx/lexer.cpp)
 
-add_library(ely STATIC ${LIB_SRC})
-target_include_directories(ely PUBLIC
+add_library(ely INTERFACE)
+target_include_directories(ely INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:$<$<BOOL:$<TARGET_PROPERTY:ELY_PRIVATE>>:${CMAKE_CURRENT_SOURCE_DIR}/src>>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(ely PUBLIC fmt::fmt)
-target_compile_features(ely PUBLIC cxx_std_26)
+target_link_libraries(ely INTERFACE fmt::fmt Boost::program_options)
+target_compile_features(ely INTERFACE cxx_std_26)
 set_target_properties(ely PROPERTIES CXX_EXTENSIONS ON)
 
 add_executable(ely_exe ${SRC})
