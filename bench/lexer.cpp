@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include <ely/stx/lexer.hpp>
+#include <ely/stx/lexer2.hpp>
 
 #include "ely/stx/tokens.hpp"
 #include "gen_src.hpp"
@@ -20,6 +21,17 @@ static void BM_computed_goto_lexer_1M(benchmark::State& state) {
   assert(out_buffer[read - 1] == std::to_underlying(ely::stx::token_kind::eof));
 }
 
+static void BM_tail_call_lexer2_1M(benchmark::State& state) {
+  auto file_1M = gen_src(MiB);
+  auto out_buffer = std::make_unique<std::uint8_t[]>(MiB);
+  std::size_t read;
+  for (auto _ : state) {
+    read = ely::stx::lex2(file_1M, {out_buffer.get(), MiB});
+  }
+
+  assert(out_buffer[read - 1] == std::to_underlying(ely::stx::token_kind::eof));
+}
+
 static void BM_computed_goto_lexer_10M(benchmark::State& state) {
   auto file_1M = gen_src(10 * MiB);
   auto out_buffer = std::make_unique<std::uint8_t[]>(10 * MiB);
@@ -28,7 +40,17 @@ static void BM_computed_goto_lexer_10M(benchmark::State& state) {
   }
 }
 
+static void BM_tail_call_lexer2_10M(benchmark::State& state) {
+  auto file_1M = gen_src(10 * MiB);
+  auto out_buffer = std::make_unique<std::uint8_t[]>(10 * MiB);
+  for (auto _ : state) {
+    ely::stx::lex2(file_1M, {out_buffer.get(), 10 * MiB});
+  }
+}
+
 BENCHMARK(BM_computed_goto_lexer_1M);
+BENCHMARK(BM_tail_call_lexer2_1M);
 BENCHMARK(BM_computed_goto_lexer_10M);
+BENCHMARK(BM_tail_call_lexer2_10M);
 
 BENCHMARK_MAIN();
