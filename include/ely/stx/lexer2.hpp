@@ -90,6 +90,14 @@ constexpr std::size_t ELY_PRESERVE_NONE lex_string(const char*, const char*,
                                                    const std::uint8_t*,
                                                    const std::uint8_t*,
                                                    std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_line_comment_cr(const char* it, const char* end, const char* tok_start,
+                    const std::uint8_t* out_start, const std::uint8_t* out_end,
+                    std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_line_comment(const char* it, const char* end, const char* tok_start,
+                 const std::uint8_t* out_start, const std::uint8_t* out_end,
+                 std::uint8_t* out);
 constexpr std::size_t ELY_PRESERVE_NONE lex_start(const char* it,
                                                   const char* end,
                                                   const char* tok_start,
@@ -143,11 +151,11 @@ inline constexpr auto cont_table = [] {
   res[std::to_underlying(decimal_lit)] = &lex_decimal;
   res[std::to_underlying(integer_lit)] = &lex_number;
   res[std::to_underlying(string_lit)] = &lex_string;
-  res[std::to_underlying(line_comment)] = &lex_unreachable;
-  res[std::to_underlying(line_comment_cr)] = &lex_unreachable;
-  res[std::to_underlying(unicode4)] = &lex_unreachable;
-  res[std::to_underlying(unicode3)] = &lex_unreachable;
-  res[std::to_underlying(unicode2)] = &lex_unreachable;
+  res[std::to_underlying(line_comment)] = &lex_line_comment;
+  res[std::to_underlying(line_comment_cr)] = &lex_line_comment_cr;
+  res[std::to_underlying(unicode4)] = &lex_skip_unicode4;
+  res[std::to_underlying(unicode3)] = &lex_skip_unicode3;
+  res[std::to_underlying(unicode2)] = &lex_skip_unicode2;
   return res;
 }();
 
@@ -159,6 +167,13 @@ inline constexpr auto jump_table = [] {
   tbl['\t'] = &lex_tab;
   tbl['-'] = &lex_identifier;
   tbl['_'] = &lex_identifier;
+  tbl['='] = &lex_identifier;
+  tbl['.'] = &lex_identifier;
+  tbl['<'] = &lex_identifier;
+  tbl['>'] = &lex_identifier;
+  tbl['@'] = &lex_identifier;
+  tbl['?'] = &lex_identifier;
+  tbl[';'] = &lex_line_comment;
   tbl['('] = &lex_paren<'('>;
   tbl[')'] = &lex_paren<')'>;
   tbl['['] = &lex_paren<'['>;
@@ -432,6 +447,40 @@ constexpr std::size_t ELY_PRESERVE_NONE lex_paren(const char* it,
   }();
   out += encode<tok>(out);
   DISPATCH();
+}
+
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_line_comment_cr(const char* it, const char* end, const char* tok_start,
+                    const std::uint8_t* out_start, const std::uint8_t* out_end,
+                    std::uint8_t* out) {
+  if (*it == '\n') {
+    ++it;
+  }
+  out += encode<token_kind::line_comment>(out, it - tok_start);
+  DISPATCH();
+}
+
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_line_comment(const char* it, const char* end, const char* tok_start,
+                 const std::uint8_t* out_start, const std::uint8_t* out_end,
+                 std::uint8_t* out) {
+  for (; it != end; ++it) {
+    if (*it == '\n') {
+      ++it;
+      out += encode<token_kind::line_comment>(out, it - tok_start);
+      DISPATCH();
+    } else if (*it == '\r') {
+      ++it;
+      if (it == end) {
+        ELY_MUSTTAIL return write_spill<cont::line_comment_cr>(
+            it, end, tok_start, out_start, out_end, out);
+      }
+      ELY_MUSTTAIL return lex_line_comment_cr(it, end, tok_start, out_start,
+                                              out_end, out);
+    }
+  }
+  ELY_MUSTTAIL return write_spill<cont::line_comment>(it, end, tok_start,
+                                                      out_start, out_end, out);
 }
 
 constexpr std::size_t ELY_PRESERVE_NONE lex_start(const char* it,
