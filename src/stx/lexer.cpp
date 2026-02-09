@@ -46,6 +46,8 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
   const char* tok_start = it;
   uint8_t* out = out_buffer.data();
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wc99-designator"
   // surprised that designated initializers for static arrays are working here.
   static constexpr void* cont_table[] = {
       [std::to_underlying(cont::start)] = &&start,
@@ -62,6 +64,7 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
       [std::to_underlying(cont::unicode3)] = &&unicode3,
       [std::to_underlying(cont::unicode2)] = &&unicode2,
   };
+#pragma GCC diagnostic pop
 
   // this madness is required because C++ doesn't allow designated initializers
   // for static arrays.
