@@ -18,6 +18,7 @@ enum struct cont : std::uint8_t {
   unicode4,
   unicode3,
   unicode2,
+  last = unicode2,
 };
 }
 } // namespace ely

@@ -1,7 +1,7 @@
 #include <array>
 
-#include "cont.hpp"
-#include "encode.hpp"
+#include "ely/stx/cont.hpp"
+#include "ely/stx/encode.hpp"
 
 #include <span>
 #include <string_view>
@@ -265,6 +265,7 @@ number:
       goto*&& identifier;
     }
   }
+  DO_SPILL(cont::integer_lit);
 decimal:
   for (; it != end; ++it) {
     if (is_delimiter(*it)) {
@@ -329,25 +330,28 @@ unicode2:
 // fallthrough to unknown
 exclamation:
 number_sign:
+single_quote:
+
+comma:
+colon:
+
+question:
+backslash:
+grave:
+vbar:
+
+at:
 dollar:
 percent:
 ampersand:
-single_quote:
-asterisk:
-plus:
-comma:
 period:
-colon:
+circumflex:
 less_than:
 equals:
 greater_than:
-question:
-at:
-backslash:
-circumflex:
-grave:
-vbar:
 tilde:
+asterisk:
+plus:
 identifier:
   for (; it != end; ++it) {
     if (is_delimiter(*it)) {

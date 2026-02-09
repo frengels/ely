@@ -1,9 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <utility>
 
 #include "ely/config.h"
 #include "ely/stx/tokens.hpp"
+
+#include "cont.hpp"
 
 namespace ely {
 namespace stx {
@@ -57,6 +60,15 @@ template <> struct encode_fn<token_kind::spill> {
     *out++ = (uint8_t)num;
     *out++ = (uint8_t)cont_id;
     *out = static_cast<std::uint8_t>(token_kind::spill);
+    return 3;
+  }
+
+  ELY_ALWAYS_INLINE constexpr std::size_t
+  operator()(std::uint8_t* out, std::uint8_t num,
+             ely::stx::cont cont_id) const {
+    *out++ = (uint8_t)num;
+    *out++ = (uint8_t)cont_id;
+    *out = std::to_underlying(token_kind::spill);
     return 3;
   }
 };
