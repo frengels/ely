@@ -48,19 +48,19 @@ std::size_t lex(std::string_view src, std::span<uint8_t> out_buffer,
 
   // surprised that designated initializers for static arrays are working here.
   static constexpr void* cont_table[] = {
-      [static_cast<std::size_t>(cont::start)] = &&start,
-      [static_cast<std::size_t>(cont::whitespace)] = &&whitespace,
-      [static_cast<std::size_t>(cont::tab)] = &&tab,
-      [static_cast<std::size_t>(cont::newline_cr)] = &&newline_cr,
-      [static_cast<std::size_t>(cont::identifier)] = &&identifier,
-      [static_cast<std::size_t>(cont::decimal_lit)] = &&decimal,
-      [static_cast<std::size_t>(cont::integer_lit)] = &&number,
-      [static_cast<std::size_t>(cont::string_lit)] = &&string_lit,
-      [static_cast<std::size_t>(cont::line_comment)] = &&start_comment,
-      [static_cast<std::size_t>(cont::line_comment_cr)] = &&line_comment_cr,
-      [static_cast<std::size_t>(cont::unicode4)] = &&unicode4,
-      [static_cast<std::size_t>(cont::unicode3)] = &&unicode3,
-      [static_cast<std::size_t>(cont::unicode2)] = &&unicode2,
+      [std::to_underlying(cont::start)] = &&start,
+      [std::to_underlying(cont::whitespace)] = &&whitespace,
+      [std::to_underlying(cont::tab)] = &&tab,
+      [std::to_underlying(cont::newline_cr)] = &&newline_cr,
+      [std::to_underlying(cont::identifier)] = &&identifier,
+      [std::to_underlying(cont::decimal_lit)] = &&decimal,
+      [std::to_underlying(cont::integer_lit)] = &&number,
+      [std::to_underlying(cont::string_lit)] = &&string_lit,
+      [std::to_underlying(cont::line_comment)] = &&start_comment,
+      [std::to_underlying(cont::line_comment_cr)] = &&line_comment_cr,
+      [std::to_underlying(cont::unicode4)] = &&unicode4,
+      [std::to_underlying(cont::unicode3)] = &&unicode3,
+      [std::to_underlying(cont::unicode2)] = &&unicode2,
   };
 
   // this madness is required because C++ doesn't allow designated initializers
