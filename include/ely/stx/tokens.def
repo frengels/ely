@@ -33,6 +33,8 @@ TOKEN(identifier)
 TOKEN(integer_lit)
 TOKEN(decimal_lit)
 TOKEN(string_lit)
+TOKEN(true_lit)
+TOKEN(false_lit)
 
 TOKEN(unterminated_string_lit)
 TOKEN(unknown)
