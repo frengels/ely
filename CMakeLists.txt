@@ -12,6 +12,7 @@ option(ELY_ENABLE_BENCHMARKS "Enable benchmarks" ON)
 
 include(FetchContent)
 
+find_package(Boost COMPONENTS program_options REQUIRED)
 find_package(fmt)
 
 if(NOT fmt_FOUND)
