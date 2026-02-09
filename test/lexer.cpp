@@ -124,19 +124,19 @@ constexpr int lexer() {
       auto id = make_src("hello_world");
       auto expected_len = encode<identifier>(expected, id.size() - 1); // for \0
       expected_len += encode<eof>(expected + expected_len);
-      auto res = ely::stx::lex(id, buffer);
+      auto res = lex(id, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
     {
       auto id = make_src("var123/other/more");
       auto expected_len = encode<identifier>(expected, 6);
-      expected_len += encode<slash>(expected + expected_len);
+      expected_len += encode<path_separator>(expected + expected_len);
       expected_len += encode<identifier>(expected + expected_len, 5);
-      expected_len += encode<slash>(expected + expected_len);
+      expected_len += encode<path_separator>(expected + expected_len);
       expected_len += encode<identifier>(expected + expected_len, 4);
       expected_len += encode<eof>(expected + expected_len);
-      auto res = ely::stx::lex(id, buffer);
+      auto res = lex(id, buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
     }
@@ -206,7 +206,7 @@ constexpr int lexer() {
       auto expected_len = encode<token_kind::spill>(
           expected, str[0].size(),
           std::to_underlying(ely::stx::cont::string_lit));
-      auto res = ely::stx::lex(str[0], buffer);
+      auto res = lex(str[0], buffer);
       assert(res == expected_len);
       assert(check_equal(buffer, expected, res));
 

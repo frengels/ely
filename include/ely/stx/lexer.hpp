@@ -254,7 +254,7 @@ rbrace:
   out += encode<token_kind::rbrace>(out);
   COMP_DISPATCH();
 slash:
-  out += encode<token_kind::slash>(out);
+  out += encode<token_kind::path_separator>(out);
   COMP_DISPATCH();
 number:
   for (; it != end; ++it) {

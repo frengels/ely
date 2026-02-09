@@ -141,6 +141,16 @@ constexpr std::size_t ELY_PRESERVE_NONE lex_paren(const char* it,
                                                   const std::uint8_t* out_start,
                                                   const std::uint8_t* out_end,
                                                   std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE lex_slash(const char* it,
+                                                  const char* end,
+                                                  const char* tok_start,
+                                                  const std::uint8_t* out_start,
+                                                  const std::uint8_t* out_end,
+                                                  std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_dollar(const char* it, const char* end, const char* tok_start,
+           const std::uint8_t* out_start, const std::uint8_t* out_end,
+           std::uint8_t* out);
 
 constexpr std::size_t ELY_PRESERVE_NONE
 lex_unreachable(const char*, const char*, const char*, const std::uint8_t*,
@@ -190,6 +200,8 @@ inline constexpr auto jump_table = [] {
   tbl[']'] = &lex_paren<']'>;
   tbl['{'] = &lex_paren<'{'>;
   tbl['}'] = &lex_paren<'}'>;
+  tbl['/'] = &lex_slash;
+  tbl['$'] = &lex_dollar;
   tbl['"'] = &lex_string;
   tbl['\r'] = &lex_newline_cr;
   tbl['\n'] = &lex_newline_lf;
@@ -508,6 +520,23 @@ constexpr std::size_t ELY_PRESERVE_NONE lex_paren(const char* it,
     }
   }();
   out += encode<tok>(out);
+  DISPATCH();
+}
+
+constexpr std::size_t ELY_PRESERVE_NONE lex_slash(const char* it,
+                                                  const char* end,
+                                                  const char* tok_start,
+                                                  const std::uint8_t* out_start,
+                                                  const std::uint8_t* out_end,
+                                                  std::uint8_t* out) {
+  out += encode<token_kind::path_separator>(out);
+  DISPATCH();
+}
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_dollar(const char* it, const char* end, const char* tok_start,
+           const std::uint8_t* out_start, const std::uint8_t* out_end,
+           std::uint8_t* out) {
+  out += encode<token_kind::meta>(out);
   DISPATCH();
 }
 

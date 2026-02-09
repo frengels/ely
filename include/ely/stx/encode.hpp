@@ -240,9 +240,16 @@ template <> struct encode_fn<token_kind::unsyntax_splicing> {
   }
 };
 
-template <> struct encode_fn<token_kind::slash> {
+template <> struct encode_fn<token_kind::path_separator> {
   ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
-    *out = static_cast<std::uint8_t>(token_kind::slash);
+    *out = static_cast<std::uint8_t>(token_kind::path_separator);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::meta> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::meta);
     return 1;
   }
 };
