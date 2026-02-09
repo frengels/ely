@@ -105,6 +105,19 @@ lex_newline_cr(const char* it, const char* end, const char* tok_start,
                const std::uint8_t* out_start, const std::uint8_t* out_end,
                std::uint8_t* out);
 
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_skip_unicode4(const char* it, const char* end, const char* tok_start,
+                  const std::uint8_t* out_start, const std::uint8_t* out_end,
+                  std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_skip_unicode3(const char* it, const char* end, const char* tok_start,
+                  const std::uint8_t* out_start, const std::uint8_t* out_end,
+                  std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_skip_unicode2(const char* it, const char* end, const char* tok_start,
+                  const std::uint8_t* out_start, const std::uint8_t* out_end,
+                  std::uint8_t* out);
+
 template <char C>
 constexpr std::size_t ELY_PRESERVE_NONE lex_paren(const char* it,
                                                   const char* end,
@@ -168,23 +181,21 @@ inline constexpr auto jump_table = [] {
     tbl[c] = &lex_number;
   }
 
+  // this is all very broken, we need proper unicode handling
+  for (std::size_t i = 0b11000000; i <= 0b11011111; ++i) {
+    tbl[i] = &lex_skip_unicode2;
+  }
+
+  for (std::size_t i = 0b11100000; i <= 0b11101111; ++i) {
+    tbl[i] = &lex_skip_unicode3;
+  }
+
+  for (std::size_t i = 0b11110000; i <= 0b11110111; ++i) {
+    tbl[i] = &lex_skip_unicode4;
+  }
+
   return tbl;
 }();
-
-#define DISPATCH()                                                             \
-  do {                                                                         \
-    tok_start = it;                                                            \
-    if (it == end) {                                                           \
-      out += encode<token_kind::spill>(out, it - tok_start, cont::start);      \
-      return out - out_start;                                                  \
-    }                                                                          \
-    if ((out + 4) >= out_end) {                                                \
-      out += encode<token_kind::buffer_full>(out);                             \
-      return out - out_start;                                                  \
-    }                                                                          \
-    ELY_MUSTTAIL return jump_table[*it](it + 1, end, it, out_start, out_end,   \
-                                        out);                                  \
-  } while (0)
 
 template <cont ContID>
 ELY_COLD ELY_NOINLINE constexpr std::size_t ELY_PRESERVE_NONE
@@ -194,6 +205,21 @@ write_spill(const char* it, const char* end, const char* tok_start,
   out += encode<token_kind::spill>(out, it - tok_start, ContID);
   return out - out_start;
 }
+
+#define DISPATCH()                                                             \
+  do {                                                                         \
+    tok_start = it;                                                            \
+    if (it == end) {                                                           \
+      ELY_MUSTTAIL return write_spill<cont::start>(it, end, tok_start,         \
+                                                   out_start, out_end, out);   \
+    }                                                                          \
+    if ((out + 4) >= out_end) {                                                \
+      out += encode<token_kind::buffer_full>(out);                             \
+      return out - out_start;                                                  \
+    }                                                                          \
+    ELY_MUSTTAIL return jump_table[*it](it + 1, end, it, out_start, out_end,   \
+                                        out);                                  \
+  } while (0)
 
 ELY_COLD constexpr std::size_t ELY_PRESERVE_NONE
 lex_unknown(const char* it, const char* end, const char* tok_start,
@@ -342,6 +368,44 @@ lex_newline_cr(const char* it, const char* end, const char* tok_start,
   DISPATCH();
 }
 
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_skip_unicode4(const char* it, const char* end, const char* tok_start,
+                  const std::uint8_t* out_start, const std::uint8_t* out_end,
+                  std::uint8_t* out) {
+  if (it == end) {
+    ELY_MUSTTAIL return write_spill<cont::unicode4>(it, end, tok_start,
+                                                    out_start, out_end, out);
+  }
+  ++it;
+  ELY_MUSTTAIL return lex_skip_unicode3(it, end, tok_start, out_start, out_end,
+                                        out);
+}
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_skip_unicode3(const char* it, const char* end, const char* tok_start,
+                  const std::uint8_t* out_start, const std::uint8_t* out_end,
+                  std::uint8_t* out) {
+  if (it == end) {
+    ELY_MUSTTAIL return write_spill<cont::unicode3>(it, end, tok_start,
+                                                    out_start, out_end, out);
+  }
+  ++it;
+  ELY_MUSTTAIL return lex_skip_unicode2(it, end, tok_start, out_start, out_end,
+                                        out);
+}
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_skip_unicode2(const char* it, const char* end, const char* tok_start,
+                  const std::uint8_t* out_start, const std::uint8_t* out_end,
+                  std::uint8_t* out) {
+  if (it == end) {
+    ELY_MUSTTAIL return write_spill<cont::unicode2>(it, end, tok_start,
+                                                    out_start, out_end, out);
+  }
+  ++it;
+  // treat unicode characters as identifiers
+  ELY_MUSTTAIL return lex_identifier(it, end, tok_start, out_start, out_end,
+                                     out);
+}
+
 template <char C>
 constexpr std::size_t ELY_PRESERVE_NONE lex_paren(const char* it,
                                                   const char* end,
@@ -381,6 +445,7 @@ constexpr std::size_t ELY_PRESERVE_NONE lex_start(const char* it,
 } // namespace
 } // namespace lexer2
 
+ELY_NOINLINE
 constexpr std::size_t lex2(std::string_view src,
                            std::span<std::uint8_t> out_buffer,
                            std::uint8_t cont_id = 0) {
