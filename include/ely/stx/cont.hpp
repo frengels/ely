@@ -15,6 +15,8 @@ enum struct cont : std::uint8_t {
   string_lit,
   line_comment,
   line_comment_cr,
+  number_sign,
+  unsyntax_splicing,
   unicode4,
   unicode3,
   unicode2,
