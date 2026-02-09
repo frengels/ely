@@ -170,6 +170,76 @@ template <> struct encode_fn<token_kind::rbrace> {
   }
 };
 
+template <> struct encode_fn<token_kind::true_lit> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::true_lit);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::false_lit> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::false_lit);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::quote> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::quote);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::quasiquote> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::quasiquote);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::unquote> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::unquote);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::unquote_splicing> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::unquote_splicing);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::syntax> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::syntax);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::quasisyntax> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::quasisyntax);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::unsyntax> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::unsyntax);
+    return 1;
+  }
+};
+
+template <> struct encode_fn<token_kind::unsyntax_splicing> {
+  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
+    *out = std::to_underlying(token_kind::unsyntax_splicing);
+    return 1;
+  }
+};
+
 template <> struct encode_fn<token_kind::slash> {
   ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out) const {
     *out = static_cast<std::uint8_t>(token_kind::slash);
