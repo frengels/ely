@@ -26,8 +26,8 @@ TOKEN(quasisyntax)
 TOKEN(unsyntax)
 TOKEN(unsyntax_splicing)
 
-TOKEN(dollar)
-TOKEN(slash)
+TOKEN(meta)
+TOKEN(path_separator)
 
 TOKEN(identifier)
 TOKEN(integer_lit)
