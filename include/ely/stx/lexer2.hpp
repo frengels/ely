@@ -112,6 +112,14 @@ constexpr std::size_t ELY_PRESERVE_NONE
 lex_newline_cr(const char* it, const char* end, const char* tok_start,
                const std::uint8_t* out_start, const std::uint8_t* out_end,
                std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_number_sign(const char* it, const char* end, const char* tok_start,
+                const std::uint8_t* out_start, const std::uint8_t* out_end,
+                std::uint8_t* out);
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_unsyntax_splicing(const char* it, const char* end, const char* tok_start,
+                      const std::uint8_t* out_start,
+                      const std::uint8_t* out_end, std::uint8_t* out);
 
 constexpr std::size_t ELY_PRESERVE_NONE
 lex_skip_unicode4(const char* it, const char* end, const char* tok_start,
@@ -153,6 +161,8 @@ inline constexpr auto cont_table = [] {
   res[std::to_underlying(string_lit)] = &lex_string;
   res[std::to_underlying(line_comment)] = &lex_line_comment;
   res[std::to_underlying(line_comment_cr)] = &lex_line_comment_cr;
+  res[std::to_underlying(number_sign)] = &lex_number_sign;
+  res[std::to_underlying(unsyntax_splicing)] = &lex_unsyntax_splicing;
   res[std::to_underlying(unicode4)] = &lex_skip_unicode4;
   res[std::to_underlying(unicode3)] = &lex_skip_unicode3;
   res[std::to_underlying(unicode2)] = &lex_skip_unicode2;
@@ -183,6 +193,7 @@ inline constexpr auto jump_table = [] {
   tbl['"'] = &lex_string;
   tbl['\r'] = &lex_newline_cr;
   tbl['\n'] = &lex_newline_lf;
+  tbl['#'] = &lex_number_sign;
 
   for (auto c = 'a'; c <= 'z'; ++c) {
     tbl[c] = &lex_identifier;
@@ -380,6 +391,57 @@ lex_newline_cr(const char* it, const char* end, const char* tok_start,
     out += encode<token_kind::newline_cr>(out);
   }
 
+  DISPATCH();
+}
+
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_number_sign(const char* it, const char* end, const char* tok_start,
+                const std::uint8_t* out_start, const std::uint8_t* out_end,
+                std::uint8_t* out) {
+  if (it == end) {
+    ELY_MUSTTAIL return write_spill<cont::number_sign>(it, end, tok_start,
+                                                       out_start, out_end, out);
+  }
+  switch (*it) {
+    // we handle true and false similar to the guile way
+    // e.g. '(#fa) => '(#f a)
+  case 't':
+    ++it;
+    out += encode<token_kind::true_lit>(out);
+    break; // TODO: check that DISPATCH here is not faster
+  case 'f':
+    ++it;
+    out += encode<token_kind::false_lit>(out);
+    break;
+  case '\'':
+    ++it;
+    out += encode<token_kind::syntax>(out);
+    break;
+  case '`':
+    ++it;
+    out += encode<token_kind::quasisyntax>(out);
+    break;
+  case ',':
+    ++it;
+    ELY_MUSTTAIL return lex_unsyntax_splicing(it, end, tok_start, out_start,
+                                              out_end, out);
+  }
+  DISPATCH();
+}
+
+constexpr std::size_t ELY_PRESERVE_NONE
+lex_unsyntax_splicing(const char* it, const char* end, const char* tok_start,
+                      const std::uint8_t* out_start,
+                      const std::uint8_t* out_end, std::uint8_t* out) {
+  if (it == end) {
+    ELY_MUSTTAIL return write_spill<cont::unsyntax_splicing>(
+        it, end, tok_start, out_start, out_end, out);
+  }
+  if (*it == '@') {
+    ++it;
+    out += encode<token_kind::unsyntax_splicing>(out);
+    DISPATCH();
+  }
   DISPATCH();
 }
 
