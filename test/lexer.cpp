@@ -1,4 +1,5 @@
 #include <ely/stx/lexer.hpp>
+#include <ely/stx/lexer2.hpp>
 
 #include <cassert>
 #include <string_view>
@@ -8,10 +9,20 @@
 
 #include "ely/stx/tokens.hpp"
 // testing internal encoding api as well
-#include "stx/cont.hpp"
-#include "stx/encode.hpp"
+#include "ely/stx/cont.hpp"
+#include "ely/stx/encode.hpp"
 
 #include "support.hpp"
+
+#ifndef NEW_LEXER
+template <typename... Args> constexpr decltype(auto) lex(Args&&... args) {
+  return ely::stx::lex(static_cast<Args&&>(args)...);
+}
+#else
+template <typename... Args> constexpr decltype(auto) lex(Args&&... args) {
+  return ely::stx::lex2(static_cast<Args&&>(args)...);
+}
+#endif
 
 using namespace ely::stx;
 
