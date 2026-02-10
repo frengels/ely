@@ -94,9 +94,6 @@ constexpr std::size_t ELY_PRESERVE_NONE
 lex_keyword_lit(const char*, const char*, const char*, const std::uint8_t*,
                 const std::uint8_t*, std::uint8_t* out);
 constexpr std::size_t ELY_PRESERVE_NONE
-lex_core_identifier(const char*, const char*, const char*, const std::uint8_t*,
-                    const std::uint8_t*, std::uint8_t* out);
-constexpr std::size_t ELY_PRESERVE_NONE
 lex_line_comment_cr(const char* it, const char* end, const char* tok_start,
                     const std::uint8_t* out_start, const std::uint8_t* out_end,
                     std::uint8_t* out);
@@ -172,7 +169,6 @@ inline constexpr auto cont_table = [] {
   res[std::to_underlying(tab)] = &lex_tab;
   res[std::to_underlying(newline_cr)] = &lex_newline_cr;
   res[std::to_underlying(identifier)] = &lex_identifier;
-  res[std::to_underlying(core_identifier)] = &lex_core_identifier;
   res[std::to_underlying(decimal_lit)] = &lex_decimal;
   res[std::to_underlying(integer_lit)] = &lex_number;
   res[std::to_underlying(string_lit)] = &lex_string;
@@ -397,19 +393,6 @@ lex_keyword_lit(const char* it, const char* end, const char* tok_start,
   ELY_MUSTTAIL return write_spill<cont::keyword_lit>(it, end, tok_start,
                                                      out_start, out_end, out);
 }
-constexpr std::size_t ELY_PRESERVE_NONE
-lex_core_identifier(const char* it, const char* end, const char* tok_start,
-                    const std::uint8_t* out_start, const std::uint8_t* out_end,
-                    std::uint8_t* out) {
-  for (; it != end; ++it) {
-    if (is_delimiter(*it)) {
-      out += encode<token_kind::core_identifier>(out, it - tok_start);
-      DISPATCH();
-    }
-  }
-  ELY_MUSTTAIL return write_spill<cont::core_identifier>(
-      it, end, tok_start, out_start, out_end, out);
-}
 
 constexpr std::size_t ELY_PRESERVE_NONE
 lex_newline_lf(const char* it, const char* end, const char* tok_start,
@@ -470,8 +453,8 @@ lex_number_sign(const char* it, const char* end, const char* tok_start,
                                         out);
   case '%':
     ++it;
-    ELY_MUSTTAIL return lex_core_identifier(it, end, tok_start, out_start,
-                                            out_end, out);
+    ELY_MUSTTAIL return lex_identifier(it, end, tok_start, out_start, out_end,
+                                       out);
   case ',':
     ++it;
     ELY_MUSTTAIL return lex_unsyntax_splicing(it, end, tok_start, out_start,

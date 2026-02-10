@@ -82,15 +82,6 @@ template <> struct encode_fn<token_kind::identifier> {
   }
 };
 
-template <> struct encode_fn<token_kind::core_identifier> {
-  ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out,
-                                                     std::uint8_t num) const {
-    *out++ = static_cast<std::uint8_t>(token_kind::core_identifier);
-    *out = num;
-    return 2;
-  }
-};
-
 template <> struct encode_fn<token_kind::integer_lit> {
   ELY_ALWAYS_INLINE constexpr std::size_t operator()(std::uint8_t* out,
                                                      std::uint8_t num) const {

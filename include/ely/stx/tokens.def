@@ -30,7 +30,6 @@ TOKEN(meta)
 TOKEN(path_separator)
 
 TOKEN(identifier)
-TOKEN(core_identifier)
 TOKEN(keyword_lit)
 TOKEN(integer_lit)
 TOKEN(decimal_lit)

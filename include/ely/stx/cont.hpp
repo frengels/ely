@@ -10,7 +10,6 @@ enum struct cont : std::uint8_t {
   tab,
   newline_cr,
   identifier,
-  core_identifier,
   decimal_lit,
   integer_lit,
   string_lit,
