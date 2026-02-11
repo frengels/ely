@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ely/util/variant.hpp"
-#include "variant.hpp"
+#include "ely/util/visit.hpp"
 
 namespace ely {
 template <typename T, typename... Ts>

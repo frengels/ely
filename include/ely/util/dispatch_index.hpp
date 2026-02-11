@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 namespace ely {
 namespace detail {
@@ -17,17 +18,19 @@ ELY_ALWAYS_INLINE constexpr Ret dispatch_on(Fn&& fn) noexcept(
 template <std::size_t I, std::size_t Max, typename Fn, typename Ret>
   requires(I >= Max)
 ELY_ALWAYS_INLINE constexpr Ret dispatch_on(Fn&& fn) noexcept {
-  __builtin_unreachable();
+  // these 2 cases cannot be handled by if constexpr because the invalid variant
+  // would still be semantically analyzed
+  std::unreachable();
 }
 
 template <std::size_t Total, std::size_t Offset, typename Fn, typename Ret>
 ELY_ALWAYS_INLINE constexpr Ret dispatch_index_impl(std::size_t index,
                                                     Fn&& fn) {
   if constexpr (Offset > Total) {
-    __builtin_unreachable();
+    std::unreachable();
   } else {
     if (index >= Total) {
-      __builtin_unreachable();
+      std::unreachable();
     }
 
 #define DISPATCH_CASE(idx)                                                     \

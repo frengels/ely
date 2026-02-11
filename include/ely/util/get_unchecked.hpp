@@ -3,6 +3,7 @@
 #include "ely/util/concepts.hpp"
 #include "ely/util/variant.hpp"
 
+#include <utility>
 #include <variant>
 
 namespace ely {
@@ -65,7 +66,7 @@ constexpr auto& get_unchecked(std::variant<Ts...>& v) noexcept {
   try {
     return std::get<I>(v);
   } catch (...) {
-    __builtin_unreachable();
+    std::unreachable();
   }
 }
 
@@ -76,7 +77,7 @@ constexpr auto& get_unchecked(const std::variant<Ts...>& v) noexcept {
   try {
     return std::get<I>(v);
   } catch (...) {
-    __builtin_unreachable();
+    std::unreachable();
   }
 }
 
@@ -87,7 +88,7 @@ constexpr auto& get_unchecked(std::variant<Ts...>&& v) noexcept {
   try {
     return std::get<I>(std::move(v));
   } catch (...) {
-    __builtin_unreachable();
+    std::unreachable();
   }
 }
 
@@ -98,7 +99,7 @@ constexpr auto& get_unchecked(const std::variant<Ts...>&& v) noexcept {
   try {
     return std::get<I>(std::move(v));
   } catch (...) {
-    __builtin_unreachable();
+    std::unreachable();
   }
 }
 } // namespace ely

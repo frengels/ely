@@ -115,8 +115,7 @@ public:
       (std::is_nothrow_move_constructible_v<Ts> && ...))
     requires(!(std::is_trivially_move_constructible_v<Ts> && ...))
       : store_([&] -> union_storage<Ts...> {
-          return ely::dispatch_index_r<union_storage<Ts...>, sizeof...(Ts),
-                                       ely::union_storage<Ts...>>(
+          return ely::dispatch_index_r<union_storage<Ts...>, sizeof...(Ts)>(
               other.index(),
               [&]<std::size_t I>(
                   std::in_place_index_t<I> i) -> ely::union_storage<Ts...> {
@@ -168,7 +167,7 @@ public:
     requires((std::is_destructible_v<Ts> && ...) &&
              !(std::is_trivially_destructible_v<Ts> && ...))
   {
-    ely::dispatch_index_r<void, sizeof...(Ts)>(
+    ely::dispatch_index<sizeof...(Ts)>(
         index(), [&]<std::size_t I>(std::in_place_index_t<I> i) noexcept {
           std::destroy_at(std::addressof(this->get_unchecked(i)));
         });

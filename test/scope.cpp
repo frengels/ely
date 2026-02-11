@@ -41,8 +41,8 @@ template <ely::scope_set SS> void test_scope() {
          ely::lookup_error::scope_not_found);
 
   assert(res.insert("a", c, 1));
-  CHECK_EQ(res.lookup("a", a).value(), 0);
-  CHECK_EQ(res.lookup("a", c).value(), 1);
+  check_eq(res.lookup("a", a).value(), 0);
+  check_eq(res.lookup("a", c).value(), 1);
 }
 
 void scope() {
