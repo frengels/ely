@@ -78,6 +78,7 @@ public:
   list() = default;
   constexpr list(std::vector<node>&& l, void* tokens = nullptr);
 
+  constexpr auto size() const;
   constexpr auto begin();
   constexpr auto end();
   constexpr auto begin() const;
@@ -97,6 +98,7 @@ public:
 constexpr list::list(std::vector<node>&& l, void* tokens)
     : tokens_(tokens), nodes_(std::move(l)) {}
 
+constexpr auto list::size() const { return nodes_.size(); }
 constexpr auto list::begin() { return nodes_.begin(); }
 constexpr auto list::end() { return nodes_.end(); }
 constexpr auto list::begin() const { return nodes_.begin(); }
