@@ -2,7 +2,7 @@ set(ELY_TEST_FILES
     interner
     scope
     lexer
-    nodes
+    green
     uniquer
     variant
     union_storage

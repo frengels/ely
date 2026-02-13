@@ -1,20 +1,16 @@
 #pragma once
 
-#include <concepts>
+#include <cstdint>
 #include <string>
-#include <vector>
-
-#include <fmt/base.h>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 
 #include "ely/util/variant.hpp"
 #include "ely/util/visit.hpp"
 
-namespace ely {
-namespace stx {
-class node;
+#include <fmt/base.h>
+#include <fmt/ranges.h>
 
+namespace ely {
+namespace green {
 class int_literal {
   void* token_;
   std::int64_t value_;
@@ -68,103 +64,69 @@ public:
   constexpr std::string_view value() const { return id_; }
 };
 
-// ( ... )
-class list {
-private:
-  void* tokens_;
-  std::vector<node> nodes_;
-
-public:
-  list() = default;
-  constexpr list(std::vector<node>&& l, void* tokens = nullptr);
-
-  constexpr auto size() const;
-  constexpr auto begin();
-  constexpr auto end();
-  constexpr auto begin() const;
-  constexpr auto end() const;
-
-  template <typename... Args> constexpr node& emplace_back(Args&&... args);
-};
-
-using node_variant =
-    ely::variant<int_literal, string_literal, identifier, list>;
-
-class node : public node_variant {
-public:
-  using node_variant::node_variant;
-};
-
-constexpr list::list(std::vector<node>&& l, void* tokens)
-    : tokens_(tokens), nodes_(std::move(l)) {}
-
-constexpr auto list::size() const { return nodes_.size(); }
-constexpr auto list::begin() { return nodes_.begin(); }
-constexpr auto list::end() { return nodes_.end(); }
-constexpr auto list::begin() const { return nodes_.begin(); }
-constexpr auto list::end() const { return nodes_.end(); }
-
-template <typename... Args> constexpr node& list::emplace_back(Args&&... args) {
-  return nodes_.emplace_back(static_cast<Args&&>(args)...);
+namespace detail {
+using token_variant = ely::variant<green::int_literal, green::float_literal,
+                                   green::string_literal, green::identifier>;
 }
-} // namespace stx
+
+class token : public detail::token_variant {
+public:
+  using detail::token_variant::token_variant;
+};
+} // namespace green
 } // namespace ely
 
-template <> struct fmt::formatter<ely::stx::node> {
+template <> struct fmt::formatter<ely::green::int_literal> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FmtCtx>
-  constexpr auto format(const ely::stx::node& n, FmtCtx& ctx) const {
-    return ely::visit(
-        [&](const auto& x) { return fmt::format_to(ctx.out(), "{}", x); }, n);
-  }
-};
-
-template <> struct fmt::formatter<ely::stx::int_literal> {
-  constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename FmtCtx>
-  constexpr auto format(const ely::stx::int_literal& ilit, FmtCtx& ctx) const {
+  constexpr auto format(const ely::green::int_literal& ilit,
+                        FmtCtx& ctx) const {
     return fmt::format_to(ctx.out(), "{}", ilit.value());
   }
 };
 
-template <> struct fmt::formatter<ely::stx::float_literal> {
+template <> struct fmt::formatter<ely::green::float_literal> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FmtCtx>
-  constexpr auto format(const ely::stx::float_literal& flit,
+  constexpr auto format(const ely::green::float_literal& flit,
                         FmtCtx& ctx) const {
     return fmt::format_to(ctx.out(), "{}", flit.value());
   }
 };
 
-template <> struct fmt::formatter<ely::stx::string_literal> {
+template <> struct fmt::formatter<ely::green::string_literal> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FmtCtx>
-  constexpr auto format(const ely::stx::string_literal& slit,
+  constexpr auto format(const ely::green::string_literal& slit,
                         FmtCtx& ctx) const {
     return fmt::format_to(ctx.out(), "\"{}\"", slit.value());
   }
 };
 
-template <> struct fmt::formatter<ely::stx::identifier> {
+template <> struct fmt::formatter<ely::green::identifier> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FmtCtx>
-  constexpr auto format(const ely::stx::identifier& id, FmtCtx& ctx) const {
+  constexpr auto format(const ely::green::identifier& id, FmtCtx& ctx) const {
     // TODO handle escaping identifiers with uncommon values, such as spaces or
     // tabs
     return fmt::format_to(ctx.out(), "{}", id.value());
   }
 };
 
-template <> struct fmt::formatter<ely::stx::list> {
+template <> struct fmt::formatter<ely::green::token> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FmtCtx>
-  constexpr auto format(const ely::stx::list& l, FmtCtx& ctx) const {
-    return fmt::format_to(ctx.out(), "({})", fmt::join(l, " "));
+  constexpr auto format(const ely::green::token& t, FmtCtx& ctx) const {
+    return ely::visit(
+        [&]<typename T>(const T& x) {
+          auto fmt = ::fmt::formatter<T>{};
+          return fmt.format(x, ctx);
+        },
+        t);
   }
 };
