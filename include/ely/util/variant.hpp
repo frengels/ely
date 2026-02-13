@@ -93,8 +93,8 @@ public:
       (std::is_nothrow_copy_constructible_v<Ts> && ...))
     requires(!(std::is_trivially_copy_constructible_v<Ts> && ...))
       : store_([&]() -> union_storage<Ts...> {
-          return ely::dispatch_index_r<sizeof...(Ts),
-                                       ely::union_storage<Ts...>>(
+          return ely::dispatch_index_r<ely::union_storage<Ts...>,
+                                       sizeof...(Ts)>(
               other.index(),
               [&]<std::size_t I>(
                   std::in_place_index_t<I> i) -> ely::union_storage<Ts...> {
