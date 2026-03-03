@@ -4,6 +4,16 @@
 
 #include "util.hpp"
 
+struct identifier {
+  std::string_view name;
+  ely::scope_set ss;
+
+  // we can use the name as symbol for testing
+  auto symbol() const { return name; }
+
+  const auto& scope_set() const { return ss; }
+};
+
 template <typename SS> constexpr void test_scope() {
   auto gen = ely::scope_generator();
   auto s = gen();
@@ -32,17 +42,17 @@ template <typename SS> constexpr void test_scope() {
   assert(a.subset_of(c));
   assert(a.subset_of(d));
 
-  auto res = ely::resolver<std::string_view, int>{};
-  assert(res.lookup("a", a).error() == ely::lookup_error::key_not_found);
-  assert(res.insert("a", a, 0));
-
-  assert(res.lookup("a", a).value() == 0);
-  assert(res.lookup("a", different).error() ==
+  auto bm = ely::binding_map<identifier, int>{};
+  assert(bm.lookup(identifier{"a", a}).error() ==
+         ely::lookup_error::key_not_found);
+  assert(bm.insert(identifier{"a", a}, 0));
+  assert(bm.lookup(identifier{"a", a}).value().value() == 0);
+  assert(bm.lookup(identifier{"a", different}).error() ==
          ely::lookup_error::scope_not_found);
 
-  assert(res.insert("a", c, 1));
-  check_eq(res.lookup("a", a).value(), 0);
-  check_eq(res.lookup("a", c).value(), 1);
+  assert(bm.insert(identifier{"a", c}, 1));
+  assert(bm.lookup(identifier{"a", a}).value().value() == 0);
+  assert(bm.lookup(identifier{"a", c}).value().value() == 1);
 }
 
 void scope() {

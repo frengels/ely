@@ -1,9 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <bitset>
 #include <cassert>
-#include <concepts>
 #include <expected>
 #include <ranges>
 #include <set>
@@ -132,54 +130,83 @@ public:
 
 enum struct lookup_error { key_not_found, scope_not_found, ambiguous };
 
-template <typename K, typename T> class resolver {
-private:
-  struct scoped_value {
-    scope_set scope;
-    T val;
-  };
+template <typename Id, typename V> struct binding {
+  Id id;
+  V val;
 
-  std::unordered_map<K, std::vector<scoped_value>> symbol_table_;
+  constexpr const V& value() const { return val; }
+  constexpr V& value() { return val; }
+};
+
+template <typename Id, typename V> class binding_map {
+public:
+  using binding_type = binding<Id, V>;
+  using value_type = binding_type;
+  using symbol_type =
+      std::remove_cvref_t<decltype(std::declval<Id>().symbol())>;
+
+private:
+  std::unordered_map<symbol_type, std::vector<value_type>> map_;
 
 public:
-  resolver() = default;
+  binding_map() = default;
 
-  std::expected<T, lookup_error> lookup(K name, const scope_set& scope_set) {
-    auto it = symbol_table_.find(name);
-    if (it == symbol_table_.end()) {
-      return std::unexpected(lookup_error::key_not_found);
+  bool insert(const Id& id, const V& val) {
+    auto it = map_.find(id.symbol());
+    if (it == map_.end()) {
+      auto emplace_res = map_.emplace(id.symbol(), std::vector<value_type>{});
+      assert(emplace_res.second);
+      it = emplace_res.first;
     }
 
-    // found something, now get the largest subset
-    std::size_t largest = 0;
-    std::optional<T> best{};
-    for (const scoped_value& sv : it->second) {
-      if (sv.scope.subset_of(scope_set) && sv.scope.size() > largest) {
-        best = sv.val;
-      }
-    }
+    // TODO check for duplicates here, we should probably return false if there
+    // is a duplicate, and true otherwise
 
-    if (!best) {
-      return std::unexpected(lookup_error::scope_not_found);
-    }
-
-    return *best;
+    auto& vec = it->second;
+    vec.emplace_back(binding_type{id, val});
+    return true;
   }
 
-  // returns true if inserted, false otherwise
-  [[nodiscard]]
-  bool insert(K name, const scope_set& scope_set, T val) {
-    auto vec_it = symbol_table_.find(name);
-    if (vec_it == symbol_table_.end()) {
-      auto emplace_res =
-          symbol_table_.emplace(name, std::vector<scoped_value>{});
-      assert(emplace_res.second);
-      vec_it = emplace_res.first;
+  // this will find all bindings for the given id, regardless of scope, this is
+  // useful for error reporting and diagnostics, but not for name resolution
+  std::span<value_type> find_bindings(const Id& id) {
+    auto it = map_.find(id.symbol());
+    if (it == map_.end()) {
+      return {};
     }
+    return it->second;
+  }
 
-    auto& vec = vec_it->second;
-    vec.emplace_back(scope_set, val);
-    return true;
+  // should always check the base of the filter_view for empty before checking
+  // the filter itself
+  auto find_matching_bindings(const Id& id) {
+    // TODO: this could probably be optimized by storing by ascending scope_set
+    // size
+    return find_bindings(id) |
+           std::views::filter([&](const value_type& binding) {
+             return binding.id.scope_set().subset_of(id.scope_set());
+           });
+  }
+
+  std::expected<value_type, lookup_error> lookup(const Id& id) {
+    auto matching_bindings = find_matching_bindings(id);
+
+    std::size_t largest = 0;
+    std::optional<value_type> best{};
+    for (const value_type& binding : matching_bindings) {
+      if (binding.id.scope_set().subset_of(id.scope_set()) &&
+          binding.id.scope_set().size() > largest) {
+        best = binding;
+        largest = binding.id.scope_set().size();
+      }
+    }
+    if (best) {
+      return *best;
+    } else if (matching_bindings.base().empty()) {
+      return std::unexpected(lookup_error::key_not_found);
+    } else {
+      return std::unexpected(lookup_error::scope_not_found);
+    }
   }
 };
 } // namespace ely
