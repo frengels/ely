@@ -51,24 +51,9 @@ public:
   constexpr scope next() { return this->operator()(); }
 };
 
-template <typename SS>
-concept scope_set =
-    requires(const SS& a, const SS& b, scope s, std::span<scope> ss) {
-      { a.subset_of(b) } -> std::same_as<bool>;
-      { a == b } -> std::same_as<bool>;
-      { a.hash() } -> std::convertible_to<std::size_t>;
-      { a.add_scope(s) } -> std::same_as<SS>;
-      { a.add_scopes(ss) } -> std::same_as<SS>;
-      { a.remove_scope(s) } -> std::same_as<SS>;
-      { a.remove_scopes(ss) } -> std::same_as<SS>;
-      { a.flip_scope(s) } -> std::same_as<SS>;
-      { a.flip_scopes(ss) } -> std::same_as<SS>;
-      { a.size() } -> std::same_as<std::size_t>;
-    };
-
 // TODO: this is currently quite expensive to copy, this should be memoized or
 // uniqued, we'll have to implement a basic_scope_set_storage and similar
-class basic_scope_set {
+class scope_set {
 public:
   using const_iterator = typename std::set<scope>::const_iterator;
 
@@ -76,46 +61,46 @@ private:
   std::set<scope> set_;
 
 public:
-  basic_scope_set() = default;
-  basic_scope_set(std::initializer_list<scope> il) : set_(il) {}
+  scope_set() = default;
+  scope_set(std::initializer_list<scope> il) : set_(il) {}
 
   std::size_t size() const { return set_.size(); }
   const_iterator begin() const { return set_.begin(); }
   const_iterator end() const { return set_.end(); }
 
-  friend bool operator==(const basic_scope_set&,
-                         const basic_scope_set&) = default;
+  friend bool operator==(const scope_set& lhs, const scope_set& rhs) = default;
 
-  bool subset_of(const basic_scope_set& other) const {
+  bool subset_of(const scope_set& other) const {
+    // checks this set is a subset (subsequence) of other.
     return std::includes(other.begin(), other.end(), begin(), end());
   }
 
   bool has_scope(const scope& sc) const { return set_.find(sc) != set_.end(); }
 
   [[nodiscard]]
-  basic_scope_set add_scope(const scope& sc) const {
-    basic_scope_set res = *this;
+  scope_set add_scope(const scope& sc) const {
+    scope_set res = *this;
     res.set_.insert(sc);
     return res;
   }
 
   [[nodiscard]]
-  basic_scope_set add_scopes(std::span<scope> scopes) const {
-    basic_scope_set res = *this;
+  scope_set add_scopes(std::span<scope> scopes) const {
+    scope_set res = *this;
     res.set_.insert(scopes.begin(), scopes.end());
     return res;
   }
 
   [[nodiscard]]
-  basic_scope_set remove_scope(const scope& sc) const {
-    basic_scope_set res = *this;
+  scope_set remove_scope(const scope& sc) const {
+    scope_set res = *this;
     res.set_.erase(sc);
     return res;
   }
 
   [[nodiscard]]
-  basic_scope_set remove_scopes(std::span<scope> scopes) const {
-    basic_scope_set res = *this;
+  scope_set remove_scopes(std::span<scope> scopes) const {
+    scope_set res = *this;
     for (const auto& sc : scopes) {
       res.set_.erase(sc);
     }
@@ -123,7 +108,7 @@ public:
   }
 
   [[nodiscard]]
-  basic_scope_set flip_scope(const scope& sc) const {
+  scope_set flip_scope(const scope& sc) const {
     if (has_scope(sc)) {
       return remove_scope(sc);
     } else {
@@ -132,7 +117,7 @@ public:
   }
 
   [[nodiscard]]
-  basic_scope_set flip_scopes(std::span<scope> scopes) const {
+  scope_set flip_scopes(std::span<scope> scopes) const {
     auto res = *this;
     for (const auto& sc : scopes) {
       if (res.has_scope(sc)) {
@@ -143,93 +128,14 @@ public:
     }
     return res;
   }
-
-  std::size_t hash() const { return 0; }
-};
-
-static_assert(scope_set<basic_scope_set>);
-
-template <std::size_t N> class bitset_scope_set {
-private:
-  std::bitset<N> scope_set_;
-
-public:
-  bitset_scope_set() = default;
-
-  friend constexpr bool operator==(const bitset_scope_set& lhs,
-                                   const bitset_scope_set& rhs) {
-    return lhs.scope_set_ == rhs.scope_set_;
-  }
-
-  constexpr std::size_t size() const { return scope_set_.count(); }
-
-  constexpr bool subset_of(const bitset_scope_set& other) const {
-    return (other.scope_set_ & scope_set_) == scope_set_;
-  }
-
-  [[nodiscard]]
-  constexpr bitset_scope_set add_scope(const scope& sc) const {
-    assert(sc.id() < N && "out of range");
-    auto res = *this;
-    res.scope_set_.set(sc.id());
-    return res;
-  }
-
-  [[nodiscard]]
-  constexpr bitset_scope_set add_scopes(std::span<scope> scopes) const {
-    auto res = *this;
-    for (const auto& sc : scopes) {
-      assert(sc.id() < N && "out of range");
-      res.scope_set_.set(sc.id());
-    }
-    return res;
-  }
-
-  [[nodiscard]]
-  constexpr bitset_scope_set remove_scope(const scope& sc) const {
-    assert(sc.id() < N && "out of range");
-    auto res = *this;
-    res.scope_set_.reset(sc.id());
-    return res;
-  }
-
-  [[nodiscard]]
-  constexpr bitset_scope_set remove_scopes(std::span<scope> scopes) const {
-    auto res = *this;
-    for (const auto& sc : scopes) {
-      assert(sc.id() < N && "out of range");
-      res.scope_set_.reset(sc.id());
-    }
-    return res;
-  }
-
-  [[nodiscard]]
-  constexpr bitset_scope_set flip_scope(const scope& sc) const {
-    auto res = *this;
-    res.scope_set_.flip(sc.id());
-    return res;
-  }
-
-  [[nodiscard]]
-  constexpr bitset_scope_set flip_scopes(std::span<scope> scopes) const {
-    auto res = *this;
-    for (const auto& sc : scopes) {
-      res.scope_set_.flip(sc.id());
-    }
-    return res;
-  }
-
-  constexpr std::size_t hash() const {
-    return std::hash<std::bitset<N>>{}(scope_set_);
-  }
 };
 
 enum struct lookup_error { key_not_found, scope_not_found, ambiguous };
 
-template <scope_set SS, typename K, typename T> class resolver {
+template <typename K, typename T> class resolver {
 private:
   struct scoped_value {
-    SS scope;
+    scope_set scope;
     T val;
   };
 
@@ -238,7 +144,7 @@ private:
 public:
   resolver() = default;
 
-  std::expected<T, lookup_error> lookup(K name, SS scope_set) {
+  std::expected<T, lookup_error> lookup(K name, const scope_set& scope_set) {
     auto it = symbol_table_.find(name);
     if (it == symbol_table_.end()) {
       return std::unexpected(lookup_error::key_not_found);
@@ -248,7 +154,7 @@ public:
     std::size_t largest = 0;
     std::optional<T> best{};
     for (const scoped_value& sv : it->second) {
-      if (scope_set.subset_of(sv.scope) && sv.scope.size() > largest) {
+      if (sv.scope.subset_of(scope_set) && sv.scope.size() > largest) {
         best = sv.val;
       }
     }
@@ -262,7 +168,7 @@ public:
 
   // returns true if inserted, false otherwise
   [[nodiscard]]
-  bool insert(K name, SS scope_set, T val) {
+  bool insert(K name, const scope_set& scope_set, T val) {
     auto vec_it = symbol_table_.find(name);
     if (vec_it == symbol_table_.end()) {
       auto emplace_res =
@@ -286,12 +192,12 @@ template <> struct fmt::formatter<ely::scope> {
   }
 };
 
-template <> struct fmt::formatter<ely::basic_scope_set> {
+template <> struct fmt::formatter<ely::scope_set> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
-  constexpr auto format(const ely::basic_scope_set& ss, Ctx& ctx) const {
+  constexpr auto format(const ely::scope_set& ss, Ctx& ctx) const {
     return fmt::format_to(
-        ctx.out(), "basic_scope_set({})",
+        ctx.out(), "scope_set({})",
         fmt::join(
             std::ranges::subrange(ss.begin(), ss.end()) |
                 std::views::transform([](ely::scope s) { return s.id(); }),
