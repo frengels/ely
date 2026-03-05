@@ -1,4 +1,5 @@
 set(ELY_TEST_FILES
+    arena
     interner
     scope
     lexer
