@@ -14,12 +14,14 @@ struct symbol {
 
   id_type id;
 
-  static constexpr auto invalid = std::numeric_limits<decltype(id)>::min();
+  static constexpr auto invalid = std::numeric_limits<decltype(id)>::max();
 
   constexpr symbol() : symbol(invalid) {}
   explicit constexpr symbol(id_type id) : id(id) {
-    assert(id != invalid && "Use default constructor for invalid symbol");
+    assert(*this && "Use default constructor for invalid symbol");
   }
+
+  explicit constexpr operator bool() const { return id != invalid; }
 
   friend constexpr bool operator==(const symbol& lhs, const symbol& rhs) {
     return lhs.id == rhs.id;
@@ -38,6 +40,9 @@ template <> struct fmt::formatter<ely::symbol> {
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
   template <typename Ctx>
   constexpr auto format(const ely::symbol& sym, Ctx& ctx) const {
-    return fmt::format_to(ctx.out(), "symbol({})", sym.id);
+    if (sym)
+      return fmt::format_to(ctx.out(), "symbol({})", sym.id);
+    else
+      return fmt::format_to(ctx.out(), "symbol(invalid)");
   }
 };
