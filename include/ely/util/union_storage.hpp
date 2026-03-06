@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "ely/util/traits.hpp"
+
 namespace ely {
 
 namespace detail {
@@ -261,16 +263,55 @@ public:
     return std::move(impl_).get(i);
   }
 
+  template <typename T>
+    requires(std::disjunction_v<std::is_same<T, Ts>...>)
+  constexpr auto& get(std::in_place_type_t<T> t) & noexcept {
+    return impl_.get(std::in_place_index<ely::find_index_v<T, Ts...>>);
+  }
+
+  template <typename T>
+    requires(std::disjunction_v<std::is_same<T, Ts>...>)
+  constexpr const auto& get(std::in_place_type_t<T> t) const& noexcept {
+    return impl_.get(std::in_place_index<ely::find_index_v<T, Ts...>>);
+  }
+
+  template <typename T>
+    requires(std::disjunction_v<std::is_same<T, Ts>...>)
+  constexpr auto&& get(std::in_place_type_t<T> t) && noexcept {
+    return std::move(impl_).get(
+        std::in_place_index<ely::find_index_v<T, Ts...>>);
+  }
+
+  template <typename T>
+    requires(std::disjunction_v<std::is_same<T, Ts>...>)
+  constexpr const auto&& get(std::in_place_type_t<T> t) const&& noexcept {
+    return std::move(impl_).get(
+        std::in_place_index<ely::find_index_v<T, Ts...>>);
+  }
+
   template <std::size_t I, typename... Args>
     requires(I < sizeof...(Ts))
   constexpr void emplace(std::in_place_index_t<I> i, Args&&... args) {
     impl_.emplace(i, static_cast<Args&&>(args)...);
   }
 
+  template <typename T, typename... Args>
+    requires(std::disjunction_v<std::is_same<T, Ts>...>)
+  constexpr void emplace(std::in_place_type_t<T> t, Args&&... args) {
+    impl_.emplace(std::in_place_index<ely::find_index_v<T, Ts...>>,
+                  static_cast<Args&&>(args)...);
+  }
+
   template <std::size_t I>
     requires(I < sizeof...(Ts))
   constexpr void destroy(std::in_place_index_t<I> i) noexcept {
     impl_.destroy(i);
+  }
+
+  template <typename T>
+    requires(std::disjunction_v<std::is_same<T, Ts>...>)
+  constexpr void destroy(std::in_place_type_t<T> t) noexcept {
+    impl_.destroy(std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 };
 } // namespace ely
