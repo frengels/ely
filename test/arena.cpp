@@ -1,4 +1,5 @@
 #include "ely/arena/constexpr.hpp"
+#include "ely/arena/growing.hpp"
 #include "ely/arena/slab.hpp"
 
 #include <cstring>
@@ -43,6 +44,7 @@ template <typename Arena> constexpr bool test_arena() {
 
 void arena() {
   assert(test_arena<ely::arena::slab<4096>>());
+  assert(test_arena<ely::arena::growing>());
   static_assert(test_arena<ely::arena::constexpr_>());
 }
 
