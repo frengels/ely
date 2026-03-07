@@ -7,7 +7,7 @@ namespace ely {
 namespace arena {
 namespace detail {
 template <std::size_t SlabSize> struct slab_growth_fn {
-  std::size_t operator()(std::size_t sz) const {
+  constexpr std::size_t operator()(std::size_t sz) const {
     return std::max(sz, SlabSize);
   }
 };

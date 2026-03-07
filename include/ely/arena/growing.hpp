@@ -8,10 +8,10 @@ namespace detail {
 struct growing_fn {
   std::size_t current_capacity;
 
-  growing_fn(std::size_t initial_capacity = 1024)
+  constexpr growing_fn(std::size_t initial_capacity = 1024)
       : current_capacity(initial_capacity) {}
 
-  std::size_t operator()(std::size_t sz) {
+  constexpr std::size_t operator()(std::size_t sz) {
     auto next_capacity = std::max(sz, 2 * current_capacity);
     current_capacity = next_capacity;
     return next_capacity;
@@ -24,7 +24,7 @@ struct growing : basic_arena<detail::growing_fn> {
 
   using base::base;
 
-  growing(std::size_t initial_capacity = 1024)
+  constexpr growing(std::size_t initial_capacity = 1024)
       : base(detail::growing_fn(initial_capacity)) {}
 };
 } // namespace arena

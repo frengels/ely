@@ -7,6 +7,9 @@
 
 #include <cassert>
 
+#include "ely/arena/constexpr.hpp"
+#include "ely/util/cx_or_rt.hpp"
+
 namespace ely {
 namespace arena {
 namespace detail {
@@ -16,20 +19,19 @@ struct block {
   // offset 16 bytes, correct for max_align_t
   alignas(alignof(std::max_align_t)) std::byte data[];
 };
-} // namespace detail
 
-template <typename GrowthFn> class basic_arena {
+template <typename GrowthFn> class basic_arena_impl {
 private:
   std::byte* cur_ptr_;
   std::byte* end_ptr_;
-  detail::block* current_block_;
+  block* current_block_;
   [[no_unique_address]] GrowthFn growth_fn_;
 
 public:
-  basic_arena() = default;
-  basic_arena(GrowthFn growth_fn) : growth_fn_(std::move(growth_fn)) {}
+  basic_arena_impl() = default;
+  basic_arena_impl(GrowthFn growth_fn) : growth_fn_(std::move(growth_fn)) {}
 
-  ~basic_arena() {
+  ~basic_arena_impl() {
     while (current_block_) {
       detail::block* prev = current_block_->prev;
       ::operator delete(current_block_,
@@ -77,6 +79,31 @@ private:
     assert(aligned_ptr && "block size must be large enough to fit the "
                           "requested allocation including alignment padding");
     cur_ptr_ = aligned_ptr;
+  }
+};
+} // namespace detail
+
+template <typename GrowthFn> class basic_arena {
+private:
+  ely::cx_or_rt<ely::arena::constexpr_, detail::basic_arena_impl<GrowthFn>>
+      impl_;
+
+public:
+  basic_arena() = default;
+  constexpr basic_arena(GrowthFn growth_fn)
+      : impl_(std::forward_as_tuple(),
+              std::forward_as_tuple(std::move(growth_fn))) {}
+
+  constexpr std::byte*
+  allocate_bytes(std::size_t size,
+                 std::size_t alignment = alignof(std::max_align_t)) {
+    return impl_.visit(
+        [=](auto& arena) { return arena.allocate_bytes(size, alignment); });
+  }
+
+  template <typename T> constexpr T* allocate(std::size_t count = 1) {
+    return impl_.visit(
+        [count](auto& arena) { return arena.template allocate<T>(count); });
   }
 };
 } // namespace arena
