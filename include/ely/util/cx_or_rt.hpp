@@ -25,9 +25,9 @@ public:
              std::is_default_constructible_v<runtime_type>)
       : storage_() {
     if consteval {
-      storage_.template emplace<constexpr_type>();
+      storage_.emplace(std::in_place_type<constexpr_type>);
     } else {
-      storage_.template emplace<runtime_type>();
+      storage_.emplace(std::in_place_type<runtime_type>);
     }
   }
 
@@ -62,43 +62,39 @@ public:
     }
   }
 
-  [[nodiscard]] constexpr bool is_constexpr() const {
-    return std::is_constant_evaluated();
-  }
+  constexpr bool is_constexpr() const { return std::is_constant_evaluated(); }
 
-  [[nodiscard]] constexpr bool is_runtime() const { return !is_constexpr(); }
+  constexpr bool is_runtime() const { return !is_constexpr(); }
 
-  [[nodiscard]] constexpr const auto& get() const& {
-    return is_constexpr() ? storage_.get(std::in_place_type<constexpr_type>)
-                          : storage_.get(std::in_place_type<runtime_type>);
-  }
-
-  [[nodiscard]] constexpr auto& get() & {
-    return is_constexpr() ? storage_.get(std::in_place_type<constexpr_type>)
-                          : storage_.get(std::in_place_type<runtime_type>);
-  }
-
-  [[nodiscard]] constexpr auto&& get() && {
-    return is_constexpr()
-               ? std::move(storage_).get(std::in_place_type<constexpr_type>())
-               : std::move(storage_).get(std::in_place_type<runtime_type>());
-  }
-
-  [[nodiscard]] constexpr const auto&& get() const&& {
-    return is_constexpr()
-               ? std::move(storage_).get(std::in_place_type<constexpr_type>())
-               : std::move(storage_).get(std::in_place_type<runtime_type>());
-  }
-
-  template <typename CxFn, typename RtFn>
-  [[nodiscard]] constexpr decltype(auto) visit(CxFn&& cx_fn,
-                                               RtFn&& rt_fn) const {
-    if (is_constexpr()) {
-      return std::forward<CxFn>(cx_fn)(
-          storage_.get(std::in_place_type<constexpr_type>()));
+  template <typename Self> constexpr decltype(auto) get(this Self&& self) {
+    if (self.is_constexpr()) {
+      return static_cast<Self&&>(self).storage_.get(
+          std::in_place_type<constexpr_type>);
     } else {
-      return std::forward<RtFn>(rt_fn)(
-          storage_.get(std::in_place_type<runtime_type>()));
+      return static_cast<Self&&>(self).storage_.get(
+          std::in_place_type<runtime_type>);
+    }
+  }
+
+  template <typename Self, typename CxFn, typename RtFn>
+  constexpr decltype(auto) visit(this Self&& self, CxFn&& cx_fn, RtFn&& rt_fn) {
+    if (self.is_constexpr()) {
+      return static_cast<CxFn&&>(cx_fn)(static_cast<Self&&>(self).storage_.get(
+          std::in_place_type<constexpr_type>));
+    } else {
+      return std::forward<RtFn>(rt_fn)(static_cast<Self&&>(self).storage_.get(
+          std::in_place_type<runtime_type>));
+    }
+  }
+
+  template <typename Self, typename Fn>
+  constexpr decltype(auto) visit(this Self&& self, Fn&& fn) {
+    if (self.is_constexpr()) {
+      return static_cast<Fn&&>(fn)(static_cast<Self&&>(self).storage_.get(
+          std::in_place_type<constexpr_type>));
+    } else {
+      return std::forward<Fn>(fn)(static_cast<Self&&>(self).storage_.get(
+          std::in_place_type<runtime_type>));
     }
   }
 };
