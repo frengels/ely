@@ -37,6 +37,7 @@ target_include_directories(ely INTERFACE
   $<BUILD_INTERFACE:$<$<BOOL:$<TARGET_PROPERTY:ELY_PRIVATE>>:${CMAKE_CURRENT_SOURCE_DIR}/src>>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(ely INTERFACE fmt::fmt Boost::program_options)
+# required for various constexpr features
 target_compile_features(ely INTERFACE cxx_std_26)
 set_target_properties(ely PROPERTIES CXX_EXTENSIONS ON)
 
