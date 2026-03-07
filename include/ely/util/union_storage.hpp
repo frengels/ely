@@ -233,59 +233,26 @@ private:
   [[no_unique_address]] impl_type impl_;
 
 public:
+  constexpr union_storage() : impl_(std::in_place_index<0>) {}
+
   template <std::size_t I, typename... Args>
   explicit constexpr union_storage(std::in_place_index_t<I> i, Args&&... args)
       : impl_(i, static_cast<Args&&>(args)...) {}
 
   ~union_storage() = default;
 
-  template <std::size_t I>
+  template <typename Self, std::size_t I>
     requires(I < sizeof...(Ts))
-  constexpr auto& get(std::in_place_index_t<I> i) & noexcept {
-    return impl_.get(i);
+  constexpr decltype(auto) get(this Self&& self,
+                               std::in_place_index_t<I> i) noexcept {
+    return static_cast<Self&&>(self).impl_.get(i);
   }
 
-  template <std::size_t I>
-    requires(I < sizeof...(Ts))
-  constexpr const auto& get(std::in_place_index_t<I> i) const& noexcept {
-    return impl_.get(i);
-  }
-
-  template <std::size_t I>
-    requires(I < sizeof...(Ts))
-  constexpr auto&& get(std::in_place_index_t<I> i) && noexcept {
-    return std::move(impl_).get(i);
-  }
-
-  template <std::size_t I>
-    requires(I < sizeof...(Ts))
-  constexpr const auto&& get(std::in_place_index_t<I> i) const&& noexcept {
-    return std::move(impl_).get(i);
-  }
-
-  template <typename T>
+  template <typename Self, typename T>
     requires(std::disjunction_v<std::is_same<T, Ts>...>)
-  constexpr auto& get(std::in_place_type_t<T> t) & noexcept {
-    return impl_.get(std::in_place_index<ely::find_index_v<T, Ts...>>);
-  }
-
-  template <typename T>
-    requires(std::disjunction_v<std::is_same<T, Ts>...>)
-  constexpr const auto& get(std::in_place_type_t<T> t) const& noexcept {
-    return impl_.get(std::in_place_index<ely::find_index_v<T, Ts...>>);
-  }
-
-  template <typename T>
-    requires(std::disjunction_v<std::is_same<T, Ts>...>)
-  constexpr auto&& get(std::in_place_type_t<T> t) && noexcept {
-    return std::move(impl_).get(
-        std::in_place_index<ely::find_index_v<T, Ts...>>);
-  }
-
-  template <typename T>
-    requires(std::disjunction_v<std::is_same<T, Ts>...>)
-  constexpr const auto&& get(std::in_place_type_t<T> t) const&& noexcept {
-    return std::move(impl_).get(
+  constexpr decltype(auto) get(this Self&& self,
+                               std::in_place_type_t<T>) noexcept {
+    return static_cast<Self&&>(self).impl_.get(
         std::in_place_index<ely::find_index_v<T, Ts...>>);
   }
 
