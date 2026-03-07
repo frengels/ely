@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "ely/util/variant.hpp"
+#include "ely/util/visit.hpp"
 
 namespace ely {
 template <typename T> class optional;
