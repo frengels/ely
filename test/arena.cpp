@@ -46,6 +46,8 @@ void arena() {
   assert(test_arena<ely::arena::slab<4096>>());
   assert(test_arena<ely::arena::growing>());
   static_assert(test_arena<ely::arena::constexpr_>());
+  static_assert(test_arena<ely::arena::slab<4096>>());
+  static_assert(test_arena<ely::arena::growing>());
 }
 
 #ifndef NO_MAIN
