@@ -7,8 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "ely/arena/growing.hpp"
-#include "ely/hash/fnv.hpp"
+#include "ely/arena/view.hpp"
 #include "ely/symbol.hpp"
 #include "ely/util/cx_or_rt.hpp"
 #include "ely/util/optional.hpp"
@@ -28,12 +27,14 @@ private:
       map_storage_;
   // std::unordered_map<string_view_type, symbol_type> map_;
   std::vector<string_view_type> ref_;
-  ely::arena::growing arena_{4096};
+  // ely::arena::growing arena_{4096};
 
 public:
   basic_simple_interner() = default;
 
-  constexpr symbol_type intern(string_view_type strv) {
+  template <typename Arena>
+  constexpr symbol_type intern(Arena& arena, string_view_type strv) {
+    auto varena = ely::arena::view<Arena, char>(arena);
     return map_storage_
         .visit(
             [&](const auto& vec) -> ely::optional<symbol_type> {
@@ -54,7 +55,7 @@ public:
               return ely::nullopt;
             })
         .value_or_else([&]() {
-          char_type* p = arena_.allocate<char>(strv.size());
+          char_type* p = varena.allocate(strv.size());
           std::copy(strv.begin(), strv.end(), p);
           string_view_type internal = string_view_type{p, strv.size()};
 

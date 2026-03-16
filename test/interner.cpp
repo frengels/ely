@@ -1,3 +1,4 @@
+#include <ely/arena/stack.hpp>
 #include <ely/interner.hpp>
 
 #include <cassert>
@@ -9,22 +10,24 @@
 #include <string_view>
 
 constexpr bool simple_interner() {
+  auto arena = ely ::arena::stack<char, 4096>{};
+  auto varena = ely::arena::view<decltype(arena), char>{arena};
   auto interner = ely::simple_interner();
 
   // 2 equivalent interned symbol must compare equal
-  auto hello_sym = interner.intern("hello");
-  auto hello2_sym = interner.intern("hello");
+  auto hello_sym = interner.intern(varena, "hello123");
+  auto hello2_sym = interner.intern(varena, "hello123");
   assert(hello_sym == hello2_sym);
 
   // must compare not equal
-  auto foo_sym = interner.intern("foo");
-  auto bar_sym = interner.intern("bar");
+  auto foo_sym = interner.intern(arena, "foo");
+  auto bar_sym = interner.intern(arena, "bar");
   assert(foo_sym != bar_sym);
 
   // must be able to lookup
   assert(interner.lookup(foo_sym) == "foo");
   assert(interner.lookup(bar_sym) == "bar");
-  assert(interner.lookup(hello_sym) == "hello");
+  assert(interner.lookup(hello_sym) == "hello123");
 
   return true;
 }
