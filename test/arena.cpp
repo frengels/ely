@@ -44,10 +44,15 @@ template <typename Arena> constexpr bool test_arena() {
 
 void arena() {
   assert(test_arena<ely::arena::slab<4096>>());
+  fmt::println("ely/arena/slab - SUCCESS");
   assert(test_arena<ely::arena::growing>());
+  fmt::println("ely/arena/growing - SUCCESS");
   static_assert(test_arena<ely::arena::constexpr_>());
+  fmt::println("ely/arena/constexpr - SUCCESS");
   static_assert(test_arena<ely::arena::slab<4096>>());
+  fmt::println("ely/arena/slab (constexpr) - SUCCESS");
   static_assert(test_arena<ely::arena::growing>());
+  fmt::println("ely/arena/growing (constexpr) - SUCCESS");
 }
 
 #ifndef NO_MAIN
